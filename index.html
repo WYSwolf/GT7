@@ -894,6 +894,30 @@ function navigateTo(pageId) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function carSlug(car) {
+  return (car || '').replace(/[^a-z0-9]+/gi, '').toLowerCase() || 'car';
+}
+
+function computeStats(g) {
+  g.totalLaps = g.sessions.reduce((s, x) => s + x.totalLaps, 0);
+  g.pb = Math.min(...g.sessions.map(s => s.best));
+  const allS1 = g.sessions.flatMap(s => s.laps.map(l => l.s1));
+  const allS2 = g.sessions.flatMap(s => s.laps.map(l => l.s2));
+  const allS3 = g.sessions.flatMap(s => s.laps.map(l => l.s3));
+  const sectorCount = g.sessions[0].sectorsCount;
+  if (sectorCount === 4) {
+    const allS4 = g.sessions.flatMap(s => s.laps.map(l => l.s4 || 0));
+    g.opt = Math.min(...allS1) + Math.min(...allS2) + Math.min(...allS3) + Math.min(...allS4);
+    g.sectorBest = { s1: Math.min(...allS1), s2: Math.min(...allS2), s3: Math.min(...allS3), s4: Math.min(...allS4) };
+  } else {
+    g.opt = Math.min(...allS1) + Math.min(...allS2) + Math.min(...allS3);
+    g.sectorBest = { s1: Math.min(...allS1), s2: Math.min(...allS2), s3: Math.min(...allS3) };
+  }
+  g.bestConsistency = Math.min(...g.sessions.map(s => s.avg - s.best));
+  g.sectorCount = sectorCount;
+  return g;
+}
+
 function getTrackGroups() {
   const groups = {};
   DATA.sessions.forEach(s => {
@@ -905,38 +929,68 @@ function getTrackGroups() {
     }
     groups[s.trackKey].sessions.push(s);
   });
-  Object.values(groups).forEach(g => {
-    g.totalLaps = g.sessions.reduce((s, x) => s + x.totalLaps, 0);
-    g.pb = Math.min(...g.sessions.map(s => s.best));
-    const allS1 = g.sessions.flatMap(s => s.laps.map(l => l.s1));
-    const allS2 = g.sessions.flatMap(s => s.laps.map(l => l.s2));
-    const allS3 = g.sessions.flatMap(s => s.laps.map(l => l.s3));
-    const sectorCount = g.sessions[0].sectorsCount;
-    if (sectorCount === 4) {
-      const allS4 = g.sessions.flatMap(s => s.laps.map(l => l.s4 || 0));
-      g.opt = Math.min(...allS1) + Math.min(...allS2) + Math.min(...allS3) + Math.min(...allS4);
-      g.sectorBest = { s1: Math.min(...allS1), s2: Math.min(...allS2), s3: Math.min(...allS3), s4: Math.min(...allS4) };
-    } else {
-      g.opt = Math.min(...allS1) + Math.min(...allS2) + Math.min(...allS3);
-      g.sectorBest = { s1: Math.min(...allS1), s2: Math.min(...allS2), s3: Math.min(...allS3) };
-    }
-    g.bestConsistency = Math.min(...g.sessions.map(s => s.avg - s.best));
-    g.sectorCount = sectorCount;
-  });
+  Object.values(groups).forEach(computeStats);
   return groups;
+}
+
+// Split a track group into per-car subgroups, each with its own PB / OPT / sectors.
+function getCarSubgroups(trackGroup) {
+  const byCar = {};
+  trackGroup.sessions.forEach(s => {
+    const ck = carSlug(s.car);
+    if (!byCar[ck]) {
+      byCar[ck] = {
+        key: trackGroup.key + '__' + ck, carKey: ck,
+        track: trackGroup.track, trackEn: trackGroup.trackEn, route: trackGroup.route,
+        car: s.car, carClass: s.carClass, sessions: []
+      };
+    }
+    byCar[ck].sessions.push(s);
+  });
+  const subs = Object.values(byCar).map(computeStats);
+  subs.sort((a, b) => {
+    const ad = a.sessions.map(s => s.date).sort().slice(-1)[0] || '';
+    const bd = b.sessions.map(s => s.date).sort().slice(-1)[0] || '';
+    return bd.localeCompare(ad);
+  });
+  return subs;
+}
+
+function getCarReference(carKey) {
+  if (DATA.meta && DATA.meta.references && DATA.meta.references[carKey]) return DATA.meta.references[carKey];
+  return null;
+}
+
+// Switch which car's view is shown on a track page (charts are pre-rendered).
+function switchCar(trackKey, carKey, btn) {
+  document.querySelectorAll('[data-carview="' + trackKey + '"]').forEach(v => {
+    v.style.display = (v.dataset.carkey === carKey) ? 'block' : 'none';
+  });
+  document.querySelectorAll('[data-cartab="' + trackKey + '"]').forEach(b => {
+    b.style.background = 'transparent'; b.style.color = 'var(--text-secondary)';
+  });
+  btn.style.background = 'var(--accent)'; btn.style.color = '#0a0d12';
+  setTimeout(() => {
+    document.querySelectorAll('[data-carview="' + trackKey + '"][data-carkey="' + carKey + '"] canvas').forEach(c => {
+      const ch = (window.Chart && Chart.getChart) ? Chart.getChart(c) : null;
+      if (ch) ch.resize();
+    });
+  }, 30);
 }
 
 function buildDashboard() {
   const groups = getTrackGroups();
   const trackList = Object.values(groups);
   const totalLaps = trackList.reduce((s, g) => s + g.totalLaps, 0);
-  const overallPB = trackList.reduce((best, g) => g.pb < best.time ? { time: g.pb, track: g.track } : best, { time: Infinity, track: '' });
+  let overallPB = { time: Infinity, track: '', car: '' };
+  DATA.sessions.forEach(s => { if (s.best < overallPB.time) overallPB = { time: s.best, track: s.track, car: s.car }; });
   const bestConsistency = Math.min(...DATA.sessions.map(s => s.avg - s.best));
   const bestConsistencySession = DATA.sessions.find(s => (s.avg - s.best) === bestConsistency);
 
   let refKPI = '';
-  if (DATA.meta && DATA.meta.reference) {
-    const ref = DATA.meta.reference;
+  const dashRef = getCarReference(carSlug(overallPB.car)) || (DATA.meta && DATA.meta.reference) || null;
+  if (dashRef) {
+    const ref = dashRef;
     const gapPct = (overallPB.time - ref.time) / ref.time * 100;
     const gapSec = overallPB.time - ref.time;
     refKPI = `
@@ -1124,15 +1178,57 @@ function buildTrackDetailPages() {
   });
 
   setTimeout(() => {
-    Object.values(groups).forEach(g => renderTrackCharts(g));
+    Object.values(groups).forEach(g => getCarSubgroups(g).forEach(sub => renderCarCharts(sub)));
   }, 50);
 }
 
 function renderTrackDetail(g) {
+  const subs = getCarSubgroups(g);
+  const multi = subs.length > 1;
+
+  const selector = multi ? `
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.25rem;">
+      ${subs.map((sub, i) => `
+        <button data-cartab="${g.key}" onclick="switchCar('${g.key}','${sub.key}',this)"
+          style="padding:.5rem .9rem;border-radius:8px;border:1px solid #2a3340;cursor:pointer;
+          font-family:'Bebas Neue',sans-serif;letter-spacing:.5px;font-size:.95rem;
+          background:${i === 0 ? 'var(--accent)' : 'transparent'};color:${i === 0 ? '#0a0d12' : 'var(--text-secondary)'};">
+          ${sub.car}${sub.carClass ? ' · ' + sub.carClass : ''}
+        </button>
+      `).join('')}
+    </div>
+  ` : '';
+
+  const views = subs.map((sub, i) => `
+    <div data-carview="${g.key}" data-carkey="${sub.key}" style="display:${i === 0 ? 'block' : 'none'};">
+      ${renderCarSection(sub)}
+    </div>
+  `).join('');
+
+  return `
+    <div class="page-header">
+      <div class="breadcrumb">CIRCUITS <span class="sep">/</span> <span class="current">${g.track}</span></div>
+      <h1 class="page-title">${g.trackEn.split(' ')[0]} <span class="accent">${g.trackEn.split(' ').slice(1).join(' ') || ''}</span></h1>
+      ${multi ? `<div class="page-subtitle">${subs.length} CARS · ${g.totalLaps} LAPS</div>` : ''}
+    </div>
+    ${selector}
+    ${views}
+  `;
+}
+
+function renderCarSection(g) {
   const gap = g.pb - g.opt;
   const allValidLaps = g.sessions.flatMap(s => s.laps.filter(l => !l.invalid));
   const avgConsistency = (allValidLaps.reduce((sum, l) => sum + l.total, 0) / allValidLaps.length) - g.pb;
   const consGrade = getConsistencyGrade(avgConsistency);
+  const ref = getCarReference(g.carKey);
+
+  const gapKPI = ref ? `
+    <div class="kpi" style="--kpi-color: var(--danger);">
+      <div class="kpi-label">與${ref.label}差距</div>
+      <div class="kpi-value">+${((g.pb - ref.time) / ref.time * 100).toFixed(2)}<span style="font-size:1rem;">%</span></div>
+      <div class="kpi-meta">參考 ${ref.displayTime} · 落後 ${(g.pb - ref.time).toFixed(3)}s</div>
+    </div>` : '';
 
   const sessionCards = g.sessions.length > 1 ? `
     <div class="grid-3" style="margin-bottom: 1.5rem;">
@@ -1175,14 +1271,11 @@ function renderTrackDetail(g) {
     : '<tr><th>SESSION</th><th>圈</th><th>S1</th><th>S2</th><th>S3</th><th>圈速</th><th>備註</th></tr>';
 
   return `
-    <div class="page-header">
-      <div class="breadcrumb">CIRCUITS <span class="sep">/</span> <span class="current">${g.track}</span></div>
-      <h1 class="page-title">${g.trackEn.split(' ')[0]} <span class="accent">${g.trackEn.split(' ').slice(1).join(' ') || ''}</span></h1>
-      <div class="page-subtitle">${g.car} · ${g.totalLaps} LAPS · ${g.sessions.length} SESSION${g.sessions.length > 1 ? 'S' : ''}</div>
-    </div>
+    <div class="page-subtitle" style="margin-bottom:1.25rem;">${g.car}${g.carClass ? ' · ' + g.carClass : ''} · ${g.totalLaps} LAPS · ${g.sessions.length} SESSION${g.sessions.length > 1 ? 'S' : ''}</div>
     <div class="kpi-grid">
       <div class="kpi" style="--kpi-color: var(--accent);"><div class="kpi-label">PERSONAL BEST</div><div class="kpi-value">${fmtTime(g.pb)}</div></div>
       <div class="kpi" style="--kpi-color: var(--purple);"><div class="kpi-label">OPTIMAL LAP</div><div class="kpi-value">${fmtTime(g.opt)}</div><div class="kpi-meta">${g.sectorCount} sector 加總</div></div>
+      ${gapKPI}
       <div class="kpi" style="--kpi-color: var(--gold);"><div class="kpi-label">PB - OPT</div><div class="kpi-value">${gap.toFixed(3)}<span style="font-size:1rem;">s</span></div><div class="kpi-meta">潛力空間</div></div>
       <div class="kpi" style="--kpi-color: ${consGrade.color};"><div class="kpi-label">一致性</div><div class="kpi-value">${avgConsistency.toFixed(2)}<span style="font-size:1rem;">s</span></div><div class="kpi-meta">${consGrade.label}</div></div>
     </div>
@@ -1214,7 +1307,7 @@ function renderTrackDetail(g) {
   `;
 }
 
-function renderTrackCharts(g) {
+function renderCarCharts(g) {
   const allLaps = [];
   g.sessions.forEach(s => {
     s.laps.forEach(l => {
