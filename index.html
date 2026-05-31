@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GT7 TELEMETRY · 訓練追蹤系統</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&family=Bebas+Neue&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg-base: #0a0d12;
+    --bg-panel: #131820;
+    --bg-elevated: #1a2029;
+    --bg-input: #0f141b;
+    --line: #2a3340;
+    --line-bright: #3d4856;
+    --text-primary: #e8ecf1;
+    --text-secondary: #8b96a8;
+    --text-dim: #5a6577;
+    --accent: #00ff88;
+    --accent-dim: #00b85e;
+    --warn: #ff8c42;
+    --danger: #ff4757;
+    --info: #4dabf7;
+    --purple: #c266ff;
+    --gold: #ffd43b;
+    --session-a: #5b9bd5;
+    --session-b: #ed7d31;
+    --session-c: #70ad47;
+    --shadow-glow: 0 0 24px rgba(0, 255, 136, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: 'Noto Sans TC', 'JetBrains Mono', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.5;
+    background-image:
+      radial-gradient(ellipse at top, rgba(0, 255, 136, 0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(237, 125, 49, 0.03) 0%, transparent 50%);
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Loader */
+  .loader-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-base);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 2rem;
+  }
+  .loader-screen.hidden { display: none; }
+
+  .loader-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem;
+    letter-spacing: 0.15em;
+    margin-bottom: 0.5rem;
+  }
+  .loader-logo .accent { color: var(--accent); }
+
+  .loader-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 3rem;
+  }
+
+  .loader-spinner {
+    width: 50px;
+    height: 50px;
+    border: 2px solid var(--line);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 1.5rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loader-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+  }
+
+  .error-box {
+    background: rgba(255, 71, 87, 0.08);
+    border: 1px solid var(--danger);
+    padding: 1.5rem 2rem;
+    max-width: 500px;
+    margin-top: 2rem;
+    display: none;
+  }
+  .error-box.show { display: block; }
+  .error-title {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--danger);
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .error-desc {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+  .error-code {
+    background: var(--bg-panel);
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    border-left: 2px solid var(--line);
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10, 13, 18, 0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .topbar-inner {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .logo { display: flex; align-items: center; gap: 0.75rem; }
+
+  .logo-mark {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+    clip-path: polygon(0 0, 100% 0, 100% 70%, 70% 100%, 0 100%);
+    position: relative;
+  }
+  .logo-mark::after {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    background: var(--bg-base);
+    clip-path: polygon(0 0, 100% 0, 100% 60%, 60% 100%, 0 100%);
+  }
+
+  .logo-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 0.15em;
+    line-height: 1;
+  }
+  .logo-text .sub {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    margin-top: 2px;
+  }
+
+  .nav-tabs {
+    display: flex;
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+    overflow-x: auto;
+  }
+  .nav-tab {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.6rem 1.25rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    border-right: 1px solid var(--line);
+    position: relative;
+    white-space: nowrap;
+  }
+  .nav-tab:last-child { border-right: none; }
+  .nav-tab:hover { color: var(--text-primary); background: var(--bg-elevated); }
+  .nav-tab.active { color: var(--accent); background: var(--bg-elevated); }
+  .nav-tab.active::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .topbar-right { display: flex; align-items: center; gap: 1rem; }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    padding: 0.4rem 0.75rem;
+    border-radius: 2px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+  }
+  .status-pill::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .reload-btn {
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    color: var(--text-secondary);
+    padding: 0.4rem 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .reload-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 2rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .page { display: none; animation: fadeIn 0.3s ease; }
+  .page.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .page-header { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--line); }
+
+  .page-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem;
+    letter-spacing: 0.05em;
+    line-height: 1;
+  }
+  .page-title .accent { color: var(--accent); }
+
+  .page-subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    margin-top: 0.5rem;
+    text-transform: uppercase;
+  }
+
+  .breadcrumb {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .breadcrumb .sep { color: var(--line-bright); margin: 0 0.5rem; }
+  .breadcrumb .current { color: var(--accent); }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .kpi {
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    padding: 1.25rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--kpi-color, var(--accent));
+    opacity: 0.7;
+  }
+  .kpi-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 0.5rem;
+  }
+  .kpi-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--kpi-color, var(--text-primary));
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .kpi-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-top: 0.4rem;
+  }
+
+  .panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-elevated);
+  }
+  .panel-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .panel-title::before {
+    content: '';
+    width: 3px;
+    height: 16px;
+    background: var(--accent);
+  }
+  .panel-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+  }
+  .panel-body { padding: 1.5rem; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+
+  @media (max-width: 900px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .topbar-inner { padding: 1rem; }
+    .container { padding: 1rem; }
+    .page-title { font-size: 2rem; }
+    .nav-tabs { width: 100%; }
+  }
+
+  .chart-wrap { position: relative; height: 380px; width: 100%; }
+  .chart-wrap.tall { height: 480px; }
+
+  .session-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--line);
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .session-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 3px;
+    background: var(--session-color, var(--accent));
+  }
+  .session-card:hover {
+    border-color: var(--session-color, var(--accent));
+    transform: translateX(2px);
+  }
+  .session-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+  .session-tag {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.25rem;
+    color: var(--session-color, var(--accent));
+    letter-spacing: 0.1em;
+  }
+  .session-laps {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .session-pb {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+  .session-stats {
+    display: flex;
+    gap: 1rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+  }
+  .session-stats span { color: var(--text-dim); }
+
+  .track-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    padding: 2rem;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+  .track-card:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-glow);
+  }
+  .track-card-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 0.05em;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+  .track-card-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+  }
+  .track-stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+  }
+  .track-stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+  }
+  .track-stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+  }
+  .data-table th {
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--line);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.65rem;
+    position: sticky;
+    top: 0;
+  }
+  .data-table td {
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid var(--line);
+    color: var(--text-primary);
+  }
+  .data-table tr:hover td { background: var(--bg-elevated); }
+  .data-table .best { color: var(--accent); font-weight: 700; }
+  .data-table .bad { color: var(--danger); }
+  .data-table .invalid { color: var(--text-dim); }
+
+  .table-wrap { max-height: 600px; overflow-y: auto; }
+
+  .insight {
+    background: var(--bg-elevated);
+    border-left: 3px solid var(--accent);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+  .insight.warn { border-left-color: var(--warn); }
+  .insight.danger { border-left-color: var(--danger); }
+  .insight-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+  .insight.warn .insight-label { color: var(--warn); }
+  .insight.danger .insight-label { color: var(--danger); }
+
+  .goal-row {
+    display: flex;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--line);
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .goal-row:last-child { border-bottom: none; }
+  .goal-period {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    min-width: 90px;
+  }
+  .goal-target {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.5rem;
+    color: var(--accent);
+    font-weight: 700;
+    min-width: 130px;
+  }
+  .goal-desc { flex: 1; color: var(--text-secondary); font-size: 0.85rem; min-width: 200px; }
+  .goal-progress {
+    width: 200px;
+    height: 6px;
+    background: var(--bg-input);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .goal-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+    transition: width 0.8s ease;
+  }
+
+  .timeline-item {
+    display: flex;
+    gap: 1.5rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    transition: background 0.15s;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .timeline-item:hover { background: var(--bg-elevated); padding-left: 1.5rem; padding-right: 1.5rem; }
+  .timeline-item:last-child { border-bottom: none; }
+  .timeline-date {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    min-width: 100px;
+    letter-spacing: 0.05em;
+  }
+  .timeline-content { flex: 1; min-width: 200px; }
+  .timeline-track {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+  }
+  .timeline-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+  }
+  .timeline-pb {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+
+  footer {
+    margin-top: 4rem;
+    padding: 2rem 0;
+    border-top: 1px solid var(--line);
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg-base); }
+  ::-webkit-scrollbar-thumb { background: var(--line-bright); border-radius: 1px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  .badge {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    background: var(--bg-input);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .badge.accent { color: var(--accent); border-color: var(--accent-dim); }
+  .badge.warn { color: var(--warn); border-color: var(--warn); }
+
+  .app-content { display: none; }
+  .app-content.ready { display: block; }
+</style>
+</head>
+<body>
+
+<!-- ========== LOADER ========== -->
+<div class="loader-screen" id="loaderScreen">
+  <div class="loader-logo">GT7 <span class="accent">TELEMETRY</span></div>
+  <div class="loader-sub">TRAINING TRACKER · ONLINE</div>
+  <div class="loader-spinner" id="loaderSpinner"></div>
+  <div class="loader-status" id="loaderStatus">正在載入訓練資料...</div>
+
+  <div class="error-box" id="errorBox">
+    <div class="error-title">無法載入資料</div>
+    <div class="error-desc" id="errorDesc"></div>
+  </div>
+</div>
+
+<!-- ========== APP ========== -->
+<div class="app-content" id="appContent">
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="logo">
+      <div class="logo-mark"></div>
+      <div class="logo-text">
+        GT7 TELEMETRY
+        <span class="sub">TRAINING TRACKER · ONLINE</span>
+      </div>
+    </div>
+    <div class="nav-tabs" id="navTabs">
+      <button class="nav-tab active" data-page="dashboard">總覽</button>
+      <button class="nav-tab" data-page="tracks">賽道</button>
+      <button class="nav-tab" data-page="goals">目標</button>
+      <button class="nav-tab" data-page="history">紀錄</button>
+    </div>
+    <div class="topbar-right">
+      <button class="reload-btn" id="reloadBtn" title="重新抓資料">⟲ 重新整理</button>
+      <div class="status-pill" id="statusPill">LOADING</div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="page active" id="page-dashboard">
+    <div class="page-header">
+      <div class="breadcrumb">SYSTEM <span class="sep">/</span> <span class="current">總覽儀表板</span></div>
+      <h1 class="page-title">TRAINING <span class="accent">OVERVIEW</span></h1>
+      <div class="page-subtitle">全部訓練資料整合視圖</div>
+    </div>
+
+    <div class="kpi-grid" id="dashboardKPIs"></div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">賽道選擇</div>
+          <div class="panel-meta">點擊進入詳細頁</div>
+        </div>
+        <div class="panel-body" style="display: flex; flex-direction: column; gap: 1rem;" id="dashboardTrackList"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">一致性對比</div>
+          <div class="panel-meta">越低越穩定</div>
+        </div>
+        <div class="panel-body">
+          <div class="chart-wrap"><canvas id="consistencyOverviewChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="pbProgressionPanel">
+      <div class="panel-header">
+        <div class="panel-title">PB 進步軌跡</div>
+        <div class="panel-meta">每場最佳圈速 · 越低越好</div>
+      </div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="pbProgressionChart"></canvas></div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">最新洞察</div>
+        <div class="panel-meta" id="latestInsightsDate"></div>
+      </div>
+      <div class="panel-body" id="dashboardInsights"></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-tracks">
+    <div class="page-header">
+      <div class="breadcrumb">SYSTEM <span class="sep">/</span> <span class="current">賽道列表</span></div>
+      <h1 class="page-title">CIRCUITS <span class="accent">·</span> 賽道</h1>
+      <div class="page-subtitle">所有已練習的賽道</div>
+    </div>
+    <div class="grid-2" id="tracksGrid"></div>
+  </div>
+
+  <div id="trackPages"></div>
+
+  <div class="page" id="page-goals">
+    <div class="page-header">
+      <div class="breadcrumb">SYSTEM <span class="sep">/</span> <span class="current">目標管理</span></div>
+      <h1 class="page-title">TRAINING <span class="accent">GOALS</span></h1>
+      <div class="page-subtitle">短期、中期、長期目標追蹤</div>
+    </div>
+    <div id="goalsContainer"></div>
+  </div>
+
+  <div class="page" id="page-history">
+    <div class="page-header">
+      <div class="breadcrumb">SYSTEM <span class="sep">/</span> <span class="current">歷史紀錄</span></div>
+      <h1 class="page-title">TRAINING <span class="accent">HISTORY</span></h1>
+      <div class="page-subtitle">時間軸 · 所有訓練 session</div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">訓練時間軸</div>
+        <div class="panel-meta">由新到舊</div>
+      </div>
+      <div class="panel-body" style="padding: 0 1.5rem;" id="historyTimeline"></div>
+    </div>
+  </div>
+
+  <footer id="footerStats"></footer>
+</div>
+
+</div>
+
+<script>
+let DATA = null;
+
+function fmtTime(s) {
+  if (s == null || isNaN(s)) return '--';
+  const m = Math.floor(s / 60);
+  const sec = (s - m * 60).toFixed(3).padStart(6, '0');
+  return `${m}:${sec}`;
+}
+function getConsistencyGrade(c) {
+  if (c <= 0.5) return { label: '優秀', color: 'var(--accent)' };
+  if (c <= 1.0) return { label: '良好', color: 'var(--info)' };
+  if (c <= 2.0) return { label: '普通', color: 'var(--gold)' };
+  return { label: '需加強', color: 'var(--danger)' };
+}
+const SESSION_COLORS = { A: '#5b9bd5', B: '#ed7d31', C: '#70ad47', D: '#ffc000', E: '#9f70d8' };
+
+//=====================================
+// AUTO FETCH DATA
+//=====================================
+async function loadData() {
+  const status = document.getElementById('loaderStatus');
+  const errBox = document.getElementById('errorBox');
+  const errDesc = document.getElementById('errorDesc');
+  const spinner = document.getElementById('loaderSpinner');
+
+  status.textContent = '正在抓取 data.json...';
+  errBox.classList.remove('show');
+
+  try {
+    // Add cache-buster to always get latest
+    const url = './data.json?v=' + Date.now();
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status} — 找不到 data.json`);
+    const data = await res.json();
+    if (!data.sessions || !Array.isArray(data.sessions)) {
+      throw new Error('JSON 結構錯誤:缺少 sessions 陣列');
+    }
+    DATA = data;
+    initApp();
+  } catch(err) {
+    spinner.style.display = 'none';
+    status.textContent = '';
+    errBox.classList.add('show');
+    errDesc.innerHTML = `
+      <strong>${err.message}</strong><br><br>
+      可能原因:<br>
+      1. data.json 沒在同個資料夾<br>
+      2. 還沒上傳到 GitHub<br>
+      3. 你用「雙擊」打開檔案而不是線上網址<br>
+      <div class="error-code">提示:這個版本需要從線上(如 GitHub Pages)開啟,或用 localhost 伺服器。</div>
+    `;
+  }
+}
+
+function initApp() {
+  document.getElementById('loaderScreen').classList.add('hidden');
+  document.getElementById('appContent').classList.add('ready');
+  document.getElementById('statusPill').textContent = `LIVE · ${DATA.meta?.lastUpdated || ''}`;
+  buildDashboard();
+  buildTracks();
+  buildTrackDetailPages();
+  buildGoals();
+  buildHistory();
+  buildFooter();
+  bindNav();
+}
+
+document.getElementById('reloadBtn').addEventListener('click', () => {
+  location.reload();
+});
+
+function bindNav() {
+  document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.onclick = () => navigateTo(tab.dataset.page);
+  });
+}
+
+function navigateTo(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  const page = document.getElementById('page-' + pageId);
+  if (page) page.classList.add('active');
+  const tab = document.querySelector(`.nav-tab[data-page="${pageId}"]`);
+  if (tab) tab.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function getTrackGroups() {
+  const groups = {};
+  DATA.sessions.forEach(s => {
+    if (!groups[s.trackKey]) {
+      groups[s.trackKey] = {
+        key: s.trackKey, track: s.track, trackEn: s.trackEn,
+        car: s.car, route: s.route, sessions: []
+      };
+    }
+    groups[s.trackKey].sessions.push(s);
+  });
+  Object.values(groups).forEach(g => {
+    g.totalLaps = g.sessions.reduce((s, x) => s + x.totalLaps, 0);
+    g.pb = Math.min(...g.sessions.map(s => s.best));
+    const allS1 = g.sessions.flatMap(s => s.laps.map(l => l.s1));
+    const allS2 = g.sessions.flatMap(s => s.laps.map(l => l.s2));
+    const allS3 = g.sessions.flatMap(s => s.laps.map(l => l.s3));
+    const sectorCount = g.sessions[0].sectorsCount;
+    if (sectorCount === 4) {
+      const allS4 = g.sessions.flatMap(s => s.laps.map(l => l.s4 || 0));
+      g.opt = Math.min(...allS1) + Math.min(...allS2) + Math.min(...allS3) + Math.min(...allS4);
+      g.sectorBest = { s1: Math.min(...allS1), s2: Math.min(...allS2), s3: Math.min(...allS3), s4: Math.min(...allS4) };
+    } else {
+      g.opt = Math.min(...allS1) + Math.min(...allS2) + Math.min(...allS3);
+      g.sectorBest = { s1: Math.min(...allS1), s2: Math.min(...allS2), s3: Math.min(...allS3) };
+    }
+    g.bestConsistency = Math.min(...g.sessions.map(s => s.avg - s.best));
+    g.sectorCount = sectorCount;
+  });
+  return groups;
+}
+
+function buildDashboard() {
+  const groups = getTrackGroups();
+  const trackList = Object.values(groups);
+  const totalLaps = trackList.reduce((s, g) => s + g.totalLaps, 0);
+  const overallPB = trackList.reduce((best, g) => g.pb < best.time ? { time: g.pb, track: g.track } : best, { time: Infinity, track: '' });
+  const bestConsistency = Math.min(...DATA.sessions.map(s => s.avg - s.best));
+  const bestConsistencySession = DATA.sessions.find(s => (s.avg - s.best) === bestConsistency);
+
+  let refKPI = '';
+  if (DATA.meta && DATA.meta.reference) {
+    const ref = DATA.meta.reference;
+    const gapPct = (overallPB.time - ref.time) / ref.time * 100;
+    const gapSec = overallPB.time - ref.time;
+    refKPI = `
+    <div class="kpi" style="--kpi-color: var(--danger);">
+      <div class="kpi-label">與${ref.label}差距</div>
+      <div class="kpi-value">+${gapPct.toFixed(2)}<span style="font-size:1rem;color:var(--text-secondary);">%</span></div>
+      <div class="kpi-meta">參考 ${ref.displayTime} · 落後 ${gapSec.toFixed(3)}s</div>
+    </div>`;
+  }
+  document.getElementById('dashboardKPIs').innerHTML = `
+    <div class="kpi" style="--kpi-color: var(--accent);">
+      <div class="kpi-label">總訓練圈數</div>
+      <div class="kpi-value">${totalLaps}</div>
+      <div class="kpi-meta">${trackList.map(g => `${g.track.substring(0,3)} ${g.totalLaps}`).join(' · ')}</div>
+    </div>
+    <div class="kpi" style="--kpi-color: var(--gold);">
+      <div class="kpi-label">最快圈速</div>
+      <div class="kpi-value">${fmtTime(overallPB.time)}</div>
+      <div class="kpi-meta">${overallPB.track}</div>
+    </div>
+    ${refKPI}
+    <div class="kpi" style="--kpi-color: var(--purple);">
+      <div class="kpi-label">最佳一致性</div>
+      <div class="kpi-value">${bestConsistency.toFixed(2)}<span style="font-size:1rem;color:var(--text-secondary);">s</span></div>
+      <div class="kpi-meta">${bestConsistencySession?.track || ''} ${bestConsistencySession?.session ? 'Session ' + bestConsistencySession.session : ''}</div>
+    </div>
+  `;
+
+  document.getElementById('dashboardTrackList').innerHTML = trackList.map(g => `
+    <div class="track-card" onclick="navigateTo('track-${g.key}')">
+      <div class="track-card-name">${g.track}</div>
+      <div class="track-card-meta">${g.trackEn} ${g.route ? '· ' + g.route : ''} · ${g.car}</div>
+      <div class="track-stats-row">
+        <div><div class="track-stat-label">PB</div><div class="track-stat-value" style="color: var(--accent);">${fmtTime(g.pb)}</div></div>
+        <div><div class="track-stat-label">OPT</div><div class="track-stat-value" style="color: var(--purple);">${fmtTime(g.opt)}</div></div>
+        <div><div class="track-stat-label">圈數</div><div class="track-stat-value">${g.totalLaps}</div></div>
+      </div>
+    </div>
+  `).join('');
+
+  const sortedSessions = [...DATA.sessions].sort((a, b) => b.date.localeCompare(a.date));
+  const latestWithInsights = sortedSessions.find(s => s.insights && s.insights.length > 0);
+  if (latestWithInsights) {
+    document.getElementById('latestInsightsDate').textContent = latestWithInsights.date;
+    document.getElementById('dashboardInsights').innerHTML = latestWithInsights.insights.map(i => `
+      <div class="insight ${i.type === 'warn' ? 'warn' : (i.type === 'danger' ? 'danger' : '')}">
+        <div class="insight-label">${i.title}</div>
+        ${i.desc}
+      </div>
+    `).join('');
+  }
+
+  buildConsistencyChart();
+  buildPBProgression();
+}
+
+function buildConsistencyChart() {
+  const labels = [], data = [], colors = [];
+  DATA.sessions.forEach(s => {
+    labels.push(s.session ? `${s.track.substring(0,3)} ${s.session}` : s.track);
+    data.push(s.avg - s.best);
+    colors.push(s.session ? SESSION_COLORS[s.session] : '#4dabf7');
+  });
+
+  new Chart(document.getElementById('consistencyOverviewChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1,
+          callbacks: { label: ctx => `一致性: ${ctx.parsed.y.toFixed(2)}s` }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#8b96a8', font: { size: 10 } } },
+        y: { grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8' }, title: { display: true, text: '秒 (越低越好)', color: '#5a6577' } }
+      }
+    }
+  });
+}
+
+function buildPBProgression() {
+  const groups = getTrackGroups();
+  const trackColors = ['#00ff88', '#4dabf7', '#ed7d31', '#c266ff', '#ffd43b'];
+  const datasets = [];
+  let allLabels = [];
+  let ci = 0;
+  Object.values(groups).forEach(g => {
+    if (g.sessions.length < 2) return;
+    const sorted = [...g.sessions].sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return (a.session || '').localeCompare(b.session || '');
+    });
+    const pts = sorted.map(s => s.best);
+    const labels = sorted.map(s => {
+      const d = s.date ? s.date.slice(5).replace('-', '/') : '';
+      return d + (s.session ? ' ' + s.session : '');
+    });
+    if (labels.length > allLabels.length) allLabels = labels;
+    datasets.push({
+      label: g.track, data: pts,
+      borderColor: trackColors[ci % trackColors.length],
+      backgroundColor: trackColors[ci % trackColors.length],
+      tension: 0.2, pointRadius: 5, pointHoverRadius: 9, borderWidth: 2,
+      _sorted: sorted
+    });
+    ci++;
+  });
+
+  const canvas = document.getElementById('pbProgressionChart');
+  const panel = document.getElementById('pbProgressionPanel');
+  if (datasets.length === 0) { if (panel) panel.style.display = 'none'; return; }
+
+  new Chart(canvas, {
+    type: 'line',
+    data: { labels: allLabels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: datasets.length > 1, labels: { color: '#e8ecf1', usePointStyle: true } },
+        tooltip: {
+          backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1,
+          callbacks: {
+            label: ctx => {
+              const ds = ctx.dataset;
+              const s = ds._sorted ? ds._sorted[ctx.dataIndex] : null;
+              let line = `${ds.label}: ${fmtTime(ctx.parsed.y)}${s && s.sessionLabel ? ' (' + s.sessionLabel + ')' : ''}`;
+              if (DATA.meta && DATA.meta.reference) {
+                const pct = (ctx.parsed.y - DATA.meta.reference.time) / DATA.meta.reference.time * 100;
+                line += ` · 與參考 +${pct.toFixed(2)}%`;
+              }
+              return line;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#8b96a8', font: { size: 10 } } },
+        y: { grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => fmtTime(v) } }
+      }
+    }
+  });
+}
+
+function buildTracks() {
+  const groups = getTrackGroups();
+  document.getElementById('tracksGrid').innerHTML = Object.values(groups).map(g => `
+    <div class="track-card" onclick="navigateTo('track-${g.key}')">
+      <div class="track-card-name">${g.track}</div>
+      <div class="track-card-meta">${g.trackEn} ${g.route ? '· ' + g.route : ''} · ${g.car}</div>
+      <div class="track-stats-row">
+        <div><div class="track-stat-label">最佳圈</div><div class="track-stat-value" style="color: var(--accent);">${fmtTime(g.pb)}</div></div>
+        <div><div class="track-stat-label">理論最佳</div><div class="track-stat-value" style="color: var(--purple);">${fmtTime(g.opt)}</div></div>
+        <div><div class="track-stat-label">總圈數</div><div class="track-stat-value">${g.totalLaps}</div></div>
+      </div>
+      <div style="margin-top: 1rem;">
+        <span class="badge accent">${g.sessions[0].tire} 輪胎</span>
+        <span class="badge">${g.sessions[0].carClass}</span>
+        <span class="badge">${g.sessions.length} sessions</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function buildTrackDetailPages() {
+  const groups = getTrackGroups();
+  const container = document.getElementById('trackPages');
+  const navTabs = document.getElementById('navTabs');
+
+  Object.values(groups).forEach(g => {
+    const tabBtn = document.createElement('button');
+    tabBtn.className = 'nav-tab';
+    tabBtn.dataset.page = 'track-' + g.key;
+    tabBtn.textContent = g.track;
+    navTabs.insertBefore(tabBtn, document.querySelector('[data-page="goals"]'));
+
+    const pageEl = document.createElement('div');
+    pageEl.className = 'page';
+    pageEl.id = 'page-track-' + g.key;
+    pageEl.innerHTML = renderTrackDetail(g);
+    container.appendChild(pageEl);
+  });
+
+  setTimeout(() => {
+    Object.values(groups).forEach(g => renderTrackCharts(g));
+  }, 50);
+}
+
+function renderTrackDetail(g) {
+  const gap = g.pb - g.opt;
+  const allValidLaps = g.sessions.flatMap(s => s.laps.filter(l => !l.invalid));
+  const avgConsistency = (allValidLaps.reduce((sum, l) => sum + l.total, 0) / allValidLaps.length) - g.pb;
+  const consGrade = getConsistencyGrade(avgConsistency);
+
+  const sessionCards = g.sessions.length > 1 ? `
+    <div class="grid-3" style="margin-bottom: 1.5rem;">
+      ${g.sessions.map(s => `
+        <div class="session-card" style="--session-color: ${s.session ? SESSION_COLORS[s.session] : 'var(--accent)'};">
+          <div class="session-header">
+            <div class="session-tag">${s.session ? 'SESSION ' + s.session : 'SESSION'}</div>
+            <div class="session-laps">${s.totalLaps} LAPS${s.sessionLabel ? ' · ' + s.sessionLabel : ''}</div>
+          </div>
+          <div class="session-pb">${fmtTime(s.best)}</div>
+          <div class="session-stats">
+            <div><span>平均</span> ${fmtTime(s.avg)}</div>
+            <div><span>一致性</span> ${(s.avg - s.best).toFixed(2)}s</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
+
+  const latestInsights = g.sessions.flatMap(s => s.insights || []);
+  const insightsHTML = latestInsights.length > 0 ? `
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">分析洞察</div>
+        <div class="panel-meta">COACH NOTES</div>
+      </div>
+      <div class="panel-body">
+        ${latestInsights.map(i => `
+          <div class="insight ${i.type === 'warn' ? 'warn' : (i.type === 'danger' ? 'danger' : '')}">
+            <div class="insight-label">${i.title}</div>
+            ${i.desc}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  const sectorsHeader = g.sectorCount === 4
+    ? '<tr><th>圈</th><th>S1</th><th>S2</th><th>S3</th><th>S4</th><th>圈速</th><th>備註</th></tr>'
+    : '<tr><th>SESSION</th><th>圈</th><th>S1</th><th>S2</th><th>S3</th><th>圈速</th><th>備註</th></tr>';
+
+  return `
+    <div class="page-header">
+      <div class="breadcrumb">CIRCUITS <span class="sep">/</span> <span class="current">${g.track}</span></div>
+      <h1 class="page-title">${g.trackEn.split(' ')[0]} <span class="accent">${g.trackEn.split(' ').slice(1).join(' ') || ''}</span></h1>
+      <div class="page-subtitle">${g.car} · ${g.totalLaps} LAPS · ${g.sessions.length} SESSION${g.sessions.length > 1 ? 'S' : ''}</div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi" style="--kpi-color: var(--accent);"><div class="kpi-label">PERSONAL BEST</div><div class="kpi-value">${fmtTime(g.pb)}</div></div>
+      <div class="kpi" style="--kpi-color: var(--purple);"><div class="kpi-label">OPTIMAL LAP</div><div class="kpi-value">${fmtTime(g.opt)}</div><div class="kpi-meta">${g.sectorCount} sector 加總</div></div>
+      <div class="kpi" style="--kpi-color: var(--gold);"><div class="kpi-label">PB - OPT</div><div class="kpi-value">${gap.toFixed(3)}<span style="font-size:1rem;">s</span></div><div class="kpi-meta">潛力空間</div></div>
+      <div class="kpi" style="--kpi-color: ${consGrade.color};"><div class="kpi-label">一致性</div><div class="kpi-value">${avgConsistency.toFixed(2)}<span style="font-size:1rem;">s</span></div><div class="kpi-meta">${consGrade.label}</div></div>
+    </div>
+    ${sessionCards}
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">圈速追蹤</div><div class="panel-meta">${g.totalLaps} LAPS · LAP TIME TRACE</div></div>
+      <div class="panel-body"><div class="chart-wrap tall"><canvas id="lapChart-${g.key}"></canvas></div></div>
+    </div>
+    <div class="grid-2">
+      <div class="panel"><div class="panel-header"><div class="panel-title">圈速分布</div><div class="panel-meta">DISTRIBUTION</div></div><div class="panel-body"><div class="chart-wrap"><canvas id="distChart-${g.key}"></canvas></div></div></div>
+      <div class="panel"><div class="panel-header"><div class="panel-title">時間損失來源</div><div class="panel-meta">BY SECTOR</div></div><div class="panel-body"><div class="chart-wrap"><canvas id="pieChart-${g.key}"></canvas></div></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">Sector 損失分解</div><div class="panel-meta">每圈每 SECTOR 相對最佳的時間損失</div></div>
+      <div class="panel-body"><div class="chart-wrap tall"><canvas id="stackChart-${g.key}"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">逐圈詳細數據</div><div class="panel-meta">${g.totalLaps} LAPS</div></div>
+      <div class="panel-body" style="padding: 0;">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>${sectorsHeader}</thead>
+            <tbody id="tableBody-${g.key}"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    ${insightsHTML}
+  `;
+}
+
+function renderTrackCharts(g) {
+  const allLaps = [];
+  g.sessions.forEach(s => {
+    s.laps.forEach(l => {
+      allLaps.push({ ...l, session: s.session, sessionLabel: s.sessionLabel });
+    });
+  });
+
+  const labels = allLaps.map((_, i) => i + 1);
+  const times = allLaps.map(l => l.total);
+  const pointColors = allLaps.map(l => {
+    if (l.invalid) return '#5a6577';
+    if (l.total === g.pb) return '#00ff88';
+    if (l.total <= g.pb + 0.5) return '#4dabf7';
+    if (l.session) return SESSION_COLORS[l.session];
+    if (l.total > Math.min(...times) + 8) return '#ff4757';
+    return '#ffd43b';
+  });
+  const pointSizes = allLaps.map(l => l.total === g.pb ? 10 : 6);
+
+  new Chart(document.getElementById('lapChart-' + g.key), {
+    type: 'line',
+    data: { labels, datasets: [{ data: times, borderColor: 'rgba(139, 150, 168, 0.3)', backgroundColor: 'transparent', pointBackgroundColor: pointColors, pointBorderColor: '#fff', pointBorderWidth: 0.5, pointRadius: pointSizes, pointHoverRadius: 12, tension: 0.15 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1,
+          callbacks: {
+            title: ctx => {
+              const l = allLaps[ctx[0].dataIndex];
+              return l.session ? `Session ${l.session} · 圈 ${l.lap}` : `圈 ${l.lap}`;
+            },
+            label: ctx => {
+              const l = allLaps[ctx.dataIndex];
+              const sectors = g.sectorCount === 4
+                ? `S1: ${l.s1.toFixed(3)} · S2: ${l.s2.toFixed(3)} · S3: ${l.s3.toFixed(3)} · S4: ${l.s4.toFixed(3)}`
+                : `S1: ${l.s1.toFixed(3)} · S2: ${l.s2.toFixed(3)} · S3: ${l.s3.toFixed(3)}`;
+              return [`圈速: ${fmtTime(l.total)}${l.invalid ? ' (無效)' : ''}`, sectors, l.note || ''].filter(Boolean);
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#8b96a8', font: { size: 10 } }, title: { display: true, text: '累計圈數', color: '#5a6577' } },
+        y: { grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => fmtTime(v) } }
+      }
+    },
+    plugins: [{
+      afterDraw: (chart) => {
+        const { ctx, chartArea, scales } = chart;
+        if (!chartArea) return;
+        ctx.save();
+        let cum = 0;
+        g.sessions.forEach((s, i) => {
+          if (i < g.sessions.length - 1) {
+            cum += s.totalLaps;
+            const xPx = scales.x.getPixelForValue(cum - 0.5);
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(xPx, chartArea.top);
+            ctx.lineTo(xPx, chartArea.bottom);
+            ctx.stroke();
+          }
+        });
+        if (g.sessions.length > 1) {
+          let start = 0;
+          g.sessions.forEach(s => {
+            const mid = start + s.totalLaps / 2;
+            const xPx = scales.x.getPixelForValue(mid);
+            ctx.fillStyle = s.session ? SESSION_COLORS[s.session] : '#8b96a8';
+            ctx.font = "bold 11px 'Bebas Neue'";
+            ctx.textAlign = 'center';
+            const dLbl = s.date ? s.date.slice(5).replace('-', '/') : '';
+            const lbl = (dLbl ? dLbl + ' ' : '') + (s.session ? s.session : 'SESSION');
+            ctx.fillText(lbl, xPx, chartArea.top + 16);
+            start += s.totalLaps;
+          });
+        }
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = '#00ff88';
+        const pbY = scales.y.getPixelForValue(g.pb);
+        ctx.beginPath();
+        ctx.moveTo(chartArea.left, pbY);
+        ctx.lineTo(chartArea.right, pbY);
+        ctx.stroke();
+        ctx.fillStyle = '#00ff88';
+        ctx.font = "10px 'JetBrains Mono'";
+        ctx.textAlign = 'left';
+        ctx.fillText(`PB ${fmtTime(g.pb)}`, chartArea.right - 100, pbY - 5);
+        ctx.setLineDash([2, 3]);
+        ctx.strokeStyle = '#c266ff';
+        const optY = scales.y.getPixelForValue(g.opt);
+        ctx.beginPath();
+        ctx.moveTo(chartArea.left, optY);
+        ctx.lineTo(chartArea.right, optY);
+        ctx.stroke();
+        ctx.fillStyle = '#c266ff';
+        ctx.fillText(`OPT ${fmtTime(g.opt)}`, chartArea.right - 100, optY - 5);
+        ctx.restore();
+      }
+    }]
+  });
+
+  const validTimes = allLaps.filter(l => !l.invalid).map(l => l.total);
+  const bins = 10;
+  const min = Math.min(...validTimes);
+  const max = Math.max(...validTimes);
+  const step = (max - min) / bins || 0.001;
+  const counts = new Array(bins).fill(0);
+  const distLabels = [];
+  for (let i = 0; i < bins; i++) distLabels.push((min + i * step).toFixed(1));
+  validTimes.forEach(t => {
+    const idx = Math.min(Math.floor((t - min) / step), bins - 1);
+    counts[idx]++;
+  });
+
+  new Chart(document.getElementById('distChart-' + g.key), {
+    type: 'bar',
+    data: { labels: distLabels, datasets: [{ data: counts, backgroundColor: '#4dabf7', borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#8b96a8' }, title: { display: true, text: '圈速(秒)', color: '#5a6577' } },
+        y: { grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', stepSize: 1 }, beginAtZero: true }
+      }
+    }
+  });
+
+  const valid = allLaps.filter(l => !l.invalid);
+  let losses = { s1: 0, s2: 0, s3: 0, s4: 0 };
+  valid.forEach(l => {
+    losses.s1 += l.s1 - g.sectorBest.s1;
+    losses.s2 += l.s2 - g.sectorBest.s2;
+    losses.s3 += l.s3 - g.sectorBest.s3;
+    if (g.sectorCount === 4) losses.s4 += (l.s4 || 0) - g.sectorBest.s4;
+  });
+  const pieLabels = g.sectorCount === 4 ? ['S1', 'S2', 'S3', 'S4'] : ['S1', 'S2', 'S3'];
+  const pieData = g.sectorCount === 4 ? [losses.s1, losses.s2, losses.s3, losses.s4] : [losses.s1, losses.s2, losses.s3];
+  const pieColors = ['#4dabf7', '#ff4757', '#ffd43b', '#00ff88'];
+
+  new Chart(document.getElementById('pieChart-' + g.key), {
+    type: 'doughnut',
+    data: { labels: pieLabels, datasets: [{ data: pieData, backgroundColor: pieColors.slice(0, pieData.length), borderColor: '#131820', borderWidth: 3 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { color: '#e8ecf1', usePointStyle: true } },
+        tooltip: {
+          backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1,
+          callbacks: {
+            label: ctx => {
+              const sum = ctx.dataset.data.reduce((a, b) => a + b, 0);
+              const pct = (ctx.parsed / sum * 100).toFixed(0);
+              return `${ctx.label}: ${ctx.parsed.toFixed(1)}s (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  const stackS1 = allLaps.map(l => l.s1 - g.sectorBest.s1);
+  const stackS2 = allLaps.map(l => l.s2 - g.sectorBest.s2);
+  const stackS3 = allLaps.map(l => l.s3 - g.sectorBest.s3);
+  const datasets = [
+    { label: 'S1', data: stackS1, backgroundColor: '#4dabf7' },
+    { label: 'S2', data: stackS2, backgroundColor: '#ff4757' },
+    { label: 'S3', data: stackS3, backgroundColor: '#ffd43b' },
+  ];
+  if (g.sectorCount === 4) {
+    const stackS4 = allLaps.map(l => (l.s4 || 0) - g.sectorBest.s4);
+    datasets.push({ label: 'S4', data: stackS4, backgroundColor: '#00ff88' });
+  }
+
+  new Chart(document.getElementById('stackChart-' + g.key), {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { color: '#e8ecf1', usePointStyle: true } },
+        tooltip: { backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1 }
+      },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { color: '#8b96a8' }, title: { display: true, text: '累計圈數', color: '#5a6577' } },
+        y: { stacked: true, grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8' }, title: { display: true, text: '損失(秒)', color: '#5a6577' } }
+      }
+    }
+  });
+
+  const body = document.getElementById('tableBody-' + g.key);
+  if (g.sectorCount === 4) {
+    body.innerHTML = allLaps.map(l => {
+      const isPB = l.total === g.pb;
+      const noteClass = l.note.includes('⚠') ? 'bad' : (l.note.includes('★') ? 'best' : '');
+      return `<tr>
+        <td>${l.lap}</td>
+        <td class="${l.s1 === g.sectorBest.s1 ? 'best' : ''}">${l.s1.toFixed(3)}</td>
+        <td class="${l.s2 === g.sectorBest.s2 ? 'best' : ''}">${l.s2.toFixed(3)}</td>
+        <td class="${l.s3 === g.sectorBest.s3 ? 'best' : ''}">${l.s3.toFixed(3)}</td>
+        <td class="${l.s4 === g.sectorBest.s4 ? 'best' : ''}">${(l.s4 || 0).toFixed(3)}</td>
+        <td class="${isPB ? 'best' : (l.invalid ? 'invalid' : '')}">${fmtTime(l.total)}${l.invalid ? '*' : ''}</td>
+        <td class="${noteClass}">${l.note}</td>
+      </tr>`;
+    }).join('');
+  } else {
+    body.innerHTML = allLaps.map(l => {
+      const isPB = l.total === g.pb;
+      const noteClass = l.note.includes('⚠') ? 'bad' : (l.note.includes('★') ? 'best' : '');
+      const sessionColor = l.session ? SESSION_COLORS[l.session] : 'var(--text-secondary)';
+      return `<tr>
+        <td>${l.session ? `<span class="badge" style="color:${sessionColor};border-color:${sessionColor};">${l.session}</span>` : ''}</td>
+        <td>${l.lap}</td>
+        <td class="${l.s1 === g.sectorBest.s1 ? 'best' : ''}">${l.s1.toFixed(3)}</td>
+        <td class="${l.s2 === g.sectorBest.s2 ? 'best' : ''}">${l.s2.toFixed(3)}</td>
+        <td class="${l.s3 === g.sectorBest.s3 ? 'best' : ''}">${l.s3.toFixed(3)}</td>
+        <td class="${isPB ? 'best' : (l.invalid ? 'invalid' : '')}">${fmtTime(l.total)}${l.invalid ? '*' : ''}</td>
+        <td class="${noteClass}">${l.note}</td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+function buildGoals() {
+  if (!DATA.goals || DATA.goals.length === 0) {
+    document.getElementById('goalsContainer').innerHTML = '<div class="panel"><div class="panel-body" style="color: var(--text-dim); text-align: center;">尚未設定目標</div></div>';
+    return;
+  }
+  const goalsHTML = DATA.goals.map(goalGroup => `
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">${goalGroup.track}</div>
+        <div class="panel-meta">${goalGroup.car}${goalGroup.priority === 'primary' ? ' · 主要追蹤' : ' · 次要追蹤'}</div>
+      </div>
+      <div class="panel-body">
+        ${goalGroup.items.map(g => `
+          <div class="goal-row">
+            <div class="goal-period">${g.period}</div>
+            <div class="goal-target">${g.displayTarget}</div>
+            <div class="goal-desc">${g.desc}</div>
+            <div class="goal-progress"><div class="goal-bar" style="width: ${g.progress}%;"></div></div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+  let actionHTML = '';
+  if (DATA.actionItems && DATA.actionItems.length > 0) {
+    actionHTML = `
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">下次訓練重點</div><div class="panel-meta">ACTION ITEMS</div></div>
+        <div class="panel-body">
+          ${DATA.actionItems.map((a, i) => `<div class="insight"><div class="insight-label">${i + 1}. ${a.title}</div>${a.desc}</div>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+  document.getElementById('goalsContainer').innerHTML = goalsHTML + actionHTML;
+}
+
+function buildHistory() {
+  const sorted = [...DATA.sessions].sort((a, b) => {
+    if (a.date !== b.date) return b.date.localeCompare(a.date);
+    return (b.session || '').localeCompare(a.session || '');
+  });
+  document.getElementById('historyTimeline').innerHTML = sorted.map(s => {
+    const trackKey = s.trackKey;
+    const sessionDesc = s.session ? `Session ${s.session}${s.sessionLabel ? ' · ' + s.sessionLabel : ''}` : '';
+    return `
+      <div class="timeline-item" onclick="navigateTo('track-${trackKey}')">
+        <div class="timeline-date">${s.date}</div>
+        <div class="timeline-content">
+          <div class="timeline-track">${s.track}${sessionDesc ? ' · ' + sessionDesc : ''}</div>
+          <div class="timeline-meta">${s.car} · ${s.totalLaps} 圈</div>
+        </div>
+        <div class="timeline-pb">${fmtTime(s.best)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function buildFooter() {
+  const totalLaps = DATA.sessions.reduce((s, x) => s + x.totalLaps, 0);
+  const tracks = new Set(DATA.sessions.map(s => s.track)).size;
+  document.getElementById('footerStats').textContent =
+    `GT7 TELEMETRY · ${DATA.meta?.lastUpdated || ''} · ${DATA.sessions.length} SESSIONS · ${totalLaps} LAPS · ${tracks} CIRCUITS`;
+}
+
+// Start
+loadData();
+</script>
+
+</body>
+</html>
