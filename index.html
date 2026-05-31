@@ -1350,7 +1350,7 @@ function renderCarCharts(g) {
 
   new Chart(document.getElementById('lapChart-' + g.key), {
     type: 'line',
-    data: { labels, datasets: [{ data: times, borderColor: 'rgba(139, 150, 168, 0.3)', backgroundColor: 'transparent', pointBackgroundColor: pointColors, pointBorderColor: '#fff', pointBorderWidth: 0.5, pointRadius: pointSizes, pointHoverRadius: 12, tension: 0.15 }] },
+    data: { labels, datasets: [{ data: times, showLine: false, borderColor: 'transparent', backgroundColor: 'transparent', pointBackgroundColor: pointColors, pointBorderColor: '#fff', pointBorderWidth: 0.5, pointRadius: pointSizes, pointHoverRadius: 12 }] },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
