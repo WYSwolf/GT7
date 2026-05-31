@@ -963,7 +963,7 @@ function getCarReference(carKey) {
   return null;
 }
 
-// Pinch / wheel zoom only (x-axis = laps). Pan disabled so single-finger scroll is never intercepted.
+// Pinch / wheel zoom on Y-axis (lap time). Pan disabled so single-finger scroll is never intercepted.
 function zoomConfig() {
   return {
     pan: { enabled: false },
@@ -971,9 +971,9 @@ function zoomConfig() {
       wheel: { enabled: true },
       pinch: { enabled: true },
       drag: { enabled: false },
-      mode: 'x'
+      mode: 'y'
     },
-    limits: { x: { minRange: 4 } }
+    limits: { y: { minRange: 1 } }
   };
 }
 
@@ -1302,7 +1302,7 @@ function renderCarSection(g) {
     </div>
     ${sessionCards}
     <div class="panel">
-      <div class="panel-header"><div class="panel-title">圈速追蹤</div><div class="panel-meta">雙指縮放放大 <button onclick="resetChartZoom('lapChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .5rem;border-radius:6px;border:1px solid #2a3340;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:.7rem;font-family:inherit;">⟲ 重置</button></div></div>
+      <div class="panel-header"><div class="panel-title">圈速追蹤</div><div class="panel-meta">雙指縮放 Y 軸(圈速) <button onclick="resetChartZoom('lapChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .5rem;border-radius:6px;border:1px solid #2a3340;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:.7rem;font-family:inherit;">⟲ 重置</button></div></div>
       <div class="panel-body"><div class="chart-wrap tall"><canvas id="lapChart-${g.key}"></canvas></div></div>
     </div>
     <div class="grid-2">
@@ -1310,7 +1310,7 @@ function renderCarSection(g) {
       <div class="panel"><div class="panel-header"><div class="panel-title">時間損失來源</div><div class="panel-meta">BY SECTOR</div></div><div class="panel-body"><div class="chart-wrap"><canvas id="pieChart-${g.key}"></canvas></div></div></div>
     </div>
     <div class="panel">
-      <div class="panel-header"><div class="panel-title">Sector 損失分解</div><div class="panel-meta">雙指縮放放大 <button onclick="resetChartZoom('stackChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .5rem;border-radius:6px;border:1px solid #2a3340;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:.7rem;font-family:inherit;">⟲ 重置</button></div></div>
+      <div class="panel-header"><div class="panel-title">Sector 損失分解</div><div class="panel-meta">雙指縮放 Y 軸(圈速) <button onclick="resetChartZoom('stackChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .5rem;border-radius:6px;border:1px solid #2a3340;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:.7rem;font-family:inherit;">⟲ 重置</button></div></div>
       <div class="panel-body"><div class="chart-wrap tall"><canvas id="stackChart-${g.key}"></canvas></div></div>
     </div>
     <div class="panel">
