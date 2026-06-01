@@ -963,6 +963,11 @@ function getCarReference(carKey) {
   return null;
 }
 
+function getCarGuides(carKey) {
+  if (DATA.meta && DATA.meta.guides && DATA.meta.guides[carKey]) return DATA.meta.guides[carKey];
+  return [];
+}
+
 // Pinch / wheel zoom on Y-axis (lap time). Pan disabled so single-finger scroll is never intercepted.
 function zoomConfig() {
   return {
@@ -1291,8 +1296,28 @@ function renderCarSection(g) {
     ? '<tr><th>圈</th><th>S1</th><th>S2</th><th>S3</th><th>S4</th><th>圈速</th><th>備註</th></tr>'
     : '<tr><th>SESSION</th><th>圈</th><th>S1</th><th>S2</th><th>S3</th><th>圈速</th><th>備註</th></tr>';
 
+  const guides = getCarGuides(g.carKey);
+  const guidesHTML = guides.length > 0 ? `
+    <div class="panel" style="margin-bottom:1.25rem;">
+      <div class="panel-header"><div class="panel-title">🎥 教學影片</div><div class="panel-meta">TRACK GUIDE</div></div>
+      <div class="panel-body" style="padding:.25rem 1rem;">
+        ${guides.map(gd => `
+          <a href="${gd.url}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:.75rem;padding:.7rem .1rem;text-decoration:none;">
+            <span style="flex:0 0 auto;width:36px;height:36px;border-radius:9px;background:var(--danger);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.85rem;">▶</span>
+            <span style="flex:1;min-width:0;">
+              <span style="display:block;color:#e8ecf1;font-weight:600;font-size:.92rem;line-height:1.3;">${gd.title}</span>
+              <span style="display:block;color:var(--text-secondary);font-size:.76rem;margin-top:.2rem;">${gd.note || ''}${gd.date ? ' · ' + gd.date : ''}</span>
+            </span>
+            <span style="flex:0 0 auto;color:var(--text-secondary);font-size:.85rem;">↗</span>
+          </a>
+        `).join('')}
+      </div>
+    </div>
+  ` : '';
+
   return `
     <div class="page-subtitle" style="margin-bottom:1.25rem;">${g.car}${g.carClass ? ' · ' + g.carClass : ''} · ${g.totalLaps} LAPS · ${g.sessions.length} SESSION${g.sessions.length > 1 ? 'S' : ''}</div>
+    ${guidesHTML}
     <div class="kpi-grid">
       <div class="kpi" style="--kpi-color: var(--accent);"><div class="kpi-label">PERSONAL BEST</div><div class="kpi-value">${fmtTime(g.pb)}</div></div>
       <div class="kpi" style="--kpi-color: var(--purple);"><div class="kpi-label">OPTIMAL LAP</div><div class="kpi-value">${fmtTime(g.opt)}</div><div class="kpi-meta">${g.sectorCount} sector 加總</div></div>
