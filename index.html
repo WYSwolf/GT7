@@ -720,6 +720,21 @@
   .f1-history { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .25rem; }
   .f1-chip { font-family: 'JetBrains Mono', monospace; font-size: .76rem; padding: .25rem .5rem; border-radius: 6px; background: #11161d; border: 1px solid #1c232c; color: #cdd5de; }
   .f1-chip.foul { color: #ff6b78; border-color: #5a1f25; }
+
+  /* ===== Gear-shift reaction game ===== */
+  .gx-stage { position: relative; }
+  .gx-stage.gx-ok { box-shadow: inset 0 0 50px rgba(0,255,136,.22); }
+  .gx-stage.gx-bad { box-shadow: inset 0 0 50px rgba(255,71,87,.28); }
+  .gx-gear { font-family: 'Bebas Neue', sans-serif; font-size: 3.6rem; line-height: 1; color: #e8ecf1; }
+  .gx-gear small { font-size: .95rem; color: var(--text-secondary); margin-left: .15rem; }
+  .gx-arrow { font-size: 3.4rem; line-height: 1; margin: .25rem 0; min-height: 3.4rem; font-weight: 700; color: #2a3340; }
+  .gx-arrow.up { color: #00ff88; text-shadow: 0 0 18px rgba(0,255,136,.5); }
+  .gx-arrow.down { color: #4dabf7; text-shadow: 0 0 18px rgba(77,171,247,.5); }
+  .gx-progress { color: var(--text-secondary); font-size: .85rem; min-height: 1.2em; }
+  .gx-zones { display: flex; gap: .5rem; margin-top: 1.1rem; }
+  .gx-zone { flex: 1; border: 1px dashed #2a3340; border-radius: 8px; padding: .5rem; font-size: .76rem; color: var(--text-secondary); }
+  .gx-zone.gx-up { border-color: rgba(0,255,136,.4); }
+  .gx-zone.gx-down { border-color: rgba(77,171,247,.4); }
 </style>
 </head>
 <body>
@@ -894,6 +909,44 @@
         </div>
         <div class="panel-body" style="padding:.5rem 0 0;">
           <div class="f1-history" id="f1History"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">⚙️ 檔位反應</div>
+        <div class="panel-meta">15 次 · 看箭頭按對方向</div>
+      </div>
+      <div class="panel-body">
+        <div id="gxStage" class="f1-stage gx-stage" role="button" tabindex="0" aria-label="換檔反應區">
+          <div class="gx-gear" id="gxGear">3<small>檔</small></div>
+          <div class="gx-arrow" id="gxArrow">—</div>
+          <div class="gx-progress" id="gxProgress">點「開始」進行 15 次</div>
+          <div class="f1-result" id="gxResult"></div>
+          <div class="gx-zones">
+            <div class="gx-zone gx-up">▲ 升檔 · 上半 / ↑</div>
+            <div class="gx-zone gx-down">▼ 降檔 · 下半 / ↓</div>
+          </div>
+        </div>
+        <div class="f1-controls">
+          <button class="f1-btn" id="gxStart">開始</button>
+          <div class="f1-stats">
+            <div><div class="f1-stat-label">最佳平均</div><div class="f1-stat-value" id="gxBest">—</div></div>
+            <div><div class="f1-stat-label">上次平均</div><div class="f1-stat-value" id="gxLast">—</div></div>
+            <div><div class="f1-stat-label">上次正確率</div><div class="f1-stat-value" id="gxAcc">—</div></div>
+            <div><div class="f1-stat-label">局數</div><div class="f1-stat-value" id="gxRuns">0</div></div>
+          </div>
+        </div>
+        <div class="f1-grades">
+          <span class="badge" style="border-color:#00ff88;color:#00ff88;">神人 &lt;0.35s</span>
+          <span class="badge" style="border-color:#4dabf7;color:#4dabf7;">良好 0.35–0.50</span>
+          <span class="badge" style="border-color:#ffd43b;color:#ffd43b;">普通 0.50–0.70</span>
+          <span class="badge" style="border-color:#ff8c42;color:#ff8c42;">烏龜 ≥0.70</span>
+          <span class="badge" style="border-color:#ff4757;color:#ff4757;">按錯 +0.5s</span>
+        </div>
+        <div class="panel-body" style="padding:.5rem 0 0;">
+          <div class="f1-history" id="gxHistory"></div>
         </div>
       </div>
     </div>
@@ -2038,18 +2091,122 @@ function f1RenderStats() {
            : `<span class="f1-chip"${h.rt === F1.best ? ' style="border-color:var(--accent);color:var(--accent);"' : ''}>${h.rt.toFixed(3)}</span>`
   ).join('');
 }
+// ===== Gear-shift reaction game =====
+const GX = { state: 'idle', gear: 3, dir: null, total: 15, idx: 0, startAt: 0, times: [], wrong: 0, best: null, lastAvg: null, lastAcc: null, runs: 0, hist: [] };
+function gxGrade(avg) {
+  if (avg < 0.35) return { label: '神人 ALIEN', color: '#00ff88' };
+  if (avg < 0.50) return { label: '良好 GOOD', color: '#4dabf7' };
+  if (avg < 0.70) return { label: '普通 OK', color: '#ffd43b' };
+  return { label: '烏龜 TURTLE 🐢', color: '#ff8c42' };
+}
+function gxStore(save) {
+  try {
+    if (save) { localStorage.setItem('gt7_gx_shift', JSON.stringify({ best: GX.best, lastAvg: GX.lastAvg, lastAcc: GX.lastAcc, runs: GX.runs, hist: GX.hist.slice(-30) })); return; }
+    const raw = localStorage.getItem('gt7_gx_shift');
+    if (raw) { const o = JSON.parse(raw); GX.best = (o.best != null ? o.best : null); GX.lastAvg = (o.lastAvg != null ? o.lastAvg : null); GX.lastAcc = (o.lastAcc != null ? o.lastAcc : null); GX.runs = o.runs || 0; GX.hist = Array.isArray(o.hist) ? o.hist : []; }
+  } catch (e) {}
+}
+function gxRenderGear() { document.getElementById('gxGear').innerHTML = GX.gear + '<small>檔</small>'; }
+function gxFlash(cls) { const s = document.getElementById('gxStage'); s.classList.add(cls); setTimeout(() => s.classList.remove(cls), 130); }
+function gxNext() {
+  if (GX.idx >= GX.total) { gxFinish(); return; }
+  let dir;
+  if (GX.gear <= 1) dir = 'up';
+  else if (GX.gear >= 8) dir = 'down';
+  else dir = Math.random() < 0.5 ? 'up' : 'down';
+  GX.dir = dir;
+  const arrow = document.getElementById('gxArrow');
+  arrow.className = 'gx-arrow ' + dir;
+  arrow.textContent = dir === 'up' ? '▲' : '▼';
+  document.getElementById('gxProgress').textContent = `第 ${GX.idx + 1} / ${GX.total} 次`;
+  GX.startAt = performance.now();
+  GX.state = 'await';
+}
+function gxStart() {
+  GX.gear = 2 + Math.floor(Math.random() * 4);  // start gear 2–5
+  GX.idx = 0; GX.times = []; GX.wrong = 0;
+  document.getElementById('gxResult').innerHTML = '';
+  const btn = document.getElementById('gxStart'); btn.disabled = true; btn.textContent = '進行中';
+  gxRenderGear();
+  gxNext();
+}
+function gxInput(dir) {
+  if (GX.state === 'idle' || GX.state === 'done') { gxStart(); return; }
+  if (GX.state !== 'await') return;
+  if (dir === GX.dir) {
+    const rt = (performance.now() - GX.startAt) / 1000;   // already includes any +0.5s penalties
+    GX.times.push(rt);
+    GX.gear = Math.max(1, Math.min(8, GX.gear + (GX.dir === 'up' ? 1 : -1)));
+    gxRenderGear();
+    GX.idx++;
+    gxFlash('gx-ok');
+    gxNext();
+  } else {
+    GX.wrong++; GX.startAt -= 500;   // +0.5s penalty by backdating the timer
+    gxFlash('gx-bad');
+  }
+}
+function gxFinish() {
+  GX.state = 'done';
+  const n = GX.times.length;
+  const avg = n ? GX.times.reduce((a, b) => a + b, 0) / n : 0;
+  const acc = Math.round(n / (n + GX.wrong) * 100);
+  const g = gxGrade(avg);
+  const isBest = n > 0 && (GX.best == null || avg < GX.best);
+  if (isBest) GX.best = Math.round(avg * 1000) / 1000;
+  GX.lastAvg = Math.round(avg * 1000) / 1000; GX.lastAcc = acc; GX.runs++;
+  GX.hist.push({ avg: GX.lastAvg, acc });
+  gxStore(true);
+  const arrow = document.getElementById('gxArrow'); arrow.className = 'gx-arrow'; arrow.textContent = '✓';
+  document.getElementById('gxProgress').textContent = '完成!';
+  document.getElementById('gxResult').innerHTML =
+    `<div class="rt" style="color:${g.color};">${avg.toFixed(3)}<span style="font-size:1.1rem;"> s</span></div>` +
+    `<div class="grade" style="color:${g.color};">${g.label}</div>` +
+    `<div class="sub">正確率 ${acc}% · 按錯 ${GX.wrong} 次${isBest ? ' · 🏆 新最佳!' : ''}</div>`;
+  gxStats();
+  const btn = document.getElementById('gxStart'); btn.disabled = false; btn.textContent = '再玩一次';
+}
+function gxStats() {
+  document.getElementById('gxBest').textContent = GX.best != null ? GX.best.toFixed(3) + 's' : '—';
+  document.getElementById('gxLast').textContent = GX.lastAvg != null ? GX.lastAvg.toFixed(3) + 's' : '—';
+  document.getElementById('gxAcc').textContent = GX.lastAcc != null ? GX.lastAcc + '%' : '—';
+  document.getElementById('gxRuns').textContent = GX.runs;
+  document.getElementById('gxHistory').innerHTML = GX.hist.slice(-15).reverse().map(h =>
+    `<span class="f1-chip"${h.avg === GX.best ? ' style="border-color:var(--accent);color:var(--accent);"' : ''}>${h.avg.toFixed(3)} · ${h.acc}%</span>`
+  ).join('');
+}
+
 function buildGames() {
   f1Store(false); f1RenderStats();
   const stage = document.getElementById('f1Stage');
   const btn = document.getElementById('f1Start');
-  if (!stage || !btn) return;
-  btn.addEventListener('click', f1Start);
-  stage.addEventListener('click', f1React);
-  stage.addEventListener('keydown', e => { if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); f1React(); } });
-  document.addEventListener('keydown', e => {
-    const games = document.getElementById('page-games');
-    if (games && games.classList.contains('active') && e.code === 'Space') { e.preventDefault(); f1React(); }
-  });
+  if (stage && btn) {
+    btn.addEventListener('click', f1Start);
+    stage.addEventListener('click', f1React);
+    stage.addEventListener('keydown', e => { if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); f1React(); } });
+    document.addEventListener('keydown', e => {
+      const games = document.getElementById('page-games');
+      if (games && games.classList.contains('active') && e.code === 'Space') { e.preventDefault(); f1React(); }
+    });
+  }
+  // gear-shift game
+  gxStore(false); gxRenderGear(); gxStats();
+  const gx = document.getElementById('gxStage');
+  const gxBtn = document.getElementById('gxStart');
+  if (gx && gxBtn) {
+    gxBtn.addEventListener('click', gxStart);
+    gx.addEventListener('click', e => {
+      if (GX.state === 'idle' || GX.state === 'done') { gxStart(); return; }
+      const r = gx.getBoundingClientRect();
+      gxInput((e.clientY - r.top) < r.height / 2 ? 'up' : 'down');
+    });
+    document.addEventListener('keydown', e => {
+      const games = document.getElementById('page-games');
+      if (!(games && games.classList.contains('active'))) return;
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); gxInput('up'); }
+      else if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); gxInput('down'); }
+    });
+  }
 }
 
 function buildFooter() {
