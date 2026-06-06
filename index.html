@@ -721,20 +721,23 @@
   .f1-chip { font-family: 'JetBrains Mono', monospace; font-size: .76rem; padding: .25rem .5rem; border-radius: 6px; background: #11161d; border: 1px solid #1c232c; color: #cdd5de; }
   .f1-chip.foul { color: #ff6b78; border-color: #5a1f25; }
 
-  /* ===== Gear-shift reaction game ===== */
-  .gx-stage { position: relative; }
-  .gx-stage.gx-ok { box-shadow: inset 0 0 50px rgba(0,255,136,.22); }
-  .gx-stage.gx-bad { box-shadow: inset 0 0 50px rgba(255,71,87,.28); }
-  .gx-gear { font-family: 'Bebas Neue', sans-serif; font-size: 3.6rem; line-height: 1; color: #e8ecf1; }
-  .gx-gear small { font-size: .95rem; color: var(--text-secondary); margin-left: .15rem; }
-  .gx-arrow { font-size: 3.4rem; line-height: 1; margin: .25rem 0; min-height: 3.4rem; font-weight: 700; color: #2a3340; }
-  .gx-arrow.up { color: #00ff88; text-shadow: 0 0 18px rgba(0,255,136,.5); }
-  .gx-arrow.down { color: #4dabf7; text-shadow: 0 0 18px rgba(77,171,247,.5); }
-  .gx-progress { color: var(--text-secondary); font-size: .85rem; min-height: 1.2em; }
-  .gx-zones { display: flex; gap: .5rem; margin-top: 1.1rem; }
-  .gx-zone { flex: 1; border: 1px dashed #2a3340; border-radius: 8px; padding: .5rem; font-size: .76rem; color: var(--text-secondary); }
-  .gx-zone.gx-up { border-color: rgba(0,255,136,.4); }
-  .gx-zone.gx-down { border-color: rgba(77,171,247,.4); }
+  /* ===== SHIFT RUSH ===== */
+  .sr-stage { position: relative; padding: 1.2rem 1rem 1.4rem; }
+  .sr-stage.go { background: radial-gradient(120% 120% at 50% 30%, #04391f 0%, #0a0d12 75%); box-shadow: inset 0 0 50px rgba(0,255,136,.18); }
+  .sr-stage.limit { background: radial-gradient(120% 120% at 50% 30%, #3a0f14 0%, #0a0d12 75%); box-shadow: inset 0 0 50px rgba(255,71,87,.22); }
+  .sr-track { position: relative; height: 44px; border-radius: 10px; background: #05070a; border: 1px solid #20262f; overflow: hidden; margin-bottom: .85rem; }
+  .sr-track .sr-finish { position: absolute; left: 0; top: 0; bottom: 0; width: 12px; background-image: repeating-conic-gradient(#e8ecf1 0% 25%, #11161d 0% 50%); background-size: 12px 12px; opacity: .85; }
+  .sr-dist { position: absolute; left: 18px; top: 5px; font-family: 'JetBrains Mono', monospace; font-size: .78rem; color: var(--text-secondary); }
+  .sr-car { position: absolute; top: 50%; transform: translateY(-50%); font-size: 1.45rem; transition: left .05s linear; }
+  .sr-hud { display: grid; grid-template-columns: repeat(3,1fr); gap: .5rem; margin-bottom: .5rem; }
+  .sr-hud .sr-lbl { color: var(--text-secondary); font-size: .66rem; letter-spacing: .5px; }
+  .sr-hud .sr-val { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.15rem; color: #e8ecf1; margin-top: .1rem; }
+  .sr-tachwrap { position: relative; display: flex; justify-content: center; margin: .1rem 0 .4rem; }
+  .sr-tachwrap canvas { width: 280px; height: 198px; max-width: 100%; }
+  .sr-delta { position: absolute; left: 50%; top: 30%; transform: translate(-50%,-50%); font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; letter-spacing: 1px; pointer-events: none; opacity: 0; }
+  .sr-delta.show { animation: srDeltaPop .7s ease-out; }
+  @keyframes srDeltaPop { 0% { opacity: 0; transform: translate(-50%,-20%) scale(.6); } 18% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%,-130%) scale(1.15); } }
+  .sr-status { color: var(--text-secondary); font-size: .9rem; min-height: 1.3em; line-height: 1.4; }
 </style>
 </head>
 <body>
@@ -915,38 +918,47 @@
 
     <div class="panel">
       <div class="panel-header">
-        <div class="panel-title">⚙️ 檔位反應</div>
-        <div class="panel-meta">15 次 · 看箭頭按對方向</div>
+        <div class="panel-title">🏎️ SHIFT RUSH</div>
+        <div class="panel-meta">8.5 秒 · 抓綠心升檔減秒</div>
       </div>
       <div class="panel-body">
-        <div id="gxStage" class="f1-stage gx-stage" role="button" tabindex="0" aria-label="換檔反應區">
-          <div class="gx-gear" id="gxGear">3<small>檔</small></div>
-          <div class="gx-arrow" id="gxArrow">—</div>
-          <div class="gx-progress" id="gxProgress">點「開始」進行 15 次</div>
-          <div class="f1-result" id="gxResult"></div>
-          <div class="gx-zones">
-            <div class="gx-zone gx-up">▲ 升檔 · 上半 / ↑</div>
-            <div class="gx-zone gx-down">▼ 降檔 · 下半 / ↓</div>
+        <div id="srStage" class="f1-stage sr-stage" role="button" tabindex="0" aria-label="升檔區">
+          <div class="sr-track">
+            <div class="sr-finish"></div>
+            <div class="sr-dist" id="srDist">0.0 / 8.5 s</div>
+            <div class="sr-car" id="srCar" style="left:92%;">🏎️</div>
           </div>
+          <div class="sr-hud">
+            <div><div class="sr-lbl">檔位 GEAR</div><div class="sr-val" id="srGear" style="color:var(--accent)">1</div></div>
+            <div><div class="sr-lbl">調整 ADJ</div><div class="sr-val" id="srAdj">0.000</div></div>
+            <div><div class="sr-lbl">預估 EST</div><div class="sr-val" id="srEst">8.500</div></div>
+          </div>
+          <div class="sr-tachwrap"><canvas id="srTach" width="600" height="424"></canvas><div class="sr-delta" id="srDelta"></div></div>
+          <div class="sr-status" id="srStatus">點「開始」起跑,轉速到綠心就升檔</div>
+          <div class="f1-result" id="srResult"></div>
         </div>
         <div class="f1-controls">
-          <button class="f1-btn" id="gxStart">開始</button>
-          <div class="f1-stats">
-            <div><div class="f1-stat-label">最佳平均</div><div class="f1-stat-value" id="gxBest">—</div></div>
-            <div><div class="f1-stat-label">上次平均</div><div class="f1-stat-value" id="gxLast">—</div></div>
-            <div><div class="f1-stat-label">上次正確率</div><div class="f1-stat-value" id="gxAcc">—</div></div>
-            <div><div class="f1-stat-label">局數</div><div class="f1-stat-value" id="gxRuns">0</div></div>
+          <button class="f1-btn" id="srStart">開始</button>
+          <div class="f1-stats" style="grid-template-columns:repeat(3,1fr);min-width:180px;">
+            <div><div class="f1-stat-label">最佳</div><div class="f1-stat-value" id="srBest">—</div></div>
+            <div><div class="f1-stat-label">上次</div><div class="f1-stat-value" id="srLast">—</div></div>
+            <div><div class="f1-stat-label">局數</div><div class="f1-stat-value" id="srRuns">0</div></div>
           </div>
         </div>
         <div class="f1-grades">
-          <span class="badge" style="border-color:#00ff88;color:#00ff88;">神人 &lt;0.35s</span>
-          <span class="badge" style="border-color:#4dabf7;color:#4dabf7;">良好 0.35–0.50</span>
-          <span class="badge" style="border-color:#ffd43b;color:#ffd43b;">普通 0.50–0.70</span>
-          <span class="badge" style="border-color:#ff8c42;color:#ff8c42;">烏龜 ≥0.70</span>
-          <span class="badge" style="border-color:#ff4757;color:#ff4757;">按錯 +0.5s</span>
+          <span class="badge" style="border-color:#00ff88;color:#00ff88;">神人 &lt;8.00</span>
+          <span class="badge" style="border-color:#4dabf7;color:#4dabf7;">良好 ≤8.15</span>
+          <span class="badge" style="border-color:#ffd43b;color:#ffd43b;">普通 ≤8.35</span>
+          <span class="badge" style="border-color:#ff8c42;color:#ff8c42;">烏龜 &gt;8.35</span>
+        </div>
+        <div class="f1-grades" style="margin-top:.45rem;">
+          <span class="badge" style="border-color:#00ff88;color:#00ff88;">綠心 −0.15s</span>
+          <span class="badge" style="border-color:#ffd43b;color:#ffd43b;">黃越早 +0.10</span>
+          <span class="badge" style="border-color:#ff8c42;color:#ff8c42;">橘越晚 +0.10</span>
+          <span class="badge" style="border-color:#ff4757;color:#ff4757;">斷油 +0.20</span>
         </div>
         <div class="panel-body" style="padding:.5rem 0 0;">
-          <div class="f1-history" id="gxHistory"></div>
+          <div class="f1-history" id="srHistory"></div>
         </div>
       </div>
     </div>
@@ -2091,88 +2103,161 @@ function f1RenderStats() {
            : `<span class="f1-chip"${h.rt === F1.best ? ' style="border-color:var(--accent);color:var(--accent);"' : ''}>${h.rt.toFixed(3)}</span>`
   ).join('');
 }
-// ===== Gear-shift reaction game =====
-const GX = { state: 'idle', gear: 3, dir: null, total: 15, idx: 0, startAt: 0, times: [], wrong: 0, best: null, lastAvg: null, lastAcc: null, runs: 0, hist: [] };
-function gxGrade(avg) {
-  if (avg < 0.35) return { label: '神人 ALIEN', color: '#00ff88' };
-  if (avg < 0.50) return { label: '良好 GOOD', color: '#4dabf7' };
-  if (avg < 0.70) return { label: '普通 OK', color: '#ffd43b' };
-  return { label: '烏龜 TURTLE 🐢', color: '#ff8c42' };
-}
-function gxStore(save) {
+// ===== SHIFT RUSH (fixed 8.5s · tent scoring) =====
+const SR = {
+  MAX_RPM: 9000, REDLINE: 9000, REV_RATE: 4800, SHIFT_MIN: 5500, GREEN_W: 440,
+  GC_MIN: 5950, GC_MAX: 7600, RED_START: 8000, MAX_BONUS: -0.15, MAX_PEN: 0.10,
+  REDLINE_PEN: 0.20, BASE: 8.5,
+  state: 'idle', gear: 1, rpm: 0, t0: 0, t: 0, greenCenter: 6500, greenLo: 6280, greenHi: 6720,
+  shifts: 0, perfect: 0, redlines: 0, limiter: false, redlined: false, delta: 0, lastFrame: 0,
+  best: null, last: null, runs: 0, hist: [], cv: null, ctx: null, raf: 0
+};
+function srStore(save) {
   try {
-    if (save) { localStorage.setItem('gt7_gx_shift', JSON.stringify({ best: GX.best, lastAvg: GX.lastAvg, lastAcc: GX.lastAcc, runs: GX.runs, hist: GX.hist.slice(-30) })); return; }
-    const raw = localStorage.getItem('gt7_gx_shift');
-    if (raw) { const o = JSON.parse(raw); GX.best = (o.best != null ? o.best : null); GX.lastAvg = (o.lastAvg != null ? o.lastAvg : null); GX.lastAcc = (o.lastAcc != null ? o.lastAcc : null); GX.runs = o.runs || 0; GX.hist = Array.isArray(o.hist) ? o.hist : []; }
+    if (save) { localStorage.setItem('gt7_shiftrush', JSON.stringify({ best: SR.best, last: SR.last, runs: SR.runs, hist: SR.hist.slice(-30) })); return; }
+    const raw = localStorage.getItem('gt7_shiftrush');
+    if (raw) { const o = JSON.parse(raw); SR.best = (o.best != null ? o.best : null); SR.last = (o.last != null ? o.last : null); SR.runs = o.runs || 0; SR.hist = Array.isArray(o.hist) ? o.hist : []; }
   } catch (e) {}
 }
-function gxRenderGear() { document.getElementById('gxGear').innerHTML = GX.gear + '<small>檔</small>'; }
-function gxFlash(cls) { const s = document.getElementById('gxStage'); s.classList.add(cls); setTimeout(() => s.classList.remove(cls), 130); }
-function gxNext() {
-  if (GX.idx >= GX.total) { gxFinish(); return; }
-  let dir;
-  if (GX.gear <= 1) dir = 'up';
-  else if (GX.gear >= 8) dir = 'down';
-  else dir = Math.random() < 0.5 ? 'up' : 'down';
-  GX.dir = dir;
-  const arrow = document.getElementById('gxArrow');
-  arrow.className = 'gx-arrow ' + dir;
-  arrow.textContent = dir === 'up' ? '▲' : '▼';
-  document.getElementById('gxProgress').textContent = `第 ${GX.idx + 1} / ${GX.total} 次`;
-  GX.startAt = performance.now();
-  GX.state = 'await';
+function srSetGreen() {
+  const c = SR.GC_MIN + Math.random() * (SR.GC_MAX - SR.GC_MIN);
+  SR.greenCenter = Math.round(c);
+  SR.greenLo = Math.max(SR.SHIFT_MIN + 40, Math.round(c - SR.GREEN_W / 2));
+  SR.greenHi = Math.round(c + SR.GREEN_W / 2);
 }
-function gxStart() {
-  GX.gear = 2 + Math.floor(Math.random() * 4);  // start gear 2–5
-  GX.idx = 0; GX.times = []; GX.wrong = 0;
-  document.getElementById('gxResult').innerHTML = '';
-  const btn = document.getElementById('gxStart'); btn.disabled = true; btn.textContent = '進行中';
-  gxRenderGear();
-  gxNext();
+function srInGreen(rpm) { return rpm >= SR.greenLo && rpm <= SR.greenHi; }
+function srSetStatus(txt, kind) {
+  const s = document.getElementById('srStatus'); if (!s) return;
+  s.textContent = txt;
+  s.style.color = kind === 'good' ? 'var(--accent)' : (kind === 'warn' ? '#ffb02e' : 'var(--text-secondary)');
 }
-function gxInput(dir) {
-  if (GX.state === 'idle' || GX.state === 'done') { gxStart(); return; }
-  if (GX.state !== 'await') return;
-  if (dir === GX.dir) {
-    const rt = (performance.now() - GX.startAt) / 1000;   // already includes any +0.5s penalties
-    GX.times.push(rt);
-    GX.gear = Math.max(1, Math.min(8, GX.gear + (GX.dir === 'up' ? 1 : -1)));
-    gxRenderGear();
-    GX.idx++;
-    gxFlash('gx-ok');
-    gxNext();
-  } else {
-    GX.wrong++; GX.startAt -= 500;   // +0.5s penalty by backdating the timer
-    gxFlash('gx-bad');
+function srPopDelta(d) {
+  const el = document.getElementById('srDelta'); if (!el) return;
+  el.textContent = (d > 0 ? '+' : '') + d.toFixed(3) + 's';
+  el.style.color = d < 0 ? '#00ff88' : '#ff4757';
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+}
+function srStart() {
+  Object.assign(SR, { state: 'run', gear: 1, rpm: 0, t: 0, shifts: 0, perfect: 0, redlines: 0, limiter: false, redlined: false, delta: 0 });
+  srSetGreen();
+  SR.t0 = performance.now(); SR.lastFrame = SR.t0;
+  document.getElementById('srResult').innerHTML = '';
+  document.getElementById('srStart').textContent = '升檔 SHIFT';
+  srSetStatus('超過 5500 後,瞄準綠心升檔', '');
+  cancelAnimationFrame(SR.raf);
+  SR.raf = requestAnimationFrame(srLoop);
+}
+function srShift() {
+  if (SR.state === 'idle' || SR.state === 'done') { srStart(); return; }
+  if (SR.state !== 'run') return;
+  const rpm = SR.rpm, c = SR.greenCenter, lo = SR.greenLo, hi = SR.greenHi;
+  let d, msg, kind;
+  if (rpm < SR.SHIFT_MIN) { d = SR.MAX_PEN; msg = '太早(未到 5500)'; kind = 'warn'; }
+  else if (rpm < lo) { const f = (lo - rpm) / Math.max(1, lo - SR.SHIFT_MIN); d = SR.MAX_PEN * Math.min(1, Math.max(0, f)); msg = '偏早'; kind = 'warn'; }
+  else if (rpm <= hi) { const half = Math.max(1, (hi - lo) / 2); const f = 1 - Math.abs(rpm - c) / half; d = SR.MAX_BONUS * Math.min(1, Math.max(0, f)); SR.perfect++; msg = '綠區命中!'; kind = 'good'; }
+  else { const f = (rpm - hi) / Math.max(1, SR.RED_START - hi); d = SR.MAX_PEN * Math.min(1, Math.max(0, f)); msg = rpm >= SR.RED_START ? '太晚(紅區)' : '偏晚'; kind = 'warn'; }
+  SR.delta += d; SR.shifts++; SR.gear++;
+  srPopDelta(d);
+  srSetStatus(msg + '  ' + (d > 0 ? '+' : '') + d.toFixed(3) + 's', kind);
+  SR.rpm = 0; SR.limiter = false; SR.redlined = false;
+  srSetGreen();
+}
+function srLoop(now) {
+  if (SR.state !== 'run') return;
+  let dt = (now - SR.lastFrame) / 1000; SR.lastFrame = now;
+  if (dt > 0.05) dt = 0.05;
+  SR.t = (now - SR.t0) / 1000;
+  if (SR.rpm < SR.REDLINE) { SR.rpm = Math.min(SR.REDLINE, SR.rpm + SR.REV_RATE * dt); SR.limiter = false; }
+  else {
+    SR.rpm = SR.REDLINE; SR.limiter = true;
+    if (!SR.redlined) { SR.redlined = true; SR.redlines++; SR.delta += SR.REDLINE_PEN; srPopDelta(SR.REDLINE_PEN); srSetStatus('斷油!+' + SR.REDLINE_PEN.toFixed(2) + 's — 快升檔', 'warn'); }
   }
+  srDraw(); srHud();
+  if (SR.t >= SR.BASE) { srFinish(); return; }
+  SR.raf = requestAnimationFrame(srLoop);
 }
-function gxFinish() {
-  GX.state = 'done';
-  const n = GX.times.length;
-  const avg = n ? GX.times.reduce((a, b) => a + b, 0) / n : 0;
-  const acc = Math.round(n / (n + GX.wrong) * 100);
-  const g = gxGrade(avg);
-  const isBest = n > 0 && (GX.best == null || avg < GX.best);
-  if (isBest) GX.best = Math.round(avg * 1000) / 1000;
-  GX.lastAvg = Math.round(avg * 1000) / 1000; GX.lastAcc = acc; GX.runs++;
-  GX.hist.push({ avg: GX.lastAvg, acc });
-  gxStore(true);
-  const arrow = document.getElementById('gxArrow'); arrow.className = 'gx-arrow'; arrow.textContent = '✓';
-  document.getElementById('gxProgress').textContent = '完成!';
-  document.getElementById('gxResult').innerHTML =
-    `<div class="rt" style="color:${g.color};">${avg.toFixed(3)}<span style="font-size:1.1rem;"> s</span></div>` +
+function srHud() {
+  document.getElementById('srGear').textContent = SR.gear;
+  const adj = document.getElementById('srAdj');
+  adj.textContent = (SR.delta > 0 ? '+' : '') + SR.delta.toFixed(3);
+  adj.style.color = SR.delta < 0 ? 'var(--accent)' : (SR.delta > 0 ? '#ff8c42' : '#e8ecf1');
+  document.getElementById('srEst').textContent = (SR.BASE + SR.delta).toFixed(3);
+  const pct = Math.max(0, Math.min(1, SR.t / SR.BASE));
+  document.getElementById('srCar').style.left = (92 - pct * 86) + '%';
+  document.getElementById('srDist').textContent = SR.t.toFixed(1) + ' / ' + SR.BASE + ' s';
+  const st = document.getElementById('srStage');
+  st.classList.toggle('go', SR.state === 'run' && !SR.limiter);
+  st.classList.toggle('limit', SR.limiter);
+}
+const SR_A0 = Math.PI * 0.75, SR_SWEEP = Math.PI * 1.5;
+function srAng(rpm) { return SR_A0 + (rpm / SR.MAX_RPM) * SR_SWEEP; }
+function srDraw() {
+  const ctx = SR.ctx, cv = SR.cv; if (!ctx) return;
+  const w = cv.width, h = cv.height, cx = w / 2, cy = h * 0.62, R = w * 0.40, lw = w * 0.05;
+  ctx.clearRect(0, 0, w, h);
+  ctx.lineCap = 'round';
+  ctx.lineWidth = lw; ctx.strokeStyle = '#1c232c';
+  ctx.beginPath(); ctx.arc(cx, cy, R, SR_A0, SR_A0 + SR_SWEEP); ctx.stroke();
+  ctx.strokeStyle = '#222a33';
+  ctx.beginPath(); ctx.arc(cx, cy, R, SR_A0, srAng(SR.SHIFT_MIN)); ctx.stroke();
+  ctx.strokeStyle = '#ffb02e';
+  ctx.beginPath(); ctx.arc(cx, cy, R, srAng(SR.SHIFT_MIN), srAng(SR.greenLo)); ctx.stroke();
+  ctx.strokeStyle = '#00ff88';
+  ctx.beginPath(); ctx.arc(cx, cy, R, srAng(SR.greenLo), srAng(SR.greenHi)); ctx.stroke();
+  ctx.strokeStyle = '#ff8c42';
+  ctx.beginPath(); ctx.arc(cx, cy, R, srAng(SR.greenHi), srAng(SR.RED_START)); ctx.stroke();
+  ctx.strokeStyle = '#ff4757';
+  ctx.beginPath(); ctx.arc(cx, cy, R, srAng(SR.RED_START), srAng(SR.MAX_RPM)); ctx.stroke();
+  ctx.strokeStyle = '#3a4250'; ctx.lineWidth = 2;
+  for (let r = 0; r <= SR.MAX_RPM; r += 1000) {
+    const a = srAng(r), r1 = R - lw * 0.7, r2 = R + lw * 0.7;
+    ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); ctx.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2); ctx.stroke();
+  }
+  const flashing = SR.limiter && (Math.floor(performance.now() / 120) % 2 === 0);
+  const a = srAng(SR.rpm);
+  ctx.strokeStyle = flashing ? '#ff4757' : (srInGreen(SR.rpm) ? '#00ff88' : (SR.rpm >= SR.SHIFT_MIN ? '#ffb02e' : '#e8ecf1'));
+  ctx.lineWidth = w * 0.018; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * (R * 0.92), cy + Math.sin(a) * (R * 0.92)); ctx.stroke();
+  ctx.fillStyle = '#e8ecf1'; ctx.beginPath(); ctx.arc(cx, cy, w * 0.022, 0, 7); ctx.fill();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = flashing ? '#ff4757' : '#e8ecf1';
+  ctx.font = '700 ' + (w * 0.18) + "px 'Bebas Neue', sans-serif";
+  ctx.fillText(SR.gear, cx, cy - R * 0.30);
+  ctx.fillStyle = '#8b96a8'; ctx.font = '700 ' + (w * 0.05) + "px 'JetBrains Mono', monospace";
+  ctx.fillText(Math.round(SR.rpm) + ' rpm', cx, cy - R * 0.02);
+  ctx.fillStyle = '#5b6675'; ctx.font = (w * 0.035) + "px 'JetBrains Mono', monospace";
+  ctx.fillText('GEAR', cx, cy - R * 0.50);
+}
+function srGrade(final) {
+  if (final < 8.00) return { label: '神人 ALIEN', color: '#00ff88' };
+  if (final <= 8.15) return { label: '良好 GOOD', color: '#4dabf7' };
+  if (final <= 8.35) return { label: '普通 OK', color: '#ffd43b' };
+  return { label: '烏龜 TURTLE 🐢', color: '#ff8c42' };
+}
+function srFinish() {
+  SR.state = 'done'; cancelAnimationFrame(SR.raf);
+  const final = Math.round((SR.BASE + SR.delta) * 1000) / 1000;
+  const g = srGrade(final);
+  const isBest = SR.best == null || final < SR.best;
+  if (isBest) SR.best = final;
+  SR.last = final; SR.runs++;
+  SR.hist.push(final);
+  srStore(true);
+  document.getElementById('srResult').innerHTML =
+    `<div class="rt" style="color:${g.color};">${final.toFixed(3)}<span style="font-size:1.1rem;"> s</span></div>` +
     `<div class="grade" style="color:${g.color};">${g.label}</div>` +
-    `<div class="sub">正確率 ${acc}% · 按錯 ${GX.wrong} 次${isBest ? ' · 🏆 新最佳!' : ''}</div>`;
-  gxStats();
-  const btn = document.getElementById('gxStart'); btn.disabled = false; btn.textContent = '再玩一次';
+    `<div class="sub">基準 8.5s ${SR.delta >= 0 ? '+' : ''}${SR.delta.toFixed(3)}s · 命中綠心 ${SR.perfect} · 升檔 ${SR.shifts} · 斷油 ${SR.redlines}${isBest ? ' · 🏆 新最佳!' : ''}</div>`;
+  srSetStatus('衝線!', 'good');
+  const st = document.getElementById('srStage'); st.classList.remove('go', 'limit');
+  document.getElementById('srStart').textContent = '再玩一次';
+  srStats();
 }
-function gxStats() {
-  document.getElementById('gxBest').textContent = GX.best != null ? GX.best.toFixed(3) + 's' : '—';
-  document.getElementById('gxLast').textContent = GX.lastAvg != null ? GX.lastAvg.toFixed(3) + 's' : '—';
-  document.getElementById('gxAcc').textContent = GX.lastAcc != null ? GX.lastAcc + '%' : '—';
-  document.getElementById('gxRuns').textContent = GX.runs;
-  document.getElementById('gxHistory').innerHTML = GX.hist.slice(-15).reverse().map(h =>
-    `<span class="f1-chip"${h.avg === GX.best ? ' style="border-color:var(--accent);color:var(--accent);"' : ''}>${h.avg.toFixed(3)} · ${h.acc}%</span>`
+function srStats() {
+  document.getElementById('srBest').textContent = SR.best != null ? SR.best.toFixed(3) + 's' : '—';
+  document.getElementById('srLast').textContent = SR.last != null ? SR.last.toFixed(3) + 's' : '—';
+  document.getElementById('srRuns').textContent = SR.runs;
+  document.getElementById('srHistory').innerHTML = SR.hist.slice(-15).reverse().map(v =>
+    `<span class="f1-chip"${v === SR.best ? ' style="border-color:var(--accent);color:var(--accent);"' : ''}>${v.toFixed(3)}</span>`
   ).join('');
 }
 
@@ -2189,23 +2274,14 @@ function buildGames() {
       if (games && games.classList.contains('active') && e.code === 'Space') { e.preventDefault(); f1React(); }
     });
   }
-  // gear-shift game
-  gxStore(false); gxRenderGear(); gxStats();
-  const gx = document.getElementById('gxStage');
-  const gxBtn = document.getElementById('gxStart');
-  if (gx && gxBtn) {
-    gxBtn.addEventListener('click', gxStart);
-    gx.addEventListener('click', e => {
-      if (GX.state === 'idle' || GX.state === 'done') { gxStart(); return; }
-      const r = gx.getBoundingClientRect();
-      gxInput((e.clientY - r.top) < r.height / 2 ? 'up' : 'down');
-    });
-    document.addEventListener('keydown', e => {
-      const games = document.getElementById('page-games');
-      if (!(games && games.classList.contains('active'))) return;
-      if (e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); gxInput('up'); }
-      else if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); gxInput('down'); }
-    });
+  // SHIFT RUSH
+  SR.cv = document.getElementById('srTach'); SR.ctx = SR.cv ? SR.cv.getContext('2d') : null;
+  srStore(false); srSetGreen(); srDraw(); srStats();
+  const sr = document.getElementById('srStage');
+  const srBtn = document.getElementById('srStart');
+  if (sr && srBtn) {
+    srBtn.addEventListener('click', e => { e.stopPropagation(); if (SR.state === 'run') srShift(); else srStart(); });
+    sr.addEventListener('click', () => { if (SR.state === 'run') srShift(); else srStart(); });
   }
 }
 
