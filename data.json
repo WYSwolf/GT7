@@ -1,21 +1,21 @@
 {
   "meta": {
-    "version": "1.3",
-    "lastUpdated": "2026-06-04",
+    "version": "1.6",
+    "lastUpdated": "2026-06-06",
     "driver": "User",
     "schema": "GT7 Telemetry Training Data",
     "reference": {
-      "time": 79.502,
-      "displayTime": "1:19.502",
+      "time": 79.483,
+      "displayTime": "1:19.483",
       "label": "世界第一 ghost",
-      "note": "世界第一紀錄。5/30 1:19.546 → 5/31 1:19.512 → 6/4 1:19.502(採用最快值)"
+      "note": "世界第一紀錄。5/30 1:19.546 → 5/31 1:19.512 → 6/4 1:19.502 → 6/6 1:19.483(採用最快值)"
     },
     "references": {
       "911gt3r99222": {
-        "time": 79.502,
-        "displayTime": "1:19.502",
+        "time": 79.483,
+        "displayTime": "1:19.483",
         "label": "世界第一 ghost",
-        "note": "世界第一紀錄。5/30 1:19.546 → 5/31 1:19.512 → 6/4 1:19.502(採用最快值)"
+        "note": "世界第一紀錄。5/30 1:19.546 → 5/31 1:19.512 → 6/4 1:19.502 → 6/6 1:19.483(採用最快值)"
       }
     },
     "guides": {
@@ -34,6 +34,85 @@
           "note": "確認賽道為長途路線"
         }
       ]
+    },
+    "leaderboards": {
+      "laguna__911gt3r99222": {
+        "mode": "time-trial",
+        "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+        "eventLabel": "Time Trial · WeatherTech Laguna Seca · 911 GT3 R (992) '22 · RS",
+        "source": "dg-edge.com",
+        "asOf": "2026-06-06",
+        "totalPlayers": 176610,
+        "wr": 79.483,
+        "top100": 80.157,
+        "top1000": 80.924,
+        "medals": {
+          "platinum": 79.881,
+          "gold": 81.868,
+          "silver": 83.458,
+          "bronze": 87.432
+        },
+        "medalPct": {
+          "platinum": 0.02,
+          "gold": 5.65,
+          "silver": 20.11,
+          "bronze": 63.37
+        },
+        "endDate": "2026-06-11",
+        "medalPctMode": "band",
+        "standings": [
+          {
+            "date": "2026-06-06",
+            "pb": 81.645
+          }
+        ],
+        "playerRank": {
+          "rank": 6353,
+          "pb": 81.683,
+          "asOf": "2026-06-06",
+          "source": "dg-edge",
+          "player": "[TUE] WYS · b95208010",
+          "note": "此名次對應 dg-edge 已收錄的 1:21.683;6/6 新 PB 1:21.645 尚未收錄,每日刷新後會再往前。"
+        }
+      },
+      "watkins__bmwm6gt3sprint16": {
+        "mode": "daily-race",
+        "eventUrl": "https://www.dg-edge.com/events/dailies/574",
+        "eventLabel": "Daily Race C · Week 22 · Watkins Glen Long · GR.3",
+        "source": "dg-edge.com",
+        "asOf": "2026-06-06",
+        "endDate": "2026-06-01",
+        "totalPlayers": 38246,
+        "top100": 102.952,
+        "top1000": 103.937,
+        "medals": {
+          "platinum": 102.936,
+          "gold": 105.496,
+          "silver": 107.545,
+          "bronze": 112.666
+        },
+        "medalPct": {
+          "platinum": 0.23,
+          "gold": 19.71,
+          "silver": 38.66,
+          "bronze": 36.06
+        },
+        "medalPctMode": "band",
+        "standings": [
+          {
+            "date": "2026-05-27",
+            "pb": 106.837
+          }
+        ],
+        "final": {
+          "date": "2026-06-01",
+          "pb": 106.837,
+          "estPct": 45.24,
+          "estRank": 17303,
+          "medal": "Silver",
+          "recordedOn": "2026-06-06"
+        }
+      }
     }
   },
   "goals": [
@@ -46,8 +125,8 @@
           "period": "短期 · 1 週",
           "target": 81.5,
           "displayTarget": "1:21.500",
-          "desc": "PB 已破進 1:21.6(1:21.683),離 1:21.500 只剩 0.183 秒。理論最佳 ~1:21.22。下一兩場很可能就達標。",
-          "progress": 90
+          "desc": "PB 推進到 1:21.645,離 1:21.500 只剩 0.145 秒。理論最佳 ~1:21.18。",
+          "progress": 92
         },
         {
           "period": "中期 · 1 個月",
@@ -440,7 +519,10 @@
           "title": "22 圈後疲勞顯現",
           "desc": "建議拆成 2×15 圈,中間休息。"
         }
-      ]
+      ],
+      "mode": "daily-race",
+      "eventUrl": "https://www.dg-edge.com/events/dailies/574",
+      "eventLabel": "Daily Race C · Week 22"
     },
     {
       "id": "2026-05-27-laguna-A",
@@ -505,7 +587,10 @@
           "note": ""
         }
       ],
-      "insights": []
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     },
     {
       "id": "2026-05-27-laguna-B",
@@ -678,7 +763,10 @@
           "note": "★ S3 最佳(無效)"
         }
       ],
-      "insights": []
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     },
     {
       "id": "2026-05-27-laguna-C",
@@ -842,7 +930,10 @@
           "note": ""
         }
       ],
-      "insights": []
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     },
     {
       "id": "2026-05-30-laguna-A",
@@ -1006,7 +1097,10 @@
           "note": "⚠ S2 爆掉"
         }
       ],
-      "insights": []
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     },
     {
       "id": "2026-05-30-laguna-B",
@@ -1170,7 +1264,10 @@
           "note": "無效圈"
         }
       ],
-      "insights": []
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     },
     {
       "id": "2026-05-30-laguna-C",
@@ -1316,7 +1413,10 @@
           "note": "⚠⚠ 撞牆(最慢)"
         }
       ],
-      "insights": []
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     },
     {
       "id": "2026-05-30-laguna-D",
@@ -1363,7 +1463,10 @@
           "note": "★ 場次 PB · 全 sector 最佳"
         }
       ],
-      "insights": []
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     },
     {
       "id": "2026-05-31-laguna-A",
@@ -1527,7 +1630,10 @@
           "note": "⚠ S3 大爆 · S1 最佳"
         }
       ],
-      "insights": []
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     },
     {
       "id": "2026-05-31-laguna-B",
@@ -1646,7 +1752,10 @@
           "note": "無效圈"
         }
       ],
-      "insights": []
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     },
     {
       "id": "2026-05-31-laguna-C",
@@ -1828,7 +1937,10 @@
           "note": "近 PB(連續乾淨)"
         }
       ],
-      "insights": []
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     },
     {
       "id": "2026-05-31-laguna-D",
@@ -1965,7 +2077,10 @@
           "note": "無效圈"
         }
       ],
-      "insights": []
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     },
     {
       "id": "2026-06-02-laguna-A",
@@ -2129,7 +2244,10 @@
           "note": "無效圈"
         }
       ],
-      "insights": []
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     },
     {
       "id": "2026-06-02-laguna-B",
@@ -2320,7 +2438,10 @@
           "note": "近 PB"
         }
       ],
-      "insights": []
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     },
     {
       "id": "2026-06-03-laguna-A",
@@ -2484,7 +2605,10 @@
           "note": "無效圈"
         }
       ],
-      "insights": []
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     },
     {
       "id": "2026-06-03-laguna-B",
@@ -2630,7 +2754,10 @@
           "note": "⚠ S2 大爆"
         }
       ],
-      "insights": []
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     },
     {
       "id": "2026-06-04-laguna-A",
@@ -2776,7 +2903,10 @@
           "note": ""
         }
       ],
-      "insights": []
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     },
     {
       "id": "2026-06-04-laguna-B",
@@ -2931,7 +3061,10 @@
           "note": "近 PB"
         }
       ],
-      "insights": []
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     },
     {
       "id": "2026-06-04-laguna-C",
@@ -3032,28 +3165,451 @@
           "note": "無效圈"
         }
       ],
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
+    },
+    {
+      "id": "2026-06-06-laguna-A",
+      "date": "2026-06-06",
+      "track": "拉古納塞卡",
+      "trackKey": "laguna",
+      "trackEn": "LAGUNA SECA",
+      "route": "",
+      "car": "911 GT3 R (992) '22",
+      "carClass": "Gr.3",
+      "tire": "RS",
+      "sectorsCount": 3,
+      "totalLaps": 19,
+      "session": "A",
+      "sessionLabel": "6/6 場次一",
+      "best": 81.723,
+      "avg": 83.865,
+      "worst": 101.089,
+      "opt": 81.445,
+      "sectorBest": {
+        "s1": 21.775,
+        "s2": 35.967,
+        "s3": 23.703
+      },
+      "topSpeed": 228,
+      "notes": "19 圈 14 有效,後半段很穩。",
+      "laps": [
+        {
+          "lap": 1,
+          "s1": 22.181,
+          "s2": 36.533,
+          "s3": 24.093,
+          "total": 82.807,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 2,
+          "s1": 22.144,
+          "s2": 37.118,
+          "s3": 24.602,
+          "total": 83.864,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 3,
+          "s1": 21.867,
+          "s2": 36.928,
+          "s3": 23.824,
+          "total": 82.619,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 4,
+          "s1": 21.837,
+          "s2": 36.519,
+          "s3": 23.776,
+          "total": 82.132,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 5,
+          "s1": 22.411,
+          "s2": 53.732,
+          "s3": 24.946,
+          "total": 101.089,
+          "invalid": true,
+          "note": "⚠⚠ S2 大爆(最慢)"
+        },
+        {
+          "lap": 6,
+          "s1": 22.175,
+          "s2": 36.43,
+          "s3": 23.826,
+          "total": 82.431,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 7,
+          "s1": 21.805,
+          "s2": 36.415,
+          "s3": 23.861,
+          "total": 82.081,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 8,
+          "s1": 22.135,
+          "s2": 36.46,
+          "s3": 31.188,
+          "total": 89.783,
+          "invalid": true,
+          "note": "⚠ S3 大爆"
+        },
+        {
+          "lap": 9,
+          "s1": 22.572,
+          "s2": 36.655,
+          "s3": 23.644,
+          "total": 82.871,
+          "invalid": true,
+          "note": "無效圈"
+        },
+        {
+          "lap": 10,
+          "s1": 22.086,
+          "s2": 36.5,
+          "s3": 23.982,
+          "total": 82.568,
+          "invalid": true,
+          "note": "無效圈"
+        },
+        {
+          "lap": 11,
+          "s1": 22.125,
+          "s2": 36.991,
+          "s3": 23.864,
+          "total": 82.98,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 12,
+          "s1": 21.775,
+          "s2": 37.282,
+          "s3": 23.91,
+          "total": 82.967,
+          "invalid": true,
+          "note": "★ S1 最佳(無效)"
+        },
+        {
+          "lap": 13,
+          "s1": 21.878,
+          "s2": 36.454,
+          "s3": 23.71,
+          "total": 82.042,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 14,
+          "s1": 21.883,
+          "s2": 36.826,
+          "s3": 23.801,
+          "total": 82.51,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 15,
+          "s1": 21.932,
+          "s2": 36.331,
+          "s3": 23.703,
+          "total": 81.966,
+          "invalid": false,
+          "note": "★ S3 最佳"
+        },
+        {
+          "lap": 16,
+          "s1": 22.137,
+          "s2": 36.841,
+          "s3": 23.714,
+          "total": 82.692,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 17,
+          "s1": 22.073,
+          "s2": 36.367,
+          "s3": 24.007,
+          "total": 82.447,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 18,
+          "s1": 21.802,
+          "s2": 36.178,
+          "s3": 23.743,
+          "total": 81.723,
+          "invalid": false,
+          "note": "★ 場次 PB"
+        },
+        {
+          "lap": 19,
+          "s1": 21.952,
+          "s2": 35.967,
+          "s3": 23.958,
+          "total": 81.877,
+          "invalid": false,
+          "note": "★ S2 最佳(破 36)"
+        }
+      ],
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
+    },
+    {
+      "id": "2026-06-06-laguna-B",
+      "date": "2026-06-06",
+      "track": "拉古納塞卡",
+      "trackKey": "laguna",
+      "trackEn": "LAGUNA SECA",
+      "route": "",
+      "car": "911 GT3 R (992) '22",
+      "carClass": "Gr.3",
+      "tire": "RS",
+      "sectorsCount": 3,
+      "totalLaps": 9,
+      "session": "B",
+      "sessionLabel": "6/6 場次二",
+      "best": 81.944,
+      "avg": 83.581,
+      "worst": 89.309,
+      "opt": 81.539,
+      "sectorBest": {
+        "s1": 21.781,
+        "s2": 36.096,
+        "s3": 23.662
+      },
+      "topSpeed": 228,
+      "notes": "4/9 有效。",
+      "laps": [
+        {
+          "lap": 1,
+          "s1": 21.927,
+          "s2": 36.96,
+          "s3": 23.735,
+          "total": 82.622,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 2,
+          "s1": 21.854,
+          "s2": 36.415,
+          "s3": 23.675,
+          "total": 81.944,
+          "invalid": false,
+          "note": "★ 場次 PB"
+        },
+        {
+          "lap": 3,
+          "s1": 22.132,
+          "s2": 43.4,
+          "s3": 23.777,
+          "total": 89.309,
+          "invalid": true,
+          "note": "⚠ S2 大爆"
+        },
+        {
+          "lap": 4,
+          "s1": 21.781,
+          "s2": 37.531,
+          "s3": 24.509,
+          "total": 83.821,
+          "invalid": true,
+          "note": "⚠ S2 爆掉 · S1 最佳"
+        },
+        {
+          "lap": 5,
+          "s1": 22.005,
+          "s2": 36.096,
+          "s3": 23.848,
+          "total": 81.949,
+          "invalid": false,
+          "note": "★ S2 最佳"
+        },
+        {
+          "lap": 6,
+          "s1": 21.896,
+          "s2": 36.523,
+          "s3": 23.662,
+          "total": 82.081,
+          "invalid": false,
+          "note": "★ S3 最佳"
+        },
+        {
+          "lap": 7,
+          "s1": 21.973,
+          "s2": 37.04,
+          "s3": 24.84,
+          "total": 83.853,
+          "invalid": true,
+          "note": "無效圈"
+        },
+        {
+          "lap": 8,
+          "s1": 22.285,
+          "s2": 36.426,
+          "s3": 24.157,
+          "total": 82.868,
+          "invalid": true,
+          "note": "無效圈"
+        },
+        {
+          "lap": 9,
+          "s1": 21.905,
+          "s2": 37.433,
+          "s3": 24.445,
+          "total": 83.783,
+          "invalid": true,
+          "note": "無效圈"
+        }
+      ],
+      "insights": [],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
+    },
+    {
+      "id": "2026-06-06-laguna-C",
+      "date": "2026-06-06",
+      "track": "拉古納塞卡",
+      "trackKey": "laguna",
+      "trackEn": "LAGUNA SECA",
+      "route": "",
+      "car": "911 GT3 R (992) '22",
+      "carClass": "Gr.3",
+      "tire": "RS",
+      "sectorsCount": 3,
+      "totalLaps": 8,
+      "session": "C",
+      "sessionLabel": "6/6 場次三 · 新 PB",
+      "best": 81.645,
+      "avg": 84.252,
+      "worst": 94.999,
+      "opt": 81.557,
+      "sectorBest": {
+        "s1": 21.742,
+        "s2": 36.191,
+        "s3": 23.496
+      },
+      "topSpeed": 228,
+      "notes": "lap8 新 PB 1:21.645。",
+      "laps": [
+        {
+          "lap": 1,
+          "s1": 21.784,
+          "s2": 36.914,
+          "s3": 24.046,
+          "total": 82.744,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 2,
+          "s1": 21.906,
+          "s2": 36.48,
+          "s3": 23.821,
+          "total": 82.207,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 3,
+          "s1": 21.944,
+          "s2": 48.54,
+          "s3": 24.515,
+          "total": 94.999,
+          "invalid": true,
+          "note": "⚠ S2 大爆"
+        },
+        {
+          "lap": 4,
+          "s1": 22.052,
+          "s2": 36.624,
+          "s3": 23.971,
+          "total": 82.647,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 5,
+          "s1": 21.975,
+          "s2": 38.818,
+          "s3": 24.352,
+          "total": 85.145,
+          "invalid": true,
+          "note": "⚠ S2 爆掉"
+        },
+        {
+          "lap": 6,
+          "s1": 21.742,
+          "s2": 37.018,
+          "s3": 23.496,
+          "total": 82.256,
+          "invalid": true,
+          "note": "無效圈 · S1 最佳"
+        },
+        {
+          "lap": 7,
+          "s1": 21.768,
+          "s2": 36.191,
+          "s3": 24.421,
+          "total": 82.38,
+          "invalid": false,
+          "note": "★ S2 最佳"
+        },
+        {
+          "lap": 8,
+          "s1": 21.804,
+          "s2": 36.217,
+          "s3": 23.624,
+          "total": 81.645,
+          "invalid": false,
+          "note": "★ 新 PB! · S3 最佳"
+        }
+      ],
       "insights": [
         {
           "type": "info",
-          "title": "★ 新 PB!破進 1:21.6",
-          "desc": "6/4 場次三 lap5 跑出 1:21.683,打破舊 PB 1:21.805(快 0.122 秒),首次進 1:21.6!這圈終於把 S1(21.768)和 S2(36.201)的好成績湊在同一圈——就是之前缺的那一塊。"
+          "title": "★ 再破 PB!1:21.645",
+          "desc": "6/6 場次三 lap8 跑出 1:21.645,再刷新 PB(原 1:21.683,快 0.038 秒)。又是把好 sector 串成乾淨一圈(S1 21.804 + S2 36.217 + S3 23.624)。"
         },
         {
           "type": "info",
-          "title": "短期目標 1:21.500 只差 0.183 秒",
-          "desc": "新 S3 最佳 23.522,理論最佳掉到 ~1:21.22。1:21.5 基本上下一兩場就到。"
+          "title": "★ 失誤率連兩天壓到 ~14%",
+          "desc": "6/4 與 6/6 都約 14%(之前 21–26%)。尤其場次一 19 圈只有 2 次大失誤(~10%),長時間還能維持——這是你之前最缺的那塊,現在開始有真實趨勢了。"
         },
         {
           "type": "info",
-          "title": "世界第一刷新為 1:19.502",
-          "desc": "參考圈更新(原 1:19.512)。你的新 PB 對世界第一差距約 +2.74%。"
+          "title": "世界第一又刷新 → 1:19.483",
+          "desc": "參考圈更新(原 1:19.502)。新 PB 對世界第一差距約 +2.72%。"
         },
         {
-          "type": "warn",
-          "title": "⚠ PB 圈之後又崩",
-          "desc": "場次三跑出 PB 後,接下來 3 圈大爆(1:45/1:23/1:24)。抓到乾淨圈很好,下一步是 PB 之後還能穩住,而不是放鬆。"
+          "type": "info",
+          "title": "理論最佳 ~1:21.18",
+          "desc": "新 S2 最佳 35.967(場次一 lap19)。各 sector 最佳加總約 1:21.18,短期目標 1:21.500 只差 0.145 秒。"
         }
-      ]
+      ],
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     }
   ]
 }
