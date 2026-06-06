@@ -2281,7 +2281,7 @@ function buildGames() {
   const srBtn = document.getElementById('srStart');
   if (sr && srBtn) {
     srBtn.addEventListener('click', e => { e.stopPropagation(); if (SR.state === 'run') srShift(); else srStart(); });
-    sr.addEventListener('click', () => { if (SR.state === 'run') srShift(); else srStart(); });
+    sr.addEventListener('click', () => { if (SR.state === 'run') srShift(); else if (SR.state === 'idle') srStart(); });
   }
 }
 
