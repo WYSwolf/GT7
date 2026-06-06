@@ -680,6 +680,46 @@
 
   .app-content { display: none; }
   .app-content.ready { display: block; }
+
+  /* ===== F1 reaction game ===== */
+  .f1-stage {
+    border-radius: 14px; background: radial-gradient(120% 120% at 50% 0%, #11161d 0%, #0a0d12 70%);
+    border: 1px solid #1c232c; padding: 2rem 1rem 1.75rem; text-align: center; cursor: pointer;
+    user-select: none; -webkit-tap-highlight-color: transparent; transition: background .15s, box-shadow .15s;
+  }
+  .f1-stage:focus { outline: none; box-shadow: 0 0 0 2px rgba(0,255,136,.35); }
+  .f1-stage.go { background: radial-gradient(120% 120% at 50% 30%, #04391f 0%, #0a0d12 75%); box-shadow: inset 0 0 60px rgba(0,255,136,.25); }
+  .f1-stage.foul { background: radial-gradient(120% 120% at 50% 30%, #3a0f14 0%, #0a0d12 75%); }
+  .f1-gantry { display: flex; gap: .7rem; justify-content: center; margin: 0 auto 1.4rem; max-width: 360px; }
+  .f1-col {
+    flex: 1; background: #05070a; border: 1px solid #20262f; border-radius: 10px;
+    padding: .7rem .35rem; display: flex; flex-direction: column; gap: .55rem; align-items: center;
+  }
+  .f1-bulb {
+    width: 100%; max-width: 46px; aspect-ratio: 1; border-radius: 50%;
+    background: #16191e; border: 1px solid #262c34; transition: background .04s, box-shadow .04s;
+  }
+  .f1-bulb.on { background: radial-gradient(circle at 38% 32%, #ff7b7b, #e10600 65%); box-shadow: 0 0 14px rgba(225,6,0,.85), inset 0 0 6px rgba(255,180,180,.6); border-color: #ff5b5b; }
+  .f1-msg { color: var(--text-secondary); font-size: .92rem; min-height: 1.3em; line-height: 1.5; }
+  .f1-result { margin-top: .6rem; min-height: 2.4em; }
+  .f1-result .rt { font-family: 'Bebas Neue', sans-serif; font-size: 2.8rem; line-height: 1; letter-spacing: 1px; }
+  .f1-result .grade { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 2px; margin-top: .15rem; }
+  .f1-result .sub { color: var(--text-secondary); font-size: .8rem; margin-top: .25rem; }
+  .f1-controls { display: flex; align-items: center; gap: 1rem; margin-top: 1.1rem; flex-wrap: wrap; }
+  .f1-btn {
+    flex: 0 0 auto; padding: .7rem 1.6rem; border-radius: 10px; border: none; cursor: pointer;
+    background: var(--accent); color: #06281a; font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px;
+    font-size: 1.15rem; transition: transform .08s, opacity .15s;
+  }
+  .f1-btn:active { transform: scale(.96); }
+  .f1-btn:disabled { opacity: .4; cursor: default; }
+  .f1-stats { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; min-width: 220px; }
+  .f1-stat-label { color: var(--text-secondary); font-size: .68rem; letter-spacing: .5px; }
+  .f1-stat-value { font-family: 'JetBrains Mono', monospace; font-size: 1.05rem; color: #e8ecf1; margin-top: .15rem; }
+  .f1-grades { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: 1.1rem; }
+  .f1-history { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .25rem; }
+  .f1-chip { font-family: 'JetBrains Mono', monospace; font-size: .76rem; padding: .25rem .5rem; border-radius: 6px; background: #11161d; border: 1px solid #1c232c; color: #cdd5de; }
+  .f1-chip.foul { color: #ff6b78; border-color: #5a1f25; }
 </style>
 </head>
 <body>
@@ -714,6 +754,7 @@
       <button class="nav-tab" data-page="tracks">賽道</button>
       <button class="nav-tab" data-page="goals">目標</button>
       <button class="nav-tab" data-page="history">紀錄</button>
+      <button class="nav-tab" data-page="games">遊戲</button>
     </div>
     <div class="topbar-right">
       <button class="reload-btn" id="reloadBtn" title="重新抓資料">⟲ 重新整理</button>
@@ -811,6 +852,53 @@
     </div>
   </div>
 
+  <div class="page" id="page-games">
+    <div class="page-header">
+      <div class="breadcrumb">SYSTEM <span class="sep">/</span> <span class="current">小遊戲</span></div>
+      <h1 class="page-title">REACTION <span class="accent">GAMES</span></h1>
+      <div class="page-subtitle">訓練之餘,測測你的反應</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">🚦 F1 起跑反應測試</div>
+        <div class="panel-meta">五燈熄滅後,越快越好</div>
+      </div>
+      <div class="panel-body">
+        <div id="f1Stage" class="f1-stage" role="button" tabindex="0" aria-label="反應區">
+          <div class="f1-gantry" id="f1Gantry">
+            <div class="f1-col"><span class="f1-bulb"></span><span class="f1-bulb"></span></div>
+            <div class="f1-col"><span class="f1-bulb"></span><span class="f1-bulb"></span></div>
+            <div class="f1-col"><span class="f1-bulb"></span><span class="f1-bulb"></span></div>
+            <div class="f1-col"><span class="f1-bulb"></span><span class="f1-bulb"></span></div>
+            <div class="f1-col"><span class="f1-bulb"></span><span class="f1-bulb"></span></div>
+          </div>
+          <div class="f1-msg" id="f1Msg">點擊「開始」,等五燈熄滅瞬間立刻點畫面</div>
+          <div class="f1-result" id="f1Result"></div>
+        </div>
+        <div class="f1-controls">
+          <button class="f1-btn" id="f1Start">開始</button>
+          <div class="f1-stats">
+            <div><div class="f1-stat-label">最佳</div><div class="f1-stat-value" id="f1Best">—</div></div>
+            <div><div class="f1-stat-label">上次</div><div class="f1-stat-value" id="f1Last">—</div></div>
+            <div><div class="f1-stat-label">平均(近10)</div><div class="f1-stat-value" id="f1Avg">—</div></div>
+            <div><div class="f1-stat-label">次數</div><div class="f1-stat-value" id="f1Count">0</div></div>
+          </div>
+        </div>
+        <div class="f1-grades">
+          <span class="badge" style="border-color:#00ff88;color:#00ff88;">神人 &lt;0.20s</span>
+          <span class="badge" style="border-color:#4dabf7;color:#4dabf7;">良好 0.20–0.30</span>
+          <span class="badge" style="border-color:#ffd43b;color:#ffd43b;">普通 0.30–0.45</span>
+          <span class="badge" style="border-color:#ff8c42;color:#ff8c42;">烏龜 ≥0.45</span>
+          <span class="badge" style="border-color:#ff4757;color:#ff4757;">搶跑 犯規</span>
+        </div>
+        <div class="panel-body" style="padding:.5rem 0 0;">
+          <div class="f1-history" id="f1History"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <footer id="footerStats"></footer>
 </div>
 
@@ -881,6 +969,7 @@ function initApp() {
   buildTrackDetailPages();
   buildGoals();
   buildHistory();
+  buildGames();
   buildFooter();
   bindNav();
 }
@@ -1862,6 +1951,105 @@ function buildHistory() {
       </div>
     `;
   }).join('');
+}
+
+// ===== F1 start reaction game =====
+const F1 = { state: 'idle', timers: [], goAt: 0, history: [], best: null };
+function f1Grade(rt) {
+  if (rt < 0.20) return { label: '神人 ALIEN', color: '#00ff88' };
+  if (rt < 0.30) return { label: '良好 GOOD', color: '#4dabf7' };
+  if (rt < 0.45) return { label: '普通 OK', color: '#ffd43b' };
+  return { label: '烏龜 TURTLE 🐢', color: '#ff8c42' };
+}
+function f1Sub(rt) {
+  if (rt < 0.10) return '快到不像真的?再驗一次看看';
+  if (rt < 0.20) return '比多數 F1 車手還快(職業約 0.2s)';
+  if (rt < 0.30) return '職業車手等級的水準';
+  if (rt < 0.45) return '一般人的反應區間';
+  return '放鬆一點,專注在燈滅的瞬間';
+}
+function f1Store(save) {
+  try {
+    if (save) { localStorage.setItem('gt7_f1_reaction', JSON.stringify({ best: F1.best, history: F1.history.slice(-50) })); return; }
+    const raw = localStorage.getItem('gt7_f1_reaction');
+    if (raw) { const o = JSON.parse(raw); F1.best = (o.best != null ? o.best : null); F1.history = Array.isArray(o.history) ? o.history : []; }
+  } catch (e) {}
+}
+function f1SetLights(n) {
+  document.querySelectorAll('#f1Gantry .f1-col').forEach((c, i) => {
+    c.querySelectorAll('.f1-bulb').forEach(b => b.classList.toggle('on', i < n));
+  });
+}
+function f1ClearTimers() { F1.timers.forEach(t => clearTimeout(t)); F1.timers = []; }
+function f1Start() {
+  f1ClearTimers();
+  const stage = document.getElementById('f1Stage');
+  stage.classList.remove('go', 'foul');
+  document.getElementById('f1Result').innerHTML = '';
+  document.getElementById('f1Msg').textContent = '準備…燈亮中,別亂點';
+  const btn = document.getElementById('f1Start'); btn.disabled = true; btn.textContent = '進行中';
+  F1.state = 'waiting'; f1SetLights(0);
+  for (let i = 1; i <= 5; i++) F1.timers.push(setTimeout(() => f1SetLights(i), i * 1000));
+  const hold = 200 + Math.random() * 2800;   // random hold after 5th light
+  F1.timers.push(setTimeout(() => {
+    f1SetLights(0); stage.classList.add('go');
+    document.getElementById('f1Msg').textContent = '點!';
+    F1.state = 'go'; F1.goAt = performance.now();
+  }, 5000 + hold));
+}
+function f1React() {
+  if (F1.state === 'idle' || F1.state === 'done') { f1Start(); return; }
+  const stage = document.getElementById('f1Stage');
+  const btn = document.getElementById('f1Start');
+  if (F1.state === 'waiting') {
+    f1ClearTimers(); F1.state = 'done';
+    stage.classList.remove('go'); stage.classList.add('foul'); f1SetLights(5);
+    document.getElementById('f1Msg').textContent = '燈還沒滅就點了';
+    document.getElementById('f1Result').innerHTML = '<div class="grade" style="color:#ff4757;">🚨 搶跑 JUMP START</div><div class="sub">犯規,等五燈全滅再點</div>';
+    F1.history.push({ foul: true, ts: Date.now() }); f1Store(true); f1RenderStats();
+    btn.disabled = false; btn.textContent = '再試一次'; return;
+  }
+  if (F1.state === 'go') {
+    const rt = (performance.now() - F1.goAt) / 1000;
+    F1.state = 'done'; stage.classList.remove('go');
+    const g = f1Grade(rt);
+    const isBest = F1.best == null || rt < F1.best;
+    if (isBest) F1.best = Math.round(rt * 1000) / 1000;
+    F1.history.push({ rt: Math.round(rt * 1000) / 1000, ts: Date.now() }); f1Store(true);
+    document.getElementById('f1Msg').textContent = isBest ? '🏆 新最佳!' : '';
+    document.getElementById('f1Result').innerHTML =
+      `<div class="rt" style="color:${g.color};">${rt.toFixed(3)}<span style="font-size:1.1rem;"> s</span></div>` +
+      `<div class="grade" style="color:${g.color};">${g.label}</div>` +
+      `<div class="sub">${f1Sub(rt)}</div>`;
+    f1RenderStats();
+    btn.disabled = false; btn.textContent = '再試一次';
+  }
+}
+function f1RenderStats() {
+  const valid = F1.history.filter(h => !h.foul && h.rt != null);
+  document.getElementById('f1Best').textContent = F1.best != null ? F1.best.toFixed(3) + 's' : '—';
+  const last = F1.history[F1.history.length - 1];
+  document.getElementById('f1Last').textContent = last ? (last.foul ? '搶跑' : last.rt.toFixed(3) + 's') : '—';
+  const recent = valid.slice(-10);
+  document.getElementById('f1Avg').textContent = recent.length ? (recent.reduce((a, b) => a + b.rt, 0) / recent.length).toFixed(3) + 's' : '—';
+  document.getElementById('f1Count').textContent = F1.history.length;
+  document.getElementById('f1History').innerHTML = F1.history.slice(-20).reverse().map(h =>
+    h.foul ? '<span class="f1-chip foul">搶跑</span>'
+           : `<span class="f1-chip"${h.rt === F1.best ? ' style="border-color:var(--accent);color:var(--accent);"' : ''}>${h.rt.toFixed(3)}</span>`
+  ).join('');
+}
+function buildGames() {
+  f1Store(false); f1RenderStats();
+  const stage = document.getElementById('f1Stage');
+  const btn = document.getElementById('f1Start');
+  if (!stage || !btn) return;
+  btn.addEventListener('click', f1Start);
+  stage.addEventListener('click', f1React);
+  stage.addEventListener('keydown', e => { if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); f1React(); } });
+  document.addEventListener('keydown', e => {
+    const games = document.getElementById('page-games');
+    if (games && games.classList.contains('active') && e.code === 'Space') { e.preventDefault(); f1React(); }
+  });
 }
 
 function buildFooter() {
