@@ -1541,7 +1541,7 @@ function renderCarSection(g) {
     ${renderLeaderboard(g)}
     ${sessionCards}
     <div class="panel">
-      <div class="panel-header"><div class="panel-title">圈速追蹤</div><div class="panel-meta">雙指縮放 Y 軸(圈速) <button onclick="resetChartZoom('lapChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .5rem;border-radius:6px;border:1px solid #2a3340;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:.7rem;font-family:inherit;">⟲ 重置</button></div></div>
+      <div class="panel-header"><div class="panel-title">圈速追蹤</div><div class="panel-meta">預設排除大失誤圈 · 雙指縮放 Y <button onclick="resetChartZoom('lapChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .5rem;border-radius:6px;border:1px solid #2a3340;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:.7rem;font-family:inherit;">⟲ 重置</button></div></div>
       <div class="panel-body"><div class="chart-wrap tall"><canvas id="lapChart-${g.key}"></canvas></div></div>
     </div>
     <div class="grid-2">
@@ -1549,7 +1549,7 @@ function renderCarSection(g) {
       <div class="panel"><div class="panel-header"><div class="panel-title">時間損失來源</div><div class="panel-meta">BY SECTOR</div></div><div class="panel-body"><div class="chart-wrap"><canvas id="pieChart-${g.key}"></canvas></div></div></div>
     </div>
     <div class="panel">
-      <div class="panel-header"><div class="panel-title">Sector 損失分解</div><div class="panel-meta">雙指縮放 Y 軸(圈速) <button onclick="resetChartZoom('stackChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .5rem;border-radius:6px;border:1px solid #2a3340;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:.7rem;font-family:inherit;">⟲ 重置</button></div></div>
+      <div class="panel-header"><div class="panel-title">Sector 損失分解</div><div class="panel-meta">預設排除大失誤圈 · 雙指縮放 Y <button onclick="resetChartZoom('stackChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .5rem;border-radius:6px;border:1px solid #2a3340;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:.7rem;font-family:inherit;">⟲ 重置</button></div></div>
       <div class="panel-body"><div class="chart-wrap tall"><canvas id="stackChart-${g.key}"></canvas></div></div>
     </div>
     <div class="panel">
@@ -1587,6 +1587,15 @@ function renderCarCharts(g) {
   });
   const pointSizes = allLaps.map(l => l.total === g.pb ? 10 : 6);
 
+  // Default Y-axis zoom: focus on the dense band, excluding outlier (incident) laps
+  // via the Tukey upper fence (Q3 + 1.5·IQR). User can pinch-zoom out or hit 重置.
+  const _sorted = [...times].sort((a, b) => a - b);
+  const _q = p => _sorted[Math.min(_sorted.length - 1, Math.round(p * (_sorted.length - 1)))];
+  const _q1 = _q(0.25), _q3 = _q(0.75), _iqr = _q3 - _q1;
+  const yFloor = Math.floor((Math.min(g.opt, g.pb) - 0.4) * 4) / 4;          // round down to .25
+  const yCeil = Math.max(Math.ceil((_q3 + 1.5 * _iqr) * 2) / 2, g.pb + 1.5); // Tukey fence, round up to .5
+  const lossCeil = Math.max(Math.ceil((yCeil - g.opt) * 2) / 2, 3);          // matching loss-axis cap for the stacked chart
+
   new Chart(document.getElementById('lapChart-' + g.key), {
     type: 'line',
     data: { labels, datasets: [{ data: times, showLine: false, borderColor: 'transparent', backgroundColor: 'transparent', pointBackgroundColor: pointColors, pointBorderColor: '#fff', pointBorderWidth: 0.5, pointRadius: pointSizes, pointHoverRadius: 12 }] },
@@ -1614,7 +1623,7 @@ function renderCarCharts(g) {
       },
       scales: {
         x: { grid: { display: false }, ticks: { color: '#8b96a8', font: { size: 10 } }, title: { display: true, text: '累計圈數', color: '#5a6577' } },
-        y: { grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => fmtTime(v) } }
+        y: { min: yFloor, max: yCeil, grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => fmtTime(v) } }
       }
     },
     plugins: [{
@@ -1759,7 +1768,7 @@ function renderCarCharts(g) {
       },
       scales: {
         x: { stacked: true, grid: { display: false }, ticks: { color: '#8b96a8' }, title: { display: true, text: '累計圈數', color: '#5a6577' } },
-        y: { stacked: true, grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8' }, title: { display: true, text: '損失(秒)', color: '#5a6577' } }
+        y: { stacked: true, min: 0, max: lossCeil, grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8' }, title: { display: true, text: '損失(秒)', color: '#5a6577' } }
       }
     }
   });
