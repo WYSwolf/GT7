@@ -2171,9 +2171,9 @@ function f1RenderStats() {
 const SR = {
   MAX_RPM: 9000, REDLINE: 9000, REV_RATE: 4800, SHIFT_MIN: 5500, GREEN_W: 440,
   GC_MIN: 5950, GC_MAX: 7600, RED_START: 8000, MAX_BONUS: -0.15, MAX_PEN: 0.10,
-  REDLINE_PEN: 0.20, BASE: 8.5,
+  REDLINE_PEN: 0.20, BASE: 8.5, DROP_RPM: 4000, DROP_RATE: 16000,
   state: 'idle', gear: 1, rpm: 0, t0: 0, t: 0, greenCenter: 6500, greenLo: 6280, greenHi: 6720,
-  shifts: 0, perfect: 0, redlines: 0, limiter: false, redlined: false, delta: 0, lastFrame: 0,
+  shifts: 0, perfect: 0, redlines: 0, limiter: false, redlined: false, dropping: false, dropTarget: 4000, delta: 0, lastFrame: 0,
   best: null, last: null, runs: 0, hist: [], cv: null, ctx: null, raf: 0
 };
 function srStore(save) {
@@ -2202,7 +2202,7 @@ function srPopDelta(d) {
   el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
 }
 function srStart() {
-  Object.assign(SR, { state: 'run', gear: 1, rpm: 0, t: 0, shifts: 0, perfect: 0, redlines: 0, limiter: false, redlined: false, delta: 0 });
+  Object.assign(SR, { state: 'run', gear: 1, rpm: 0, t: 0, shifts: 0, perfect: 0, redlines: 0, limiter: false, redlined: false, dropping: false, delta: 0 });
   srSetGreen();
   SR.t0 = performance.now(); SR.lastFrame = SR.t0;
   document.getElementById('srResult').innerHTML = '';
@@ -2214,6 +2214,7 @@ function srStart() {
 function srShift() {
   if (SR.state === 'idle' || SR.state === 'done') { srStart(); return; }
   if (SR.state !== 'run') return;
+  if (SR.dropping) return;
   const rpm = SR.rpm, c = SR.greenCenter, lo = SR.greenLo, hi = SR.greenHi;
   let d, msg, kind;
   if (rpm < SR.SHIFT_MIN) { d = SR.MAX_PEN; msg = '太早(未到 5500)'; kind = 'warn'; }
@@ -2223,7 +2224,9 @@ function srShift() {
   SR.delta += d; SR.shifts++; SR.gear++;
   srPopDelta(d);
   srSetStatus(msg + '  ' + (d > 0 ? '+' : '') + d.toFixed(3) + 's', kind);
-  SR.rpm = 0; SR.limiter = false; SR.redlined = false;
+  // upshift drops revs: quick retreat to ~4000 rpm, then climb resumes (never below current)
+  SR.dropTarget = Math.min(SR.rpm, SR.DROP_RPM + Math.round(Math.random() * 300 - 150));
+  SR.dropping = true; SR.limiter = false; SR.redlined = false;
   srSetGreen();
 }
 function srLoop(now) {
@@ -2231,7 +2234,11 @@ function srLoop(now) {
   let dt = (now - SR.lastFrame) / 1000; SR.lastFrame = now;
   if (dt > 0.05) dt = 0.05;
   SR.t = (now - SR.t0) / 1000;
-  if (SR.rpm < SR.REDLINE) { SR.rpm = Math.min(SR.REDLINE, SR.rpm + SR.REV_RATE * dt); SR.limiter = false; }
+  if (SR.dropping) {
+    SR.rpm = Math.max(SR.dropTarget, SR.rpm - SR.DROP_RATE * dt);
+    SR.limiter = false;
+    if (SR.rpm <= SR.dropTarget) { SR.rpm = SR.dropTarget; SR.dropping = false; }
+  } else if (SR.rpm < SR.REDLINE) { SR.rpm = Math.min(SR.REDLINE, SR.rpm + SR.REV_RATE * dt); SR.limiter = false; }
   else {
     SR.rpm = SR.REDLINE; SR.limiter = true;
     if (!SR.redlined) { SR.redlined = true; SR.redlines++; SR.delta += SR.REDLINE_PEN; srPopDelta(SR.REDLINE_PEN); srSetStatus('斷油!+' + SR.REDLINE_PEN.toFixed(2) + 's — 快升檔', 'warn'); }
