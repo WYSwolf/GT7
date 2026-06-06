@@ -749,6 +749,7 @@
   .sl-reelbox { display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .sl-head { font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; font-size: 1.05rem; color: var(--text-secondary); }
   .sl-goldlbl { font-family: 'JetBrains Mono', monospace; font-size: .64rem; color: var(--gold); }
+  .sl-sigma { font-family: 'JetBrains Mono', monospace; font-size: .6rem; color: var(--text-secondary); }
   .sl-reel { position: relative; width: 100%; height: 138px; overflow: hidden; border-radius: 10px; background: #05070a; border: 1px solid #20262f; }
   .sl-strip { position: absolute; left: 0; right: 0; top: 0; will-change: transform; }
   .sl-cell { height: 46px; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: .95rem; color: #cdd5de; border-bottom: 1px solid #11161d; }
@@ -990,12 +991,12 @@
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">🎰 PB SLOT</div>
-        <div class="panel-meta">分段拉霸 · 湊三金破 PB</div>
+        <div class="panel-meta">分段拉霸 · 湊全金破 PB</div>
       </div>
       <div class="panel-body">
         <div class="sl-targets">
           <div class="sl-target"><div class="sl-tlbl">你的 PB</div><div class="sl-tval" id="slPb" style="color:var(--accent)">—</div></div>
-          <div class="sl-target"><div class="sl-tlbl">理論最速(三金)</div><div class="sl-tval" id="slTh" style="color:var(--gold)">—</div></div>
+          <div class="sl-target"><div class="sl-tlbl">理論最速(全金)</div><div class="sl-tval" id="slTh" style="color:var(--gold)">—</div></div>
         </div>
         <div class="sl-machine" id="slMachine">
           <div class="sl-reels" id="slReels"></div>
@@ -1005,7 +1006,7 @@
           <div class="f1-stats" style="grid-template-columns:repeat(4,1fr);min-width:220px;">
             <div><div class="f1-stat-label">最佳組合</div><div class="f1-stat-value" id="slBest">—</div></div>
             <div><div class="f1-stat-label">破 PB</div><div class="f1-stat-value" id="slBreaks">0</div></div>
-            <div><div class="f1-stat-label">三金</div><div class="f1-stat-value" id="slJack">0</div></div>
+            <div><div class="f1-stat-label">全金</div><div class="f1-stat-value" id="slJack">0</div></div>
             <div><div class="f1-stat-label">抽數</div><div class="f1-stat-value" id="slSpins">0</div></div>
           </div>
         </div>
@@ -2314,16 +2315,17 @@ function srStats() {
   ).join('');
 }
 
-// ===== PB SLOT (sector-time slot · real data) =====
+// ===== PB SLOT (sector-time slot · real data · auto latest track · σ-driven speed) =====
 const SL = {
-  reels: [], pb: 0, th: 0, ROW_H: 46, LOOPS: 3, SPEED: 1150, EXTRA: 6,
-  pos: [0, 0, 0], spinning: [false, false, false], settling: [false, false, false],
-  target: [0, 0, 0], idx: [3, 3, 3], stopped: [true, true, true],
+  reels: [], sigma: [], speed: [], labels: [], n: 3, pb: 0, th: 0,
+  track: '', car: '', ROW_H: 46, LOOPS: 3, EXTRA: 6, SLOW: 650, FAST: 1500,
+  pos: [], spinning: [], settling: [], target: [], idx: [], stopped: [],
   active: false, stopIdx: 0, raf: 0, lastT: 0,
   best: null, breaks: 0, jackpots: 0, spins: 0, hist: []
 };
-const SL_LABELS = ['S1', 'S2', 'S3'];
 function slFmt(t) { const m = Math.floor(t / 60); const s = t - m * 60; return m + ':' + s.toFixed(3).padStart(6, '0'); }
+function slStd(arr) { if (arr.length < 2) return 0; const m = arr.reduce((a, b) => a + b, 0) / arr.length; return Math.sqrt(arr.reduce((a, b) => a + (b - m) * (b - m), 0) / arr.length); }
+function slTier(s) { return s < 0.4 ? '穩' : (s < 1.0 ? '普通' : '飄'); }
 function slStore(save) {
   try {
     if (save) { localStorage.setItem('gt7_pbslot', JSON.stringify({ best: SL.best, breaks: SL.breaks, jackpots: SL.jackpots, spins: SL.spins, hist: SL.hist.slice(-30) })); return; }
@@ -2336,13 +2338,34 @@ function slPercentile(sorted, q) {
   const i = (q / 100) * (sorted.length - 1), lo = Math.floor(i), hi = Math.ceil(i);
   return lo === hi ? sorted[lo] : sorted[lo] + (sorted[hi] - sorted[lo]) * (i - lo);
 }
+function slLatestSession() {
+  const ss = DATA.sessions.filter(s => (s.sectorsCount === 3 || s.sectorsCount === 4) && s.laps && s.laps.length);
+  if (!ss.length) return null;
+  return ss.map((s, idx) => ({ s, idx })).sort((a, b) => {
+    const da = a.s.date || '', db = b.s.date || '';
+    if (da !== db) return da < db ? -1 : 1;
+    const la = a.s.session || '', lb = b.s.session || '';
+    if (la !== lb) return la < lb ? -1 : 1;
+    return a.idx - b.idx;
+  }).pop().s;
+}
 function slDeriveData() {
-  // Laguna · 911 GT3 R · 3-sector laps from real data
+  const latest = slLatestSession();
+  if (!latest) { SL.reels = []; return false; }
+  SL.n = latest.sectorsCount;
+  SL.track = latest.track || '';
+  SL.car = latest.car || '';
+  const tkey = latest.trackKey || latest.track;
+  // all laps for the latest track + car
   const laps = [];
-  DATA.sessions.forEach(s => { if (s.sectorsCount === 3 && /911/.test(s.car || '')) (s.laps || []).forEach(l => laps.push(l)); });
-  const keys = ['s1', 's2', 's3'];
-  const reels = keys.map(k => {
-    const vals = laps.map(l => l[k]).filter(v => v != null).sort((a, b) => a - b);
+  DATA.sessions.forEach(s => {
+    if ((s.trackKey || s.track) === tkey && s.car === latest.car) (s.laps || []).forEach(l => laps.push(l));
+  });
+  SL.labels = []; SL.reels = []; SL.sigma = [];
+  for (let k = 1; k <= SL.n; k++) {
+    SL.labels.push('S' + k);
+    const key = 's' + k;
+    const vals = laps.map(l => l[key]).filter(v => v != null).sort((a, b) => a - b);
     const uniq = [...new Set(vals.map(v => Math.round(v * 1000) / 1000))].sort((a, b) => a - b);
     const qs = [0, 8, 18, 30, 45, 60, 75, 88];
     const picks = [];
@@ -2352,12 +2375,22 @@ function slDeriveData() {
       uniq.forEach(u => { const d = Math.abs(u - val); if (d < bd) { bd = d; nv = u; } });
       if (!picks.includes(nv)) picks.push(nv);
     });
-    return picks;
-  });
-  SL.reels = reels;
-  SL.th = Math.round(reels.reduce((s, r) => s + r[0], 0) * 1000) / 1000;   // sum of sector bests (gold)
+    SL.reels.push(picks);
+    // σ from VALID laps only (exclude crashed laps that blow up variance)
+    const validS = laps.filter(l => !l.invalid && l[key] != null).map(l => l[key]);
+    SL.sigma.push(slStd(validS));
+  }
+  // per-reel speed: most stable (σ small) spins slowest → easiest to land gold
+  const smin = Math.min(...SL.sigma), smax = Math.max(...SL.sigma);
+  SL.speed = SL.sigma.map(s => smax > smin ? SL.SLOW + (s - smin) / (smax - smin) * (SL.FAST - SL.SLOW) : (SL.SLOW + SL.FAST) / 2);
+  SL.th = Math.round(SL.reels.reduce((s, r) => s + r[0], 0) * 1000) / 1000;
   const valid = laps.filter(l => l.total != null && !l.invalid).map(l => l.total);
   SL.pb = valid.length ? Math.round(Math.min(...valid) * 1000) / 1000 : SL.th;
+  // size per-reel state arrays
+  SL.pos = Array(SL.n).fill(0); SL.spinning = Array(SL.n).fill(false);
+  SL.settling = Array(SL.n).fill(false); SL.target = Array(SL.n).fill(0);
+  SL.idx = Array(SL.n).fill(3); SL.stopped = Array(SL.n).fill(true);
+  return true;
 }
 function slN(ri) { return SL.reels[ri].length; }
 function slApply(ri) {
@@ -2366,17 +2399,19 @@ function slApply(ri) {
   document.getElementById('slStrip' + ri).style.transform = `translateY(${-off}px)`;
 }
 function slBuild() {
-  slDeriveData();
+  if (!slDeriveData()) return;
   const wrap = document.getElementById('slReels');
   wrap.innerHTML = '';
+  wrap.style.gridTemplateColumns = `repeat(${SL.n},1fr)`;
   SL.reels.forEach((vals, ri) => {
     const box = document.createElement('div'); box.className = 'sl-reelbox';
     let strip = '';
     for (let loop = 0; loop < SL.LOOPS; loop++)
       for (let i = 0; i < vals.length; i++)
         strip += `<div class="sl-cell${i === 0 ? ' sl-gold' : ''}">${vals[i].toFixed(3)}</div>`;
-    box.innerHTML = `<div class="sl-head">${SL_LABELS[ri]}</div>
+    box.innerHTML = `<div class="sl-head">${SL.labels[ri]}</div>
       <div class="sl-goldlbl">金 ${vals[0].toFixed(3)}</div>
+      <div class="sl-sigma">σ ${SL.sigma[ri].toFixed(2)} · ${slTier(SL.sigma[ri])}</div>
       <div class="sl-reel" id="slReel${ri}">
         <div class="sl-fade top"></div><div class="sl-fade bot"></div>
         <div class="sl-strip" id="slStrip${ri}">${strip}</div>
@@ -2387,13 +2422,15 @@ function slBuild() {
   });
   document.getElementById('slPb').textContent = slFmt(SL.pb);
   document.getElementById('slTh').textContent = slFmt(SL.th);
+  document.getElementById('slResult').innerHTML =
+    `<div class="sub" style="color:var(--text-secondary);">${SL.track}${SL.car ? ' · ' + SL.car : ''}<br>最穩的分段(σ 小)轉最慢、最好卡金 · 連按綠鈕由左到右停</div>`;
   slStats();
 }
 function slTick(now) {
   const dt = Math.min(0.05, (now - SL.lastT) / 1000); SL.lastT = now;
   let any = false;
-  for (let ri = 0; ri < 3; ri++) {
-    if (SL.spinning[ri]) { any = true; SL.pos[ri] += SL.SPEED * dt; slApply(ri); }
+  for (let ri = 0; ri < SL.n; ri++) {
+    if (SL.spinning[ri]) { any = true; SL.pos[ri] += SL.speed[ri] * dt; slApply(ri); }
     else if (SL.settling[ri]) {
       any = true;
       const diff = SL.target[ri] - SL.pos[ri];
@@ -2407,8 +2444,8 @@ function slStart() {
   if (SL.active) return;
   SL.active = true; SL.stopIdx = 0; SL.lastT = performance.now();
   document.getElementById('slMachine').classList.remove('sl-flash', 'sl-jackpot');
-  document.getElementById('slResult').innerHTML = '<div class="sub" style="color:var(--text-secondary);">三輪轉動中 · 連按綠色鈕由左到右停下</div>';
-  for (let ri = 0; ri < 3; ri++) {
+  document.getElementById('slResult').innerHTML = '<div class="sub" style="color:var(--text-secondary);">輪盤轉動中 · 連按綠色鈕由左到右停下</div>';
+  for (let ri = 0; ri < SL.n; ri++) {
     SL.spinning[ri] = true; SL.settling[ri] = false; SL.stopped[ri] = false;
     document.getElementById('slReel' + ri).classList.add('sl-spin');
     document.getElementById('slReel' + ri).classList.remove('sl-win');
@@ -2418,11 +2455,11 @@ function slStart() {
 }
 function slMainBtn() {
   if (!SL.active) { slStart(); return; }
-  if (SL.stopIdx >= 3) return;
+  if (SL.stopIdx >= SL.n) return;
   slStopReel(SL.stopIdx);
   SL.stopIdx++;
   const b = document.getElementById('slBtn');
-  if (SL.stopIdx < 3) b.textContent = '停 STOP S' + (SL.stopIdx + 1);
+  if (SL.stopIdx < SL.n) b.textContent = '停 STOP S' + (SL.stopIdx + 1);
   else { b.textContent = '結算中…'; b.disabled = true; }
 }
 function slStopReel(ri) {
@@ -2435,33 +2472,33 @@ function slStopReel(ri) {
 function slOnStopped(ri) {
   SL.stopped[ri] = true;
   document.getElementById('slReel' + ri).classList.remove('sl-spin');
-  if (SL.stopped.every(Boolean)) slFinish();
+  if (SL.stopped.slice(0, SL.n).every(Boolean)) slFinish();
 }
 function slFinish() {
   SL.active = false;
   const b = document.getElementById('slBtn'); b.disabled = false; b.textContent = '再拉 SPIN';
   SL.spins++;
   const picks = SL.reels.map((r, ri) => r[SL.idx[ri]]);
-  const golds = SL.idx.filter(i => i === 0).length;
+  let golds = 0; for (let ri = 0; ri < SL.n; ri++) if (SL.idx[ri] === 0) golds++;
   const total = Math.round(picks.reduce((a, c) => a + c, 0) * 1000) / 1000;
   if (SL.best == null || total < SL.best) SL.best = total;
   SL.hist.push(total);
-  const combo = SL_LABELS.map((L, ri) => `${L} ${picks[ri].toFixed(3)}`).join('  ·  ');
+  const combo = SL.labels.map((L, ri) => `${L} ${picks[ri].toFixed(3)}`).join('  ·  ');
   let color, tagline, sub;
-  if (golds === 3) {
+  if (golds === SL.n) {
     SL.jackpots++; SL.breaks++;
-    color = 'var(--gold)'; tagline = '🏆 JACKPOT · 三金理論最速!';
-    sub = `比 PB 快 ${(SL.pb - total).toFixed(3)}s · 你把三段最佳全卡到了`;
+    color = 'var(--gold)'; tagline = '🏆 JACKPOT · 全金理論最速!';
+    sub = `比 PB 快 ${(SL.pb - total).toFixed(3)}s · 你把每段最佳全卡到了`;
     document.getElementById('slMachine').classList.add('sl-jackpot');
-    for (let ri = 0; ri < 3; ri++) document.getElementById('slReel' + ri).classList.add('sl-win');
+    for (let ri = 0; ri < SL.n; ri++) document.getElementById('slReel' + ri).classList.add('sl-win');
   } else if (total < SL.pb) {
     SL.breaks++;
     color = 'var(--accent)'; tagline = '🟢 破 PB!NEW RECORD';
-    sub = `比 PB 快 ${(SL.pb - total).toFixed(3)}s · 命中金色 ${golds}/3`;
+    sub = `比 PB 快 ${(SL.pb - total).toFixed(3)}s · 命中金色 ${golds}/${SL.n}`;
     document.getElementById('slMachine').classList.add('sl-flash');
   } else {
     color = 'var(--text)'; tagline = '差一點';
-    sub = `比 PB 慢 ${(total - SL.pb).toFixed(3)}s · 命中金色 ${golds}/3`;
+    sub = `比 PB 慢 ${(total - SL.pb).toFixed(3)}s · 命中金色 ${golds}/${SL.n}`;
   }
   slStore(true);
   document.getElementById('slResult').innerHTML =
