@@ -738,6 +738,30 @@
   .sr-delta.show { animation: srDeltaPop .7s ease-out; }
   @keyframes srDeltaPop { 0% { opacity: 0; transform: translate(-50%,-20%) scale(.6); } 18% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%,-130%) scale(1.15); } }
   .sr-status { color: var(--text-secondary); font-size: .9rem; min-height: 1.3em; line-height: 1.4; }
+
+  /* ===== PB SLOT ===== */
+  .sl-targets { display: flex; gap: .5rem; margin-bottom: .8rem; }
+  .sl-target { flex: 1; background: #11161d; border: 1px solid #1c232c; border-radius: 10px; padding: .55rem .6rem; text-align: center; }
+  .sl-target .sl-tlbl { font-size: .66rem; color: var(--text-secondary); letter-spacing: .5px; }
+  .sl-target .sl-tval { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.15rem; margin-top: .15rem; }
+  .sl-machine { background: linear-gradient(180deg,#11161d,#0c1015); border: 1px solid #1c232c; border-radius: 14px; padding: 14px 12px; box-shadow: inset 0 0 40px rgba(0,0,0,.4); }
+  .sl-reels { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+  .sl-reelbox { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .sl-head { font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; font-size: 1.05rem; color: var(--text-secondary); }
+  .sl-goldlbl { font-family: 'JetBrains Mono', monospace; font-size: .64rem; color: var(--gold); }
+  .sl-reel { position: relative; width: 100%; height: 138px; overflow: hidden; border-radius: 10px; background: #05070a; border: 1px solid #20262f; }
+  .sl-strip { position: absolute; left: 0; right: 0; top: 0; will-change: transform; }
+  .sl-cell { height: 46px; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: .95rem; color: #cdd5de; border-bottom: 1px solid #11161d; }
+  .sl-cell.sl-gold { color: #1a1400; font-weight: 700; background: linear-gradient(180deg,#ffe072,#ffc12e); box-shadow: inset 0 0 12px rgba(255,180,0,.5); }
+  .sl-payline { position: absolute; left: 0; right: 0; top: 46px; height: 46px; pointer-events: none; border-top: 2px solid rgba(0,255,136,.55); border-bottom: 2px solid rgba(0,255,136,.55); background: rgba(0,255,136,.06); }
+  .sl-reel.sl-spin .sl-payline { border-color: rgba(255,255,255,.25); background: transparent; }
+  .sl-reel.sl-win .sl-payline { border-color: rgba(255,210,74,.85); background: rgba(255,210,74,.12); }
+  .sl-fade { position: absolute; left: 0; right: 0; height: 30px; pointer-events: none; z-index: 2; }
+  .sl-fade.top { top: 0; background: linear-gradient(#05070a,transparent); }
+  .sl-fade.bot { bottom: 0; background: linear-gradient(transparent,#05070a); }
+  .sl-machine.sl-flash { animation: slFlash .5s ease-out 2; --fc: rgba(0,255,136,.5); }
+  .sl-machine.sl-jackpot { animation: slFlash .55s ease-out 4; --fc: rgba(255,210,74,.65); }
+  @keyframes slFlash { 0%,100% { box-shadow: inset 0 0 40px rgba(0,0,0,.4); } 50% { box-shadow: inset 0 0 40px rgba(0,0,0,.4), 0 0 40px var(--fc); } }
 </style>
 </head>
 <body>
@@ -959,6 +983,35 @@
         </div>
         <div class="panel-body" style="padding:.5rem 0 0;">
           <div class="f1-history" id="srHistory"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">🎰 PB SLOT</div>
+        <div class="panel-meta">分段拉霸 · 湊三金破 PB</div>
+      </div>
+      <div class="panel-body">
+        <div class="sl-targets">
+          <div class="sl-target"><div class="sl-tlbl">你的 PB</div><div class="sl-tval" id="slPb" style="color:var(--accent)">—</div></div>
+          <div class="sl-target"><div class="sl-tlbl">理論最速(三金)</div><div class="sl-tval" id="slTh" style="color:var(--gold)">—</div></div>
+        </div>
+        <div class="sl-machine" id="slMachine">
+          <div class="sl-reels" id="slReels"></div>
+        </div>
+        <div class="f1-controls">
+          <button class="f1-btn" id="slBtn">拉霸 SPIN</button>
+          <div class="f1-stats" style="grid-template-columns:repeat(4,1fr);min-width:220px;">
+            <div><div class="f1-stat-label">最佳組合</div><div class="f1-stat-value" id="slBest">—</div></div>
+            <div><div class="f1-stat-label">破 PB</div><div class="f1-stat-value" id="slBreaks">0</div></div>
+            <div><div class="f1-stat-label">三金</div><div class="f1-stat-value" id="slJack">0</div></div>
+            <div><div class="f1-stat-label">抽數</div><div class="f1-stat-value" id="slSpins">0</div></div>
+          </div>
+        </div>
+        <div class="f1-result" id="slResult"><div class="sub" style="color:var(--text-secondary);">按「拉霸 SPIN」開始 · 連按同一顆鈕由左到右停 S1 → S2 → S3</div></div>
+        <div class="panel-body" style="padding:.5rem 0 0;">
+          <div class="f1-history" id="slHistory"></div>
         </div>
       </div>
     </div>
@@ -2261,6 +2314,174 @@ function srStats() {
   ).join('');
 }
 
+// ===== PB SLOT (sector-time slot · real data) =====
+const SL = {
+  reels: [], pb: 0, th: 0, ROW_H: 46, LOOPS: 3, SPEED: 1150, EXTRA: 6,
+  pos: [0, 0, 0], spinning: [false, false, false], settling: [false, false, false],
+  target: [0, 0, 0], idx: [3, 3, 3], stopped: [true, true, true],
+  active: false, stopIdx: 0, raf: 0, lastT: 0,
+  best: null, breaks: 0, jackpots: 0, spins: 0, hist: []
+};
+const SL_LABELS = ['S1', 'S2', 'S3'];
+function slFmt(t) { const m = Math.floor(t / 60); const s = t - m * 60; return m + ':' + s.toFixed(3).padStart(6, '0'); }
+function slStore(save) {
+  try {
+    if (save) { localStorage.setItem('gt7_pbslot', JSON.stringify({ best: SL.best, breaks: SL.breaks, jackpots: SL.jackpots, spins: SL.spins, hist: SL.hist.slice(-30) })); return; }
+    const raw = localStorage.getItem('gt7_pbslot');
+    if (raw) { const o = JSON.parse(raw); SL.best = o.best != null ? o.best : null; SL.breaks = o.breaks || 0; SL.jackpots = o.jackpots || 0; SL.spins = o.spins || 0; SL.hist = Array.isArray(o.hist) ? o.hist : []; }
+  } catch (e) {}
+}
+function slPercentile(sorted, q) {
+  if (!sorted.length) return 0;
+  const i = (q / 100) * (sorted.length - 1), lo = Math.floor(i), hi = Math.ceil(i);
+  return lo === hi ? sorted[lo] : sorted[lo] + (sorted[hi] - sorted[lo]) * (i - lo);
+}
+function slDeriveData() {
+  // Laguna · 911 GT3 R · 3-sector laps from real data
+  const laps = [];
+  DATA.sessions.forEach(s => { if (s.sectorsCount === 3 && /911/.test(s.car || '')) (s.laps || []).forEach(l => laps.push(l)); });
+  const keys = ['s1', 's2', 's3'];
+  const reels = keys.map(k => {
+    const vals = laps.map(l => l[k]).filter(v => v != null).sort((a, b) => a - b);
+    const uniq = [...new Set(vals.map(v => Math.round(v * 1000) / 1000))].sort((a, b) => a - b);
+    const qs = [0, 8, 18, 30, 45, 60, 75, 88];
+    const picks = [];
+    qs.forEach(q => {
+      const val = slPercentile(vals, q);
+      let nv = uniq[0], bd = Infinity;
+      uniq.forEach(u => { const d = Math.abs(u - val); if (d < bd) { bd = d; nv = u; } });
+      if (!picks.includes(nv)) picks.push(nv);
+    });
+    return picks;
+  });
+  SL.reels = reels;
+  SL.th = Math.round(reels.reduce((s, r) => s + r[0], 0) * 1000) / 1000;   // sum of sector bests (gold)
+  const valid = laps.filter(l => l.total != null && !l.invalid).map(l => l.total);
+  SL.pb = valid.length ? Math.round(Math.min(...valid) * 1000) / 1000 : SL.th;
+}
+function slN(ri) { return SL.reels[ri].length; }
+function slApply(ri) {
+  const span = slN(ri) * SL.ROW_H;
+  const off = ((SL.pos[ri] % span) + span) % span;
+  document.getElementById('slStrip' + ri).style.transform = `translateY(${-off}px)`;
+}
+function slBuild() {
+  slDeriveData();
+  const wrap = document.getElementById('slReels');
+  wrap.innerHTML = '';
+  SL.reels.forEach((vals, ri) => {
+    const box = document.createElement('div'); box.className = 'sl-reelbox';
+    let strip = '';
+    for (let loop = 0; loop < SL.LOOPS; loop++)
+      for (let i = 0; i < vals.length; i++)
+        strip += `<div class="sl-cell${i === 0 ? ' sl-gold' : ''}">${vals[i].toFixed(3)}</div>`;
+    box.innerHTML = `<div class="sl-head">${SL_LABELS[ri]}</div>
+      <div class="sl-goldlbl">金 ${vals[0].toFixed(3)}</div>
+      <div class="sl-reel" id="slReel${ri}">
+        <div class="sl-fade top"></div><div class="sl-fade bot"></div>
+        <div class="sl-strip" id="slStrip${ri}">${strip}</div>
+        <div class="sl-payline"></div>
+      </div>`;
+    wrap.appendChild(box);
+    SL.pos[ri] = 3 * SL.ROW_H; slApply(ri);
+  });
+  document.getElementById('slPb').textContent = slFmt(SL.pb);
+  document.getElementById('slTh').textContent = slFmt(SL.th);
+  slStats();
+}
+function slTick(now) {
+  const dt = Math.min(0.05, (now - SL.lastT) / 1000); SL.lastT = now;
+  let any = false;
+  for (let ri = 0; ri < 3; ri++) {
+    if (SL.spinning[ri]) { any = true; SL.pos[ri] += SL.SPEED * dt; slApply(ri); }
+    else if (SL.settling[ri]) {
+      any = true;
+      const diff = SL.target[ri] - SL.pos[ri];
+      if (Math.abs(diff) < 0.6) { SL.pos[ri] = SL.target[ri]; SL.settling[ri] = false; slApply(ri); slOnStopped(ri); }
+      else { SL.pos[ri] += diff * Math.min(1, dt * 7); slApply(ri); }
+    }
+  }
+  if (any) SL.raf = requestAnimationFrame(slTick); else { SL.raf = 0; SL.active = false; }
+}
+function slStart() {
+  if (SL.active) return;
+  SL.active = true; SL.stopIdx = 0; SL.lastT = performance.now();
+  document.getElementById('slMachine').classList.remove('sl-flash', 'sl-jackpot');
+  document.getElementById('slResult').innerHTML = '<div class="sub" style="color:var(--text-secondary);">三輪轉動中 · 連按綠色鈕由左到右停下</div>';
+  for (let ri = 0; ri < 3; ri++) {
+    SL.spinning[ri] = true; SL.settling[ri] = false; SL.stopped[ri] = false;
+    document.getElementById('slReel' + ri).classList.add('sl-spin');
+    document.getElementById('slReel' + ri).classList.remove('sl-win');
+  }
+  const b = document.getElementById('slBtn'); b.disabled = false; b.textContent = '停 STOP S1';
+  SL.raf = requestAnimationFrame(slTick);
+}
+function slMainBtn() {
+  if (!SL.active) { slStart(); return; }
+  if (SL.stopIdx >= 3) return;
+  slStopReel(SL.stopIdx);
+  SL.stopIdx++;
+  const b = document.getElementById('slBtn');
+  if (SL.stopIdx < 3) b.textContent = '停 STOP S' + (SL.stopIdx + 1);
+  else { b.textContent = '結算中…'; b.disabled = true; }
+}
+function slStopReel(ri) {
+  if (!SL.spinning[ri]) return;
+  SL.spinning[ri] = false; SL.settling[ri] = true;
+  const fr = Math.floor(SL.pos[ri] / SL.ROW_H), m = fr + SL.EXTRA;
+  SL.target[ri] = m * SL.ROW_H;
+  SL.idx[ri] = ((m + 1) % slN(ri) + slN(ri)) % slN(ri);
+}
+function slOnStopped(ri) {
+  SL.stopped[ri] = true;
+  document.getElementById('slReel' + ri).classList.remove('sl-spin');
+  if (SL.stopped.every(Boolean)) slFinish();
+}
+function slFinish() {
+  SL.active = false;
+  const b = document.getElementById('slBtn'); b.disabled = false; b.textContent = '再拉 SPIN';
+  SL.spins++;
+  const picks = SL.reels.map((r, ri) => r[SL.idx[ri]]);
+  const golds = SL.idx.filter(i => i === 0).length;
+  const total = Math.round(picks.reduce((a, c) => a + c, 0) * 1000) / 1000;
+  if (SL.best == null || total < SL.best) SL.best = total;
+  SL.hist.push(total);
+  const combo = SL_LABELS.map((L, ri) => `${L} ${picks[ri].toFixed(3)}`).join('  ·  ');
+  let color, tagline, sub;
+  if (golds === 3) {
+    SL.jackpots++; SL.breaks++;
+    color = 'var(--gold)'; tagline = '🏆 JACKPOT · 三金理論最速!';
+    sub = `比 PB 快 ${(SL.pb - total).toFixed(3)}s · 你把三段最佳全卡到了`;
+    document.getElementById('slMachine').classList.add('sl-jackpot');
+    for (let ri = 0; ri < 3; ri++) document.getElementById('slReel' + ri).classList.add('sl-win');
+  } else if (total < SL.pb) {
+    SL.breaks++;
+    color = 'var(--accent)'; tagline = '🟢 破 PB!NEW RECORD';
+    sub = `比 PB 快 ${(SL.pb - total).toFixed(3)}s · 命中金色 ${golds}/3`;
+    document.getElementById('slMachine').classList.add('sl-flash');
+  } else {
+    color = 'var(--text)'; tagline = '差一點';
+    sub = `比 PB 慢 ${(total - SL.pb).toFixed(3)}s · 命中金色 ${golds}/3`;
+  }
+  slStore(true);
+  document.getElementById('slResult').innerHTML =
+    `<div class="sub" style="font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">${combo}</div>` +
+    `<div class="rt" style="color:${color};">${slFmt(total)}</div>` +
+    `<div class="grade" style="color:${color};">${tagline}</div>` +
+    `<div class="sub">${sub}</div>`;
+  slStats();
+}
+function slStats() {
+  document.getElementById('slBest').textContent = SL.best != null ? slFmt(SL.best) : '—';
+  document.getElementById('slBest').style.color = (SL.best != null && SL.best < SL.pb) ? 'var(--accent)' : '#e8ecf1';
+  document.getElementById('slBreaks').textContent = SL.breaks;
+  document.getElementById('slJack').textContent = SL.jackpots;
+  document.getElementById('slSpins').textContent = SL.spins;
+  document.getElementById('slHistory').innerHTML = SL.hist.slice(-12).reverse().map(v =>
+    `<span class="f1-chip"${v < SL.pb ? ' style="border-color:var(--accent);color:var(--accent);"' : ''}>${slFmt(v)}</span>`
+  ).join('');
+}
+
 function buildGames() {
   f1Store(false); f1RenderStats();
   const stage = document.getElementById('f1Stage');
@@ -2281,7 +2502,14 @@ function buildGames() {
   const srBtn = document.getElementById('srStart');
   if (sr && srBtn) {
     srBtn.addEventListener('click', e => { e.stopPropagation(); if (SR.state === 'run') srShift(); else srStart(); });
-    sr.addEventListener('click', () => { if (SR.state === 'run') srShift(); else srStart(); });
+    sr.addEventListener('click', () => { if (SR.state === 'run') srShift(); else if (SR.state === 'idle') srStart(); });
+  }
+  // PB SLOT
+  if (document.getElementById('slReels')) {
+    slStore(false);
+    slBuild();
+    const slBtn = document.getElementById('slBtn');
+    if (slBtn) slBtn.addEventListener('click', slMainBtn);
   }
 }
 
