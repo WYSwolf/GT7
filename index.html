@@ -2169,9 +2169,10 @@ function f1RenderStats() {
 }
 // ===== SHIFT RUSH (fixed 8.5s · tent scoring) =====
 const SR = {
-  MAX_RPM: 9000, REDLINE: 9000, REV_RATE: 4800, SHIFT_MIN: 5500, GREEN_W: 440,
-  GC_MIN: 5950, GC_MAX: 7600, RED_START: 8000, MAX_BONUS: -0.15, MAX_PEN: 0.10,
-  REDLINE_PEN: 0.20, BASE: 8.5, DROP_RPM: 4000, DROP_RATE: 16000,
+  MAX_RPM: 9000, REDLINE: 9000, SHIFT_MIN: 6000, GREEN_W: 410, MIN_GW: 70,
+  GC_MIN: 6800, GC_MAX: 7200, RED_START: 8000, MAX_BONUS: -0.15, MAX_PEN: 0.10,
+  REV_BASE: 5900, FALLOFF: 0.92, CURVE: 1.6, GEARS: 6, GEAR_CLIMB: 0.90, GEAR_GREEN: 0.71,
+  REDLINE_PEN: 0.20, BASE: 8.5, DROP_RPM: 4000, DROP_RATE: 8000,
   state: 'idle', gear: 1, rpm: 0, t0: 0, t: 0, greenCenter: 6500, greenLo: 6280, greenHi: 6720,
   shifts: 0, perfect: 0, redlines: 0, limiter: false, redlined: false, dropping: false, dropTarget: 4000, delta: 0, lastFrame: 0,
   best: null, last: null, runs: 0, hist: [], cv: null, ctx: null, raf: 0
@@ -2183,13 +2184,19 @@ function srStore(save) {
     if (raw) { const o = JSON.parse(raw); SR.best = (o.best != null ? o.best : null); SR.last = (o.last != null ? o.last : null); SR.runs = o.runs || 0; SR.hist = Array.isArray(o.hist) ? o.hist : []; }
   } catch (e) {}
 }
+function srGearClimb(g) { return Math.pow(SR.GEAR_CLIMB, Math.min(g, SR.GEARS) - 1); }
+function srGearWidth(g) { return Math.max(SR.MIN_GW, SR.GREEN_W * Math.pow(SR.GEAR_GREEN, Math.min(g, SR.GEARS) - 1)); }
+function srApplyGreen() {
+  const w = srGearWidth(SR.gear);
+  SR.greenLo = Math.max(SR.SHIFT_MIN + 40, Math.round(SR.greenCenter - w / 2));
+  SR.greenHi = Math.round(SR.greenCenter + w / 2);
+}
 function srSetGreen() {
-  const c = SR.GC_MIN + Math.random() * (SR.GC_MAX - SR.GC_MIN);
-  SR.greenCenter = Math.round(c);
-  SR.greenLo = Math.max(SR.SHIFT_MIN + 40, Math.round(c - SR.GREEN_W / 2));
-  SR.greenHi = Math.round(c + SR.GREEN_W / 2);
+  SR.greenCenter = Math.round(SR.GC_MIN + Math.random() * (SR.GC_MAX - SR.GC_MIN));
+  srApplyGreen();
 }
 function srInGreen(rpm) { return rpm >= SR.greenLo && rpm <= SR.greenHi; }
+function srRate(rpm) { return SR.REV_BASE * srGearClimb(SR.gear) * (1 - SR.FALLOFF * Math.pow(Math.min(1, rpm / SR.MAX_RPM), SR.CURVE)); }
 function srSetStatus(txt, kind) {
   const s = document.getElementById('srStatus'); if (!s) return;
   s.textContent = txt;
@@ -2207,7 +2214,7 @@ function srStart() {
   SR.t0 = performance.now(); SR.lastFrame = SR.t0;
   document.getElementById('srResult').innerHTML = '';
   document.getElementById('srStart').textContent = '升檔 SHIFT';
-  srSetStatus('超過 5500 後,瞄準綠心升檔', '');
+  srSetStatus('超過 6000 後,瞄準綠心升檔', '');
   cancelAnimationFrame(SR.raf);
   SR.raf = requestAnimationFrame(srLoop);
 }
@@ -2215,9 +2222,10 @@ function srShift() {
   if (SR.state === 'idle' || SR.state === 'done') { srStart(); return; }
   if (SR.state !== 'run') return;
   if (SR.dropping) return;
+  if (SR.gear >= SR.GEARS) { srSetStatus('最高檔 ' + SR.GEARS + ' 速 — 維持到衝線', ''); return; }
   const rpm = SR.rpm, c = SR.greenCenter, lo = SR.greenLo, hi = SR.greenHi;
   let d, msg, kind;
-  if (rpm < SR.SHIFT_MIN) { d = SR.MAX_PEN; msg = '太早(未到 5500)'; kind = 'warn'; }
+  if (rpm < SR.SHIFT_MIN) { d = SR.MAX_PEN; msg = '太早(未到 6000)'; kind = 'warn'; }
   else if (rpm < lo) { const f = (lo - rpm) / Math.max(1, lo - SR.SHIFT_MIN); d = SR.MAX_PEN * Math.min(1, Math.max(0, f)); msg = '偏早'; kind = 'warn'; }
   else if (rpm <= hi) { const half = Math.max(1, (hi - lo) / 2); const f = 1 - Math.abs(rpm - c) / half; d = SR.MAX_BONUS * Math.min(1, Math.max(0, f)); SR.perfect++; msg = '綠區命中!'; kind = 'good'; }
   else { const f = (rpm - hi) / Math.max(1, SR.RED_START - hi); d = SR.MAX_PEN * Math.min(1, Math.max(0, f)); msg = rpm >= SR.RED_START ? '太晚(紅區)' : '偏晚'; kind = 'warn'; }
@@ -2228,6 +2236,7 @@ function srShift() {
   SR.dropTarget = Math.min(SR.rpm, SR.DROP_RPM + Math.round(Math.random() * 300 - 150));
   SR.dropping = true; SR.limiter = false; SR.redlined = false;
   srSetGreen();
+  if (SR.gear >= SR.GEARS) { document.getElementById('srStart').textContent = '最高檔'; }
 }
 function srLoop(now) {
   if (SR.state !== 'run') return;
@@ -2238,10 +2247,14 @@ function srLoop(now) {
     SR.rpm = Math.max(SR.dropTarget, SR.rpm - SR.DROP_RATE * dt);
     SR.limiter = false;
     if (SR.rpm <= SR.dropTarget) { SR.rpm = SR.dropTarget; SR.dropping = false; }
-  } else if (SR.rpm < SR.REDLINE) { SR.rpm = Math.min(SR.REDLINE, SR.rpm + SR.REV_RATE * dt); SR.limiter = false; }
+  } else if (SR.rpm < SR.REDLINE) { SR.rpm = Math.min(SR.REDLINE, SR.rpm + srRate(SR.rpm) * dt); SR.limiter = false; }
   else {
     SR.rpm = SR.REDLINE; SR.limiter = true;
-    if (!SR.redlined) { SR.redlined = true; SR.redlines++; SR.delta += SR.REDLINE_PEN; srPopDelta(SR.REDLINE_PEN); srSetStatus('斷油!+' + SR.REDLINE_PEN.toFixed(2) + 's — 快升檔', 'warn'); }
+    if (!SR.redlined) {
+      SR.redlined = true;
+      if (SR.gear < SR.GEARS) { SR.redlines++; SR.delta += SR.REDLINE_PEN; srPopDelta(SR.REDLINE_PEN); srSetStatus('斷油!+' + SR.REDLINE_PEN.toFixed(2) + 's — 快升檔', 'warn'); }
+      else { srSetStatus('最高檔紅線 — 維持到衝線', ''); }
+    }
   }
   srDraw(); srHud();
   if (SR.t >= SR.BASE) { srFinish(); return; }
