@@ -744,7 +744,7 @@
   .sl-target { flex: 1; background: #11161d; border: 1px solid #1c232c; border-radius: 10px; padding: .55rem .6rem; text-align: center; }
   .sl-target .sl-tlbl { font-size: .66rem; color: var(--text-secondary); letter-spacing: .5px; }
   .sl-target .sl-tval { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.15rem; margin-top: .15rem; }
-  .sl-machine { background: linear-gradient(180deg,#11161d,#0c1015); border: 1px solid #1c232c; border-radius: 14px; padding: 14px 12px; box-shadow: inset 0 0 40px rgba(0,0,0,.4); }
+  .sl-machine { position: relative; overflow: hidden; background: linear-gradient(180deg,#11161d,#0c1015); border: 1px solid #1c232c; border-radius: 14px; padding: 14px 12px; box-shadow: inset 0 0 40px rgba(0,0,0,.4); }
   .sl-reels { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
   .sl-reelbox { display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .sl-head { font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; font-size: 1.05rem; color: var(--text-secondary); }
@@ -760,9 +760,18 @@
   .sl-fade { position: absolute; left: 0; right: 0; height: 30px; pointer-events: none; z-index: 2; }
   .sl-fade.top { top: 0; background: linear-gradient(#05070a,transparent); }
   .sl-fade.bot { bottom: 0; background: linear-gradient(transparent,#05070a); }
-  .sl-machine.sl-flash { animation: slFlash .5s ease-out 2; --fc: rgba(0,255,136,.5); }
-  .sl-machine.sl-jackpot { animation: slFlash .55s ease-out 4; --fc: rgba(255,210,74,.65); }
-  @keyframes slFlash { 0%,100% { box-shadow: inset 0 0 40px rgba(0,0,0,.4); } 50% { box-shadow: inset 0 0 40px rgba(0,0,0,.4), 0 0 40px var(--fc); } }
+  .sl-machine.sl-blink { animation: slBlink3 .9s ease-out; }
+  @keyframes slBlink3 {
+    0%,33%,66%,100% { box-shadow: inset 0 0 40px rgba(0,0,0,.4); }
+    16%,50%,83% { box-shadow: inset 0 0 40px rgba(0,0,0,.4), 0 0 42px var(--fc); }
+  }
+  .sl-overlay { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    background: rgba(7,10,14,.93); border-radius: 14px; opacity: 0; pointer-events: none; transition: opacity .28s ease; border: 1px solid transparent; }
+  .sl-overlay.show { opacity: 1; box-shadow: inset 0 0 60px -10px var(--oc); border-color: var(--oc); }
+  .sl-ov-tag { font-family: 'Bebas Neue', sans-serif; letter-spacing: 1.5px; font-size: 1.25rem; }
+  .sl-ov-time { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 2.3rem; line-height: 1; text-shadow: 0 0 22px var(--oc); }
+  .sl-ov-sub { font-size: .72rem; color: var(--text-secondary); text-align: center; padding: 0 12px; }
+  .sl-ov-combo { font-family: 'JetBrains Mono', monospace; font-size: .62rem; color: var(--text-secondary); }
 </style>
 </head>
 <body>
@@ -1000,6 +1009,7 @@
         </div>
         <div class="sl-machine" id="slMachine">
           <div class="sl-reels" id="slReels"></div>
+          <div class="sl-overlay" id="slOverlay"></div>
         </div>
         <div class="f1-controls">
           <button class="f1-btn" id="slBtn">拉霸 SPIN</button>
@@ -2318,7 +2328,8 @@ function srStats() {
 // ===== PB SLOT (sector-time slot · real data · auto latest track · σ-driven speed) =====
 const SL = {
   reels: [], sigma: [], speed: [], labels: [], n: 3, pb: 0, th: 0,
-  track: '', car: '', ROW_H: 46, LOOPS: 3, EXTRA: 6, SLOW: 650, FAST: 1500,
+  track: '', car: '', ROW_H: 46, LOOPS: 3, EXTRA: 4, SLOW: 650, FAST: 1500,
+  settleRate: [], revealTimer: 0,
   pos: [], spinning: [], settling: [], target: [], idx: [], stopped: [],
   active: false, stopIdx: 0, raf: 0, lastT: 0,
   best: null, breaks: 0, jackpots: 0, spins: 0, hist: []
@@ -2383,6 +2394,8 @@ function slDeriveData() {
   // per-reel speed: most stable (σ small) spins slowest → easiest to land gold
   const smin = Math.min(...SL.sigma), smax = Math.max(...SL.sigma);
   SL.speed = SL.sigma.map(s => smax > smin ? SL.SLOW + (s - smin) / (smax - smin) * (SL.FAST - SL.SLOW) : (SL.SLOW + SL.FAST) / 2);
+  // settle easing rate per reel → initial settle velocity == spin speed (prevents slow reel from speeding up on stop)
+  SL.settleRate = SL.speed.map(v => v / (SL.EXTRA * SL.ROW_H));
   SL.th = Math.round(SL.reels.reduce((s, r) => s + r[0], 0) * 1000) / 1000;
   const valid = laps.filter(l => l.total != null && !l.invalid).map(l => l.total);
   SL.pb = valid.length ? Math.round(Math.min(...valid) * 1000) / 1000 : SL.th;
@@ -2435,7 +2448,7 @@ function slTick(now) {
       any = true;
       const diff = SL.target[ri] - SL.pos[ri];
       if (Math.abs(diff) < 0.6) { SL.pos[ri] = SL.target[ri]; SL.settling[ri] = false; slApply(ri); slOnStopped(ri); }
-      else { SL.pos[ri] += diff * Math.min(1, dt * 7); slApply(ri); }
+      else { SL.pos[ri] += diff * Math.min(1, dt * SL.settleRate[ri]); slApply(ri); }
     }
   }
   if (any) SL.raf = requestAnimationFrame(slTick); else { SL.raf = 0; SL.active = false; }
@@ -2443,7 +2456,9 @@ function slTick(now) {
 function slStart() {
   if (SL.active) return;
   SL.active = true; SL.stopIdx = 0; SL.lastT = performance.now();
-  document.getElementById('slMachine').classList.remove('sl-flash', 'sl-jackpot');
+  if (SL.revealTimer) { clearTimeout(SL.revealTimer); SL.revealTimer = 0; }
+  const mc = document.getElementById('slMachine'); mc.classList.remove('sl-blink');
+  const ov = document.getElementById('slOverlay'); ov.classList.remove('show'); ov.innerHTML = '';
   document.getElementById('slResult').innerHTML = '<div class="sub" style="color:var(--text-secondary);">輪盤轉動中 · 連按綠色鈕由左到右停下</div>';
   for (let ri = 0; ri < SL.n; ri++) {
     SL.spinning[ri] = true; SL.settling[ri] = false; SL.stopped[ri] = false;
@@ -2476,7 +2491,7 @@ function slOnStopped(ri) {
 }
 function slFinish() {
   SL.active = false;
-  const b = document.getElementById('slBtn'); b.disabled = false; b.textContent = '再拉 SPIN';
+  const b = document.getElementById('slBtn'); b.disabled = true; b.textContent = '結算中…';
   SL.spins++;
   const picks = SL.reels.map((r, ri) => r[SL.idx[ri]]);
   let golds = 0; for (let ri = 0; ri < SL.n; ri++) if (SL.idx[ri] === 0) golds++;
@@ -2484,29 +2499,43 @@ function slFinish() {
   if (SL.best == null || total < SL.best) SL.best = total;
   SL.hist.push(total);
   const combo = SL.labels.map((L, ri) => `${L} ${picks[ri].toFixed(3)}`).join('  ·  ');
-  let color, tagline, sub;
+  let color, glow, tagline, sub;
   if (golds === SL.n) {
     SL.jackpots++; SL.breaks++;
-    color = 'var(--gold)'; tagline = '🏆 JACKPOT · 全金理論最速!';
+    color = 'var(--gold)'; glow = 'rgba(255,210,74,.65)'; tagline = '🏆 JACKPOT · 全金理論最速!';
     sub = `比 PB 快 ${(SL.pb - total).toFixed(3)}s · 你把每段最佳全卡到了`;
-    document.getElementById('slMachine').classList.add('sl-jackpot');
     for (let ri = 0; ri < SL.n; ri++) document.getElementById('slReel' + ri).classList.add('sl-win');
   } else if (total < SL.pb) {
     SL.breaks++;
-    color = 'var(--accent)'; tagline = '🟢 破 PB!NEW RECORD';
+    color = 'var(--accent)'; glow = 'rgba(0,255,136,.55)'; tagline = '🟢 破 PB!NEW RECORD';
     sub = `比 PB 快 ${(SL.pb - total).toFixed(3)}s · 命中金色 ${golds}/${SL.n}`;
-    document.getElementById('slMachine').classList.add('sl-flash');
   } else {
-    color = 'var(--text)'; tagline = '差一點';
+    color = '#ff5566'; glow = 'rgba(255,85,102,.5)'; tagline = '差一點';
     sub = `比 PB 慢 ${(total - SL.pb).toFixed(3)}s · 命中金色 ${golds}/${SL.n}`;
   }
   slStore(true);
+  slStats();
+  // detail line stays below the machine
   document.getElementById('slResult').innerHTML =
     `<div class="sub" style="font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">${combo}</div>` +
-    `<div class="rt" style="color:${color};">${slFmt(total)}</div>` +
-    `<div class="grade" style="color:${color};">${tagline}</div>` +
-    `<div class="sub">${sub}</div>`;
-  slStats();
+    `<div class="sub" style="color:${color};">${tagline}</div>`;
+  // 1) flash the machine 3 times, 2) then turn the screen into the colour-coded total
+  const mc = document.getElementById('slMachine');
+  mc.style.setProperty('--fc', glow);
+  mc.classList.remove('sl-blink'); void mc.offsetWidth; mc.classList.add('sl-blink');
+  SL.revealTimer = setTimeout(() => {
+    const ov = document.getElementById('slOverlay');
+    ov.style.setProperty('--oc', color);
+    ov.innerHTML =
+      `<div class="sl-ov-tag" style="color:${color};">${tagline}</div>` +
+      `<div class="sl-ov-time" style="color:${color};">${slFmt(total)}</div>` +
+      `<div class="sl-ov-combo">${combo}</div>` +
+      `<div class="sl-ov-sub">${sub}</div>`;
+    ov.classList.add('show');
+    mc.classList.remove('sl-blink');
+    b.disabled = false; b.textContent = '再拉 SPIN';
+    SL.revealTimer = 0;
+  }, 900);
 }
 function slStats() {
   document.getElementById('slBest').textContent = SL.best != null ? slFmt(SL.best) : '—';
