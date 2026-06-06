@@ -1173,14 +1173,14 @@ function estimatePlacement(pb, lb) {
 function medalOf(pb, lb) {
   if (!lb || !lb.medals) return null;
   const m = lb.medals;
-  if (pb <= m.platinum) return { n: '白金 Platinum', c: '#d9e3ee' };
-  if (pb <= m.gold) return { n: '金牌 Gold', c: 'var(--gold)' };
-  if (pb <= m.silver) return { n: '銀牌 Silver', c: '#c0c6cf' };
-  if (pb <= m.bronze) return { n: '銅牌 Bronze', c: '#cd7f32' };
+  if (pb <= m.platinum) return { n: 'Platinum', c: '#d9e3ee' };
+  if (pb <= m.gold) return { n: 'Gold', c: 'var(--gold)' };
+  if (pb <= m.silver) return { n: 'Silver', c: '#c0c6cf' };
+  if (pb <= m.bronze) return { n: 'Bronze', c: '#cd7f32' };
   return null;
 }
 function medalLabel(name) {
-  const map = { Platinum: { n: '白金 Platinum', c: '#d9e3ee' }, Gold: { n: '金牌 Gold', c: 'var(--gold)' }, Silver: { n: '銀牌 Silver', c: '#c0c6cf' }, Bronze: { n: '銅牌 Bronze', c: '#cd7f32' } };
+  const map = { Platinum: { n: 'Platinum', c: '#d9e3ee' }, Gold: { n: 'Gold', c: 'var(--gold)' }, Silver: { n: 'Silver', c: '#c0c6cf' }, Bronze: { n: 'Bronze', c: '#cd7f32' } };
   return map[name] || null;
 }
 function eventStatus(lb) {
@@ -1210,14 +1210,14 @@ function renderLeaderboard(g) {
   if (!lb) return '';
   const pb = g.pb;
   const rows = [];
-  if (lb.wr != null) rows.push({ label: '世界第一', icon: '🏎', t: lb.wr });
-  if (lb.medals && lb.medals.platinum != null) rows.push({ label: '白金 +0.5%', icon: '⬜', t: lb.medals.platinum, pct: lb.medalPct && lb.medalPct.platinum });
-  if (lb.top100 != null) rows.push({ label: '前 100 名', icon: '💯', t: lb.top100 });
-  if (lb.top1000 != null) rows.push({ label: '前 1000 名', icon: '🔟', t: lb.top1000 });
-  if (lb.medals && lb.medals.gold != null) rows.push({ label: '金牌 +3%', icon: '🥇', t: lb.medals.gold, pct: lb.medalPct && lb.medalPct.gold });
-  if (lb.medals && lb.medals.silver != null) rows.push({ label: '銀牌 +5%', icon: '🥈', t: lb.medals.silver, pct: lb.medalPct && lb.medalPct.silver });
-  if (lb.medals && lb.medals.bronze != null) rows.push({ label: '銅牌 +10%', icon: '🥉', t: lb.medals.bronze, pct: lb.medalPct && lb.medalPct.bronze });
-  rows.push({ label: '你的 PB', icon: '🟨', t: pb, isUser: true });
+  if (lb.wr != null) rows.push({ label: 'World #1', icon: '🏎', t: lb.wr });
+  if (lb.medals && lb.medals.platinum != null) rows.push({ label: 'Platinum +0.5%', icon: '⬜', t: lb.medals.platinum, pct: lb.medalPct && lb.medalPct.platinum });
+  if (lb.top100 != null) rows.push({ label: 'Top 100', icon: '💯', t: lb.top100 });
+  if (lb.top1000 != null) rows.push({ label: 'Top 1000', icon: '🔟', t: lb.top1000 });
+  if (lb.medals && lb.medals.gold != null) rows.push({ label: 'Gold +3%', icon: '🥇', t: lb.medals.gold, pct: lb.medalPct && lb.medalPct.gold });
+  if (lb.medals && lb.medals.silver != null) rows.push({ label: 'Silver +5%', icon: '🥈', t: lb.medals.silver, pct: lb.medalPct && lb.medalPct.silver });
+  if (lb.medals && lb.medals.bronze != null) rows.push({ label: 'Bronze +10%', icon: '🥉', t: lb.medals.bronze, pct: lb.medalPct && lb.medalPct.bronze });
+  rows.push({ label: 'Your PB', icon: '🟨', t: pb, isUser: true });
   rows.sort((a, b) => a.t - b.t);
 
   const status = eventStatus(lb);
@@ -1234,13 +1234,13 @@ function renderLeaderboard(g) {
         <span style="font-size:1rem;">${r.icon}</span>
         <span style="flex:1;font-weight:700;color:var(--accent);">${r.label}</span>
         <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent);">${fmtTime(r.t)}</span>
-        <span style="width:92px;text-align:right;font-size:.72rem;color:var(--text-secondary);">— 你在這 —</span>
+        <span style="width:92px;text-align:right;font-size:.72rem;color:var(--text-secondary);">— YOU ARE HERE —</span>
       </div>`;
     }
     const diff = r.t - pb;
     const gapTxt = diff > 0
-      ? `<span style="color:var(--accent);">已超越 ✓</span>`
-      : `<span style="color:var(--text-secondary);">需 ${(pb - r.t).toFixed(3)}s</span>`;
+      ? `<span style="color:var(--accent);">CLEARED ✓</span>`
+      : `<span style="color:var(--text-secondary);">need ${(pb - r.t).toFixed(3)}s</span>`;
     const pctTxt = r.pct != null ? ` · ${r.pct}%` : '';
     return `<div style="display:flex;align-items:center;gap:.6rem;padding:.5rem .7rem;border-bottom:1px solid #1a2028;">
       <span style="font-size:1rem;opacity:.9;">${r.icon}</span>
@@ -1253,26 +1253,26 @@ function renderLeaderboard(g) {
   return `
     <div class="panel" style="margin-bottom:1.5rem;">
       <div class="panel-header">
-        <div class="panel-title">🏆 全球排行對標</div>
+        <div class="panel-title">🏆 GLOBAL RANKING</div>
         <div class="panel-meta">${lb.source || ''}${lb.asOf ? ' · ' + lb.asOf : ''}</div>
       </div>
       <div class="panel-body">
         <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.9rem;">
-          <span class="badge" style="background:${status.ended ? '#3a4250' : 'var(--accent)'};color:${status.ended ? '#cdd5de' : '#0a0d12'};font-weight:700;">${status.ended ? '已結束 ' + (lb.endDate || '') : (lb.endDate ? '進行中 · 截止 ' + lb.endDate : '進行中')}</span>
-          ${medal ? `<span class="badge" style="background:${medal.c};color:#0a0d12;font-weight:700;">${status.ended ? '最終 ' : '已達 '}${medal.n}</span>` : ''}
-          ${lb.totalPlayers ? `<span class="badge">${lb.totalPlayers.toLocaleString()} 名玩家</span>` : ''}
-          ${lb.eventUrl ? `<a href="${lb.eventUrl}" target="_blank" rel="noopener" class="badge" style="text-decoration:none;border-color:var(--accent);">活動頁 ↗</a>` : ''}
+          <span class="badge" style="background:${status.ended ? '#3a4250' : 'var(--accent)'};color:${status.ended ? '#cdd5de' : '#0a0d12'};font-weight:700;">${status.ended ? 'ENDED ' + (lb.endDate || '') : (lb.endDate ? 'LIVE · ends ' + lb.endDate : 'LIVE')}</span>
+          ${medal ? `<span class="badge" style="background:${medal.c};color:#0a0d12;font-weight:700;">${status.ended ? 'Final ' : 'Earned '}${medal.n}</span>` : ''}
+          ${lb.totalPlayers ? `<span class="badge">${lb.totalPlayers.toLocaleString()} players</span>` : ''}
+          ${lb.eventUrl ? `<a href="${lb.eventUrl}" target="_blank" rel="noopener" class="badge" style="text-decoration:none;border-color:var(--accent);">Event page ↗</a>` : ''}
         </div>
         ${place ? `<div style="padding:.7rem .8rem;border-radius:8px;background:linear-gradient(90deg,rgba(0,255,136,.14),transparent);margin-bottom:.9rem;">
           <div style="display:flex;align-items:center;gap:.6rem;">
-            <div><div style="font-size:.7rem;color:var(--text-secondary);letter-spacing:.5px;">${status.ended ? '最終名次' : (place.kind === 'actual' ? '實際名次' : '目前推估名次')}</div>
+            <div><div style="font-size:.7rem;color:var(--text-secondary);letter-spacing:.5px;">${status.ended ? 'Final rank' : (place.kind === 'actual' ? 'Actual rank' : 'Est. rank')}</div>
             <div style="font-family:'Bebas Neue',sans-serif;font-size:1.7rem;color:var(--accent);line-height:1;">${place.kind === 'actual' ? '#' : '≈ #'}${place.rank.toLocaleString()}</div></div>
-            <div style="flex:1;text-align:right;color:#cdd5de;font-size:.85rem;">全球前 <b style="color:#fff;">${place.pct}%</b><br><span style="font-size:.72rem;color:#5b6675;">${place.kind === 'actual' ? '實際 · dg-edge' : '推估值 · 依官方門檻內插'}</span></div>
+            <div style="flex:1;text-align:right;color:#cdd5de;font-size:.85rem;">Top <b style="color:#fff;">${place.pct}%</b> globally<br><span style="font-size:.72rem;color:#5b6675;">${place.kind === 'actual' ? 'Actual · dg-edge' : 'Estimated · interpolated from cutoffs'}</span></div>
           </div>
           ${place.note ? `<div style="margin-top:.55rem;font-size:.74rem;color:#8b95a3;line-height:1.5;border-top:1px solid #1c232c;padding-top:.5rem;">ℹ️ ${place.note}</div>` : ''}
         </div>` : ''}
         ${rowsHTML}
-        ${next ? `<div style="margin-top:.9rem;padding:.65rem .7rem;border-radius:6px;background:#11161d;color:#cdd5de;font-size:.85rem;line-height:1.5;">🎯 下一個里程碑:<b style="color:#fff;">${next.label}</b> ${fmtTime(next.t)},還差 <b style="color:var(--accent);">${(pb - next.t).toFixed(3)}s</b></div>` : ''}
+        ${next ? `<div style="margin-top:.9rem;padding:.65rem .7rem;border-radius:6px;background:#11161d;color:#cdd5de;font-size:.85rem;line-height:1.5;">🎯 Next target: <b style="color:#fff;">${next.label}</b> ${fmtTime(next.t)} — <b style="color:var(--accent);">${(pb - next.t).toFixed(3)}s</b> to go</div>` : ''}
       </div>
     </div>`;
 }
@@ -2281,7 +2281,7 @@ function buildGames() {
   const srBtn = document.getElementById('srStart');
   if (sr && srBtn) {
     srBtn.addEventListener('click', e => { e.stopPropagation(); if (SR.state === 'run') srShift(); else srStart(); });
-    sr.addEventListener('click', () => { if (SR.state === 'run') srShift(); else if (SR.state === 'idle') srStart(); });
+    sr.addEventListener('click', () => { if (SR.state === 'run') srShift(); else srStart(); });
   }
 }
 
