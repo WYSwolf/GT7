@@ -727,7 +727,8 @@
   .sr-stage.limit { background: radial-gradient(120% 120% at 50% 30%, #3a0f14 0%, #0a0d12 75%); box-shadow: inset 0 0 50px rgba(255,71,87,.22); }
   .sr-track { position: relative; height: 44px; border-radius: 10px; background: #05070a; border: 1px solid #20262f; overflow: hidden; margin-bottom: .85rem; }
   .sr-track .sr-finish { position: absolute; left: 0; top: 0; bottom: 0; width: 12px; background-image: repeating-conic-gradient(#e8ecf1 0% 25%, #11161d 0% 50%); background-size: 12px 12px; opacity: .85; }
-  .sr-dist { position: absolute; left: 18px; top: 5px; font-family: 'JetBrains Mono', monospace; font-size: .78rem; color: var(--text-secondary); }
+  .sr-dist { position: absolute; left: 18px; top: 5px; font-family: 'JetBrains Mono', monospace; font-size: .84rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; letter-spacing: .3px; }
+  .sr-dist b { color: #e8ecf1; font-weight: 700; }
   .sr-car { position: absolute; top: 50%; transform: translateY(-50%); font-size: 1.45rem; transition: left .05s linear; }
   .sr-hud { display: grid; grid-template-columns: repeat(3,1fr); gap: .5rem; margin-bottom: .5rem; }
   .sr-hud .sr-lbl { color: var(--text-secondary); font-size: .66rem; letter-spacing: .5px; }
@@ -959,7 +960,7 @@
         <div id="srStage" class="f1-stage sr-stage" role="button" tabindex="0" aria-label="升檔區">
           <div class="sr-track">
             <div class="sr-finish"></div>
-            <div class="sr-dist" id="srDist">0.0 / 8.5 s</div>
+            <div class="sr-dist" id="srDist"><b>0.000</b> s</div>
             <div class="sr-car" id="srCar" style="left:92%;">🏎️</div>
           </div>
           <div class="sr-hud">
@@ -2172,8 +2173,8 @@ const SR = {
   MAX_RPM: 9000, REDLINE: 9000, SHIFT_MIN: 6000, GREEN_W: 410, MIN_GW: 70,
   GC_MIN: 6800, GC_MAX: 7200, RED_START: 8000, MAX_BONUS: -0.15, MAX_PEN: 0.10,
   REV_BASE: 5900, FALLOFF: 0.92, CURVE: 1.6, GEARS: 6, GEAR_CLIMB: 0.90, GEAR_GREEN: 0.71,
-  REDLINE_PEN: 0.20, BASE: 8.5, DROP_RPM: 4000, DROP_RATE: 8000,
-  state: 'idle', gear: 1, rpm: 0, t0: 0, t: 0, greenCenter: 6500, greenLo: 6280, greenHi: 6720,
+  REDLINE_PEN: 0.20, BASE: 8.5, DROP_RPM: 4000, DROP_RATE: 8000, CAR_GAMMA: 1.8,
+  state: 'idle', gear: 1, rpm: 0, t0: 0, t: 0, u: 0, greenCenter: 6500, greenLo: 6280, greenHi: 6720,
   shifts: 0, perfect: 0, redlines: 0, limiter: false, redlined: false, dropping: false, dropTarget: 4000, delta: 0, lastFrame: 0,
   best: null, last: null, runs: 0, hist: [], cv: null, ctx: null, raf: 0
 };
@@ -2209,7 +2210,7 @@ function srPopDelta(d) {
   el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
 }
 function srStart() {
-  Object.assign(SR, { state: 'run', gear: 1, rpm: 0, t: 0, shifts: 0, perfect: 0, redlines: 0, limiter: false, redlined: false, dropping: false, delta: 0 });
+  Object.assign(SR, { state: 'run', gear: 1, rpm: 0, t: 0, u: 0, shifts: 0, perfect: 0, redlines: 0, limiter: false, redlined: false, dropping: false, delta: 0 });
   srSetGreen();
   SR.t0 = performance.now(); SR.lastFrame = SR.t0;
   document.getElementById('srResult').innerHTML = '';
@@ -2256,8 +2257,12 @@ function srLoop(now) {
       else { srSetStatus('最高檔紅線 — 維持到衝線', ''); }
     }
   }
+  // car distance: advance progress u so it reaches finish (u=1) exactly at t = BASE + delta
+  const Tf = SR.BASE + SR.delta;
+  if (Tf - SR.t <= dt) { SR.u = 1; SR.t = Tf; srDraw(); srHud(); srFinish(); return; }
+  SR.u += (1 - SR.u) / Math.max(0.0001, Tf - SR.t) * dt;
+  if (SR.u > 1) SR.u = 1;
   srDraw(); srHud();
-  if (SR.t >= SR.BASE) { srFinish(); return; }
   SR.raf = requestAnimationFrame(srLoop);
 }
 function srHud() {
@@ -2266,9 +2271,8 @@ function srHud() {
   adj.textContent = (SR.delta > 0 ? '+' : '') + SR.delta.toFixed(3);
   adj.style.color = SR.delta < 0 ? 'var(--accent)' : (SR.delta > 0 ? '#ff8c42' : '#e8ecf1');
   document.getElementById('srEst').textContent = (SR.BASE + SR.delta).toFixed(3);
-  const pct = Math.max(0, Math.min(1, SR.t / SR.BASE));
-  document.getElementById('srCar').style.left = (92 - pct * 86) + '%';
-  document.getElementById('srDist').textContent = SR.t.toFixed(1) + ' / ' + SR.BASE + ' s';
+  document.getElementById('srCar').style.left = (92 - Math.pow(SR.u, SR.CAR_GAMMA) * 86) + '%';
+  document.getElementById('srDist').innerHTML = '<b>' + SR.t.toFixed(3) + '</b> s';
   const st = document.getElementById('srStage');
   st.classList.toggle('go', SR.state === 'run' && !SR.limiter);
   st.classList.toggle('limit', SR.limiter);
