@@ -1724,6 +1724,34 @@ function renderCarSection(g) {
     </div>
   ` : '';
 
+  const telemetryHTML = (() => {
+    const withCsv = (g.sessions || []).filter(s => s.csv);
+    if (!withCsv.length) return '';
+    const cref = getCarReference(g.carKey);
+    const wrCsv = cref && cref.csv ? cref.csv : null;
+    return `
+    <div class="panel" style="margin-bottom:1.25rem;">
+      <div class="panel-header"><div class="panel-title">🔍 遙測走線</div><div class="panel-meta">TELEMETRY</div></div>
+      <div class="panel-body" style="padding:.25rem 1rem;">
+        ${withCsv.map(s => {
+          const lap = s.pbRl != null ? ('&lap=' + s.pbRl) : '';
+          const tag = s.session ? ('Session ' + s.session) : 'Session';
+          const wrBtn = wrCsv ? `<a href="telemetry.html?src=telemetry/${s.csv}${lap}&ref=telemetry/${wrCsv}" target="_blank" rel="noopener" style="flex:0 0 auto;padding:.55rem .85rem;border-radius:8px;background:var(--gold);color:#2a2102;font-weight:700;font-size:.8rem;text-decoration:none;white-space:nowrap;">⚡ vs WR</a>` : '';
+          return `<div style="display:flex;align-items:center;gap:.6rem;padding:.6rem .1rem;border-bottom:1px solid #1b232f;">
+            <a href="telemetry.html?src=telemetry/${s.csv}${lap}" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;gap:.75rem;text-decoration:none;min-width:0;">
+              <span style="flex:0 0 auto;width:34px;height:34px;border-radius:9px;background:var(--accent);color:#04221a;display:flex;align-items:center;justify-content:center;font-size:.9rem;">🔍</span>
+              <span style="flex:1;min-width:0;">
+                <span style="display:block;color:#e8ecf1;font-weight:600;font-size:.9rem;">${tag} · PB ${fmtTime(s.best)}</span>
+                <span style="display:block;color:var(--text-secondary);font-size:.74rem;margin-top:.15rem;">走線 / 摩擦圓 / 選彎</span>
+              </span>
+            </a>
+            ${wrBtn}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  })();
+
   const sectorsHeader = g.sectorCount === 4
     ? '<tr><th>圈</th><th>S1</th><th>S2</th><th>S3</th><th>S4</th><th>圈速</th><th>備註</th></tr>'
     : '<tr><th>SESSION</th><th>圈</th><th>S1</th><th>S2</th><th>S3</th><th>圈速</th><th>備註</th></tr>';
@@ -1759,6 +1787,7 @@ function renderCarSection(g) {
     </div>
     ${renderLeaderboard(g)}
     ${sessionCards}
+    ${telemetryHTML}
     <div class="panel">
       <div class="panel-header"><div class="panel-title">圈速追蹤</div><div class="panel-meta">預設排除大失誤圈 · 雙指縮放 Y <button onclick="resetChartZoom('lapChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .5rem;border-radius:6px;border:1px solid #2a3340;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:.7rem;font-family:inherit;">⟲ 重置</button></div></div>
       <div class="panel-body"><div class="chart-wrap tall"><canvas id="lapChart-${g.key}"></canvas></div></div>
@@ -2290,12 +2319,12 @@ function srDraw() {
   ctx.beginPath(); ctx.arc(cx, cy, R, SR_A0, srAng(SR.SHIFT_MIN)); ctx.stroke();
   ctx.strokeStyle = '#ffb02e';
   ctx.beginPath(); ctx.arc(cx, cy, R, srAng(SR.SHIFT_MIN), srAng(SR.greenLo)); ctx.stroke();
-  ctx.strokeStyle = '#00ff88';
-  ctx.beginPath(); ctx.arc(cx, cy, R, srAng(SR.greenLo), srAng(SR.greenHi)); ctx.stroke();
   ctx.strokeStyle = '#ff8c42';
   ctx.beginPath(); ctx.arc(cx, cy, R, srAng(SR.greenHi), srAng(SR.RED_START)); ctx.stroke();
   ctx.strokeStyle = '#ff4757';
   ctx.beginPath(); ctx.arc(cx, cy, R, srAng(SR.RED_START), srAng(SR.MAX_RPM)); ctx.stroke();
+  ctx.strokeStyle = '#00ff88';   // green drawn last → on top, rounded ends not covered
+  ctx.beginPath(); ctx.arc(cx, cy, R, srAng(SR.greenLo), srAng(SR.greenHi)); ctx.stroke();
   ctx.strokeStyle = '#3a4250'; ctx.lineWidth = 2;
   for (let r = 0; r <= SR.MAX_RPM; r += 1000) {
     const a = srAng(r), r1 = R - lw * 0.7, r2 = R + lw * 0.7;

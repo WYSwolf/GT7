@@ -29,6 +29,18 @@ svg{display:block;width:100%;height:auto}
 .warn{color:var(--gold)}
 .legend{font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;gap:14px;margin-top:4px;flex-wrap:wrap}
 .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.dash{display:inline-block;width:14px;height:0;border-top:2px dashed currentColor;margin-right:4px;vertical-align:middle}
+.cmp-only{display:none}
+body.cmp .cmp-only{display:block}
+body.cmp .legend.cmp-only{display:flex}
+body.cmp .solo-only{display:none}
+body.cmp .lab .cmp-only{display:inline}
+svg#spd,svg#pedal,svg#hd,svg#thrC,svg#brkC,svg#dlt{touch-action:pan-y}
+#map{touch-action:pan-y}
+.cmpx{font-family:var(--mono);font-size:11px;color:var(--gold);cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:5px 9px;background:#0e141c}
+.zoombar{display:flex;align-items:center;gap:10px;margin:-4px 0 14px;flex-wrap:wrap}
+.zoombar .cmpx{color:var(--cyan)}
+.zhint{font-family:var(--mono);font-size:11px;color:var(--muted)}
 </style></head><body>
 <div class="top">
   <div class="tt">GT7 遙測<small>賽道地圖分析</small></div>
@@ -37,21 +49,37 @@ svg{display:block;width:100%;height:auto}
   <div><div class="lab">圈次</div><select id="lapSel"></select></div>
   <div><div class="lab">彎角</div><select id="turnSel"><option value="-1">全圈</option></select></div>
   <div><div class="lab">換 CSV</div><input id="file" type="file" accept=".csv"></div>
+  <div><div class="lab">對照 CSV</div><input id="fileRef" type="file" accept=".csv"></div>
+  <button class="cmpx cmp-only" id="cmpClear">✕ 取消比較</button>
 </div>
 <div class="card"><div class="lab"><span>賽道地圖</span><span>分色 <select id="mapMode"><option value="speed">速度</option><option value="input">油門/煞車/滑行</option></select></span></div>
   <svg id="map" viewBox="0 0 600 600"></svg>
-  <div class="read" id="read"><div>移動滑鼠看該點 · 或選彎角</div></div>
+  <div class="read" id="read"><div>移動滑鼠/手指看該點 · 或選彎角</div></div>
 </div>
-<div class="card"><div class="lab">速度</div><svg id="spd" viewBox="0 0 600 130"></svg></div>
-<div class="card"><div class="lab">油門 / 煞車</div><svg id="pedal" viewBox="0 0 600 130"></svg>
+<div class="zoombar">
+  <button class="cmpx" id="zselBtn">🔍 框選縮放</button>
+  <button class="cmpx" id="zoomReset">⤢ 全圈</button>
+  <span class="zhint" id="zhint">在任一折線圖拖出範圍 → 所有圖同步放大</span>
+</div>
+<div class="card"><div class="lab"><span>速度</span><span class="legend cmp-only"><span><i class="dot" style="background:var(--green)"></i>你</span><span><i class="dash" style="color:var(--gold)"></i>對照</span></span></div><svg id="spd" viewBox="0 0 600 130"></svg></div>
+<div class="card cmp-only"><div class="lab"><span>累積時間差 Δt</span><span style="color:var(--muted);text-transform:none;letter-spacing:0">0 上＝你較慢 · 0 下＝你較快</span></div><svg id="dlt" viewBox="0 0 600 110"></svg></div>
+<div class="card solo-only"><div class="lab">油門 / 煞車</div><svg id="pedal" viewBox="0 0 600 130"></svg>
   <div class="legend"><span><i class="dot" style="background:var(--green)"></i>油門</span><span><i class="dot" style="background:var(--red)"></i>煞車</span></div></div>
+<div class="card cmp-only"><div class="lab">油門</div><svg id="thrC" viewBox="0 0 600 110"></svg>
+  <div class="legend"><span><i class="dot" style="background:var(--green)"></i>你</span><span><i class="dash" style="color:var(--green)"></i>對照</span></div></div>
+<div class="card cmp-only"><div class="lab">煞車</div><svg id="brkC" viewBox="0 0 600 110"></svg>
+  <div class="legend"><span><i class="dot" style="background:var(--red)"></i>你</span><span><i class="dash" style="color:var(--red)"></i>對照</span></div></div>
 <div class="card"><div class="lab">方向盤 vs 偏航</div><svg id="hd" viewBox="0 0 600 150"></svg>
-  <div class="legend"><span><i class="dot" style="background:var(--cyan)"></i>方向盤</span><span><i class="dot" style="background:var(--gold)"></i>偏航率</span></div>
+  <div class="legend solo-only"><span><i class="dot" style="background:var(--cyan)"></i>方向盤</span><span><i class="dot" style="background:var(--gold)"></i>偏航率</span></div>
+  <div class="legend cmp-only"><span><i class="dot" style="background:var(--cyan)"></i>你 方向盤</span><span><i class="dash" style="color:var(--cyan)"></i>對照 方向盤</span></div>
   <div class="note" id="hdNote"></div></div>
 <div class="two">
-  <div class="card"><div class="lab">摩擦圓</div><svg id="gg" viewBox="0 0 240 240" style="max-width:280px;margin:0 auto"></svg>
+  <div class="card"><div class="lab">摩擦圓<span class="cmp-only"> · 你</span></div><svg id="gg" viewBox="0 0 240 240" style="max-width:280px;margin:0 auto"></svg>
     <div class="legend" style="justify-content:center"><span><i class="dot" style="background:var(--green)"></i>油門</span><span><i class="dot" style="background:var(--red)"></i>煞車</span><span><i class="dot" style="background:var(--blue)"></i>滑行</span></div></div>
-  <div class="card"><div class="lab">本彎資料</div><div class="tstat" id="turnStat"><span>選一個彎角看細節</span><span></span></div></div>
+  <div class="card cmp-only"><div class="lab">摩擦圓 · 對照</div><svg id="ggR" viewBox="0 0 240 240" style="max-width:280px;margin:0 auto"></svg>
+    <div class="legend" style="justify-content:center"><span><i class="dot" style="background:var(--green)"></i>油門</span><span><i class="dot" style="background:var(--red)"></i>煞車</span><span><i class="dot" style="background:var(--blue)"></i>滑行</span></div></div>
+  <div class="card"><div class="lab">本彎資料<span class="cmp-only"> · 你</span></div><div class="tstat" id="turnStat"><span>選一個彎角看細節</span><span></span></div></div>
+  <div class="card cmp-only"><div class="lab">本彎資料 · 對照</div><div class="tstat" id="turnStatR"><span></span><span></span></div></div>
 </div>
 <script>
 const DEMO_CSV=`# gt7 capture | captured=demo | track=LAGUNA SECA | car=911 GT3 R (992) 22 | packet=C | hz=20
@@ -693,96 +721,192 @@ run_lap,inlap,carcode,lap_time,wall,t,spd,thr,brk,rpm,gear,x,z,yaw,latG,lonG,ste
 1,1,0,83.008,0,84.48,202.9,100,0,8672,4,-274.0,-248.6,-0.003,-0.02,0.31,-0.1,,,,,,,,`;
 const $=id=>document.getElementById(id);
 const num=v=>(typeof v==='number'&&!isNaN(v))?v:null;
-let LAPS=[],TRACK='',CAR='',SRC='範例',cur=null,PTS=[],MB=null,TURNS=[],selTurn=-1,hoverIdx=-1,DD=[],LEN=1,VX0=0,VX1=1,MAPMODE='speed';
+let LAPS=[],TRACK='',CAR='',SRC='範例',cur=null,PTS=[],TURNS=[],selTurn=-1,DD=[],LEN=1,VX0=0,VX1=1,MAPMODE='speed';
+let ref=null,refDD=[],refLEN=1,CMP=false;
 
-function loadText(text,label){
+function parseLaps(text){
   const lines=text.split(/\r?\n/);
   const mline=lines.find(l=>l.trim().startsWith('#'))||'';
-  TRACK=((mline.match(/track=([^|]+)/)||[])[1]||'').trim();
-  CAR=((mline.match(/car=([^|]+)/)||[])[1]||'').trim();
+  const track=((mline.match(/track=([^|]+)/)||[])[1]||'').trim();
+  const car=((mline.match(/car=([^|]+)/)||[])[1]||'').trim();
   const body=lines.filter(l=>l&&!l.trim().startsWith('#')).join('\n');
   const p=Papa.parse(body,{header:true,dynamicTyping:true,skipEmptyLines:true});
   const m=new Map();
   for(const r of p.data){if(r.run_lap==null)continue;if(!m.has(r.run_lap))m.set(r.run_lap,[]);m.get(r.run_lap).push(r);}
-  LAPS=[...m.entries()].map(([rl,rs])=>({run_lap:rl,lap_time:rs[0].lap_time,
+  const laps=[...m.entries()].map(([rl,rs])=>({run_lap:rl,lap_time:rs[0].lap_time,
     samples:rs.map(r=>({t:r.t,x:r.x,z:r.z,spd:r.spd,thr:r.thr,brk:r.brk,latG:num(r.latG),lonG:num(r.lonG),steer:num(r.steer),yaw:num(r.yaw)}))}))
     .filter(l=>l.lap_time>0&&l.samples.length>20).sort((a,b)=>a.run_lap-b.run_lap);
-  SRC=label;
-  if(!LAPS.length){$('meta').innerHTML='<span class="warn">這個 CSV 沒有完整圈</span>';return;}
+  return {laps,track,car};
+}
+function ddOf(s){let d=0;const a=[0];for(let i=1;i<s.length;i++){d+=Math.hypot(s[i].x-s[i-1].x,s[i].z-s[i-1].z);a.push(d);}return a;}
+const fmtT=s=>{if(s==null)return'—';const m=Math.floor(s/60);return m+':'+(s-m*60).toFixed(3).padStart(6,'0');};
+const fmtD=s=>{if(s==null)return'—';return (s>=0?'+':'−')+Math.abs(s).toFixed(2);};
+
+function loadText(text,label){
+  const r=parseLaps(text);
+  if(!r.laps.length){$('meta').innerHTML='<span class="warn">這個 CSV 沒有完整圈</span>';return;}
+  LAPS=r.laps;TRACK=r.track;CAR=r.car;SRC=label;
   const ql=+new URLSearchParams(location.search).get('lap');
   const sel=LAPS.find(l=>l.run_lap===ql)||LAPS.slice().sort((a,b)=>a.lap_time-b.lap_time)[0];
   fillLapSel(sel.run_lap); selectLap(sel);
 }
-const fmtT=s=>{if(s==null)return'—';const m=Math.floor(s/60);return m+':'+(s-m*60).toFixed(3).padStart(6,'0');};
+function loadRef(text,label){
+  const r=parseLaps(text);
+  if(!r.laps.length){$('meta').innerHTML+=' <span class="warn">對照 CSV 無完整圈</span>';return;}
+  const rl=+new URLSearchParams(location.search).get('reflap');
+  ref=r.laps.find(l=>l.run_lap===rl)||r.laps.slice().sort((a,b)=>a.lap_time-b.lap_time)[0];
+  refDD=ddOf(ref.samples);refLEN=refDD[refDD.length-1]||1;
+  CMP=true;document.body.classList.add('cmp');
+  if(cur){updateMeta();drawAll();showTurnStat(selTurn);}
+}
+function clearCmp(){CMP=false;ref=null;document.body.classList.remove('cmp');$('fileRef').value='';if(cur){updateMeta();drawAll();showTurnStat(selTurn);}}
+
+function updateMeta(){
+  let h=`<b>${TRACK||'賽道?'}</b> · ${CAR||'車?'} · 第 ${cur.run_lap} 圈 <b>${fmtT(cur.lap_time)}</b>`;
+  if(CMP&&ref){const gap=cur.lap_time-ref.lap_time;
+    h+=` <span style="color:var(--muted)">vs 對照</span> <b>${fmtT(ref.lap_time)}</b> <b style="color:${gap>0?'var(--red)':'var(--green)'}">${fmtD(gap)}s</b>`;}
+  else h+=` · ${cur.samples.length} 點 · ${SRC}`;
+  $('meta').innerHTML=h;
+}
 function fillLapSel(rl){const fast=LAPS.slice().sort((a,b)=>a.lap_time-b.lap_time)[0].run_lap;
   $('lapSel').innerHTML=LAPS.map(l=>`<option value="${l.run_lap}" ${l.run_lap===rl?'selected':''}>第 ${l.run_lap} 圈 — ${fmtT(l.lap_time)}${l.run_lap===fast?' ★':''}</option>`).join('');}
 $('lapSel').onchange=e=>{const l=LAPS.find(x=>x.run_lap==e.target.value);if(l)selectLap(l);};
 $('mapMode').onchange=e=>{MAPMODE=e.target.value;drawMap();};
 
-function selectLap(l){cur=l;selTurn=-1;hoverIdx=-1;$('turnSel').value=-1;
-  $('meta').innerHTML=`<b>${TRACK||'賽道?'}</b> · ${CAR||'車?'} · 第 ${l.run_lap} 圈 <b>${fmtT(l.lap_time)}</b> · ${l.samples.length} 點 · ${SRC}`;
-  computeBounds();DD=dist();LEN=DD[DD.length-1]||1;VX0=0;VX1=LEN;detectTurns();fillTurnSel();drawAll();showTurnStat(-1);updateCross(-1);}
+function selectLap(l){cur=l;selTurn=-1;$('turnSel').value=-1;
+  computeBounds();DD=ddOf(cur.samples);LEN=DD[DD.length-1]||1;VX0=0;VX1=LEN;detectTurns();fillTurnSel();updateMeta();drawAll();showTurnStat(-1);updateCross(-1);}
 function computeBounds(){const s=cur.samples;let a=1e9,b=-1e9,c=1e9,d=-1e9;
   for(const p of s){a=Math.min(a,p.x);b=Math.max(b,p.x);c=Math.min(c,p.z);d=Math.max(d,p.z);}
   const spanX=b-a,spanZ=d-c,span=Math.max(spanX,spanZ)||1,W=600,pad=34,dw=W-2*pad,sc=Math.min(dw,dw)/span;
   const ox=(dw-spanX*sc)/2,oy=(dw-spanZ*sc)/2;
   PTS=s.map(p=>{const fx=pad+(p.x-a)*sc+ox,fy=pad+(p.z-c)*sc+oy;return[W-fx,W-fy];});}
-function dist(){let d=0;const a=[0];for(let i=1;i<cur.samples.length;i++){const p=cur.samples[i],q=cur.samples[i-1];d+=Math.hypot(p.x-q.x,p.z-q.z);a.push(d);}return a;}
 function spdColor(v,mn,mx){const f=Math.max(0,Math.min(1,(v-mn)/((mx-mn)||1)));return `hsl(${Math.round(f*120)},90%,55%)`;}
 function inputColor(p){if(p.brk>5)return 'var(--red)';if(p.thr>5)return 'var(--green)';return 'var(--blue)';}
+function interpAt(s,dd,d,key){
+  if(d<=dd[0])return s[0][key];
+  const n=dd.length;if(d>=dd[n-1])return null;
+  let lo=0,hi=n-1;while(lo+1<hi){const m=(lo+hi)>>1;if(dd[m]<=d)lo=m;else hi=m;}
+  const f=(d-dd[lo])/((dd[hi]-dd[lo])||1),a=s[lo][key],b=s[hi][key];
+  if(a==null||b==null)return a==null?b:a;return a+(b-a)*f;}
 
-function drawAll(){drawMap();drawSpeed();drawPedal();drawSteer();drawGG();}
+function drawAll(){drawMap();drawSpeed();if(CMP){drawDelta();drawPedalSplit();}else drawPedal();drawSteer();drawGG();}
 
 function drawMap(){const s=cur.samples;let mn=1e9,mx=-1e9;for(const p of s){mn=Math.min(mn,p.spd);mx=Math.max(mx,p.spd);}
   let g='';for(let i=1;i<PTS.length;i++){const[x1,y1]=PTS[i-1],[x2,y2]=PTS[i];
     const col=MAPMODE==='speed'?spdColor(s[i].spd,mn,mx):inputColor(s[i]);
     g+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${col}" stroke-width="3.2" stroke-linecap="round"/>`;}
   if(selTurn>=0&&TURNS[selTurn]){const t=TURNS[selTurn];let d='';for(let i=t.start;i<=t.end;i++){d+=(i===t.start?'M':'L')+PTS[i][0].toFixed(1)+' '+PTS[i][1].toFixed(1);}g+=`<path d="${d}" fill="none" stroke="var(--gold)" stroke-width="5" stroke-linecap="round" opacity="0.9"/>`;}
+  else if(VX0>0||VX1<LEN-1e-6){let d='',st=false;for(let i=0;i<PTS.length;i++){if(!inWin(i)){st=false;continue;}d+=(st?'L':'M')+PTS[i][0].toFixed(1)+' '+PTS[i][1].toFixed(1);st=true;}g+=`<path d="${d}" fill="none" stroke="var(--cyan)" stroke-width="5" stroke-linecap="round" opacity="0.85"/>`;}
   TURNS.forEach((t,i)=>{const[x,y]=PTS[t.peak];g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="11" fill="#0a0d12" stroke="${i===selTurn?'var(--gold)':'#2a3340'}" stroke-width="${i===selTurn?2.5:1.5}"/><text x="${x.toFixed(1)}" y="${(y+4).toFixed(1)}" fill="${i===selTurn?'var(--gold)':'var(--muted)'}" font-size="11" font-family="JetBrains Mono" text-anchor="middle">${i+1}</text>`;});
   const[sx,sy]=PTS[0];g+=`<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="5" fill="var(--green)"/>`;
   g+=`<circle id="cursor" r="6" fill="var(--gold)" stroke="#0a0d12" stroke-width="2" style="display:none"/>`;
   $('map').innerHTML=g;}
 
 function xS(i){return (DD[i]-VX0)/((VX1-VX0)||1)*600;}
+function xSd(d){return (d-VX0)/((VX1-VX0)||1)*600;}
 function inWin(i){return DD[i]>=VX0-1e-6&&DD[i]<=VX1+1e-6;}
 function band(H){if(selTurn<0||!TURNS[selTurn])return '';const t=TURNS[selTurn];const x1=Math.max(0,xS(t.start)),x2=Math.min(600,xS(t.end));return `<rect x="${x1.toFixed(1)}" y="0" width="${Math.max(0,x2-x1).toFixed(1)}" height="${H}" fill="var(--gold)" opacity="0.12"/>`;}
 function tracePath(f,col,w){let d='',st=false;for(let i=0;i<cur.samples.length;i++){if(!inWin(i)){st=false;continue;}const v=f(i);if(v==null){st=false;continue;}d+=(st?'L':'M')+xS(i).toFixed(1)+' '+v.toFixed(1);st=true;}return `<path d="${d}" fill="none" stroke="${col}" stroke-width="${w}"/>`;}
+function tracePath2(s,dd,f,col,w,dash){let d='',st=false;for(let i=0;i<s.length;i++){const inw=dd[i]>=VX0-1e-6&&dd[i]<=VX1+1e-6;if(!inw){st=false;continue;}const v=f(i);if(v==null){st=false;continue;}d+=(st?'L':'M')+xSd(dd[i]).toFixed(1)+' '+v.toFixed(1);st=true;}return `<path d="${d}" fill="none" stroke="${col}" stroke-width="${w}"${dash?` stroke-dasharray="${dash}"`:''}/>`;}
 function cross(id,H){return `<line id="${id}" x1="0" y1="0" x2="0" y2="${H}" stroke="var(--gold)" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>`;}
 
-function drawSpeed(){const s=cur.samples,H=130;let mx=-1e9;for(const p of s)mx=Math.max(mx,p.spd);const Y=v=>H-8-(v/mx)*(H-22);
-  $('spd').innerHTML=band(H)+tracePath(i=>Y(s[i].spd),'var(--green)',2)+cross('crSpd',H);}
+function drawSpeed(){const s=cur.samples,H=130;let mx=-1e9;for(const p of s)mx=Math.max(mx,p.spd);
+  if(CMP&&ref)for(const p of ref.samples)mx=Math.max(mx,p.spd);
+  const Y=v=>H-8-(v/mx)*(H-22);let g=band(H);
+  if(CMP&&ref)g+=tracePath2(ref.samples,refDD,i=>Y(ref.samples[i].spd),'var(--gold)',1.6,'4 3');
+  g+=tracePath(i=>Y(s[i].spd),'var(--green)',2)+cross('crSpd',H);
+  $('spd').innerHTML=g;}
+
+function drawDelta(){const H=110,s=cur.samples;let mxA=0.05;const dv=[];
+  for(let i=0;i<s.length;i++){const rt=ref?interpAt(ref.samples,refDD,DD[i],'t'):null;const d=rt==null?null:(s[i].t-rt);dv.push(d);if(d!=null)mxA=Math.max(mxA,Math.abs(d));}
+  const Y=v=>H/2-(v/mxA)*(H/2-12);
+  let g=band(H)+`<line x1="0" y1="${H/2}" x2="600" y2="${H/2}" stroke="#2a3340"/>`,prev=null;
+  for(let i=0;i<s.length;i++){const v=dv[i];if(!inWin(i)||v==null){prev=null;continue;}const x=xS(i),y=Y(v);if(prev){const c=(v+prev.v)/2>0?'var(--red)':'var(--green)';g+=`<line x1="${prev.x.toFixed(1)}" y1="${prev.y.toFixed(1)}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${c}" stroke-width="2"/>`;}prev={x,y,v};}
+  g+=`<text x="4" y="11" fill="var(--red)" font-size="10" font-family="JetBrains Mono">+${mxA.toFixed(2)}s 慢</text><text x="4" y="${H-4}" fill="var(--green)" font-size="10" font-family="JetBrains Mono">−${mxA.toFixed(2)}s 快</text>`+cross('crDlt',H);
+  $('dlt').innerHTML=g;}
+
 function drawPedal(){const s=cur.samples,H=130;const Y=v=>H-8-(v/100)*(H-22);
   $('pedal').innerHTML=band(H)+tracePath(i=>Y(s[i].brk),'var(--red)',1.6)+tracePath(i=>Y(s[i].thr),'var(--green)',1.6)+cross('crPed',H);}
-function drawSteer(){const s=cur.samples,H=150;const has=s.some(p=>p.steer!=null&&p.yaw!=null);
+
+function drawPedalSplit(){const s=cur.samples,H=110;const Y=v=>H-8-(v/100)*(H-22);
+  let gt=band(H);if(ref)gt+=tracePath2(ref.samples,refDD,i=>Y(ref.samples[i].thr),'var(--green)',1.4,'4 3');
+  gt+=tracePath(i=>Y(s[i].thr),'var(--green)',1.8)+cross('crThr',H);$('thrC').innerHTML=gt;
+  let gb=band(H);if(ref)gb+=tracePath2(ref.samples,refDD,i=>Y(ref.samples[i].brk),'var(--red)',1.4,'4 3');
+  gb+=tracePath(i=>Y(s[i].brk),'var(--red)',1.8)+cross('crBrk',H);$('brkC').innerHTML=gb;}
+
+function drawSteer(){const s=cur.samples,H=150;
+  if(CMP&&ref){const has=s.some(p=>p.steer!=null)||ref.samples.some(p=>p.steer!=null);
+    if(!has){$('hd').innerHTML=`<text x="300" y="${H/2}" fill="var(--muted)" font-size="12" font-family="JetBrains Mono" text-anchor="middle">此圈無方向盤資料(需大封包)</text>`;$('hdNote').textContent='';return;}
+    let sm=1e-6;for(const p of s)if(p.steer!=null)sm=Math.max(sm,Math.abs(p.steer));for(const p of ref.samples)if(p.steer!=null)sm=Math.max(sm,Math.abs(p.steer));
+    const Ys=v=>H/2-(v/sm)*(H/2-10);
+    $('hd').innerHTML=band(H)+`<line x1="0" y1="${H/2}" x2="600" y2="${H/2}" stroke="#1b232f"/>`+tracePath2(ref.samples,refDD,i=>ref.samples[i].steer==null?null:Ys(ref.samples[i].steer),'var(--cyan)',1.4,'4 3')+tracePath(i=>s[i].steer==null?null:Ys(s[i].steer),'var(--cyan)',1.8)+cross('crHd',H);
+    $('hdNote').textContent='兩條都是方向盤轉角:實線=你、虛線=對照。比同一彎的下舵時機與幅度。';return;}
+  const has=s.some(p=>p.steer!=null&&p.yaw!=null);
   if(!has){$('hd').innerHTML=`<text x="300" y="${H/2}" fill="var(--muted)" font-size="12" font-family="JetBrains Mono" text-anchor="middle">此圈無方向盤/偏航資料(需大封包)</text>`;$('hdNote').textContent='';return;}
   let sm=1e-6,ym=1e-6;for(const p of s){if(p.steer!=null)sm=Math.max(sm,Math.abs(p.steer));if(p.yaw!=null)ym=Math.max(ym,Math.abs(p.yaw));}
   const Ys=v=>H/2-(v/sm)*(H/2-10),Yy=v=>H/2-(v/ym)*(H/2-10);
   $('hd').innerHTML=band(H)+`<line x1="0" y1="${H/2}" x2="600" y2="${H/2}" stroke="#1b232f"/>`+tracePath(i=>s[i].yaw==null?null:Yy(s[i].yaw),'var(--gold)',1.5)+tracePath(i=>s[i].steer==null?null:Ys(s[i].steer),'var(--cyan)',1.5)+cross('crHd',H);
   $('hdNote').textContent='兩線同向同幅=平衡;方向盤大、偏航跟不上=推頭;偏航爆走=轉向過度。';}
 
-function drawGG(){const s=cur.samples,C=120,SC=30;const has=s.some(p=>p.latG!=null&&p.lonG!=null);
+function ggSvg(s,range){const C=120,SC=30;const has=s.some(p=>p.latG!=null&&p.lonG!=null);
   let g=`<circle cx="${C}" cy="${C}" r="${SC}" fill="none" stroke="#141b24"/><circle cx="${C}" cy="${C}" r="${SC*2}" fill="none" stroke="#1b232f"/><circle cx="${C}" cy="${C}" r="${SC*3}" fill="none" stroke="#141b24"/><line x1="0" y1="${C}" x2="240" y2="${C}" stroke="#141b24"/><line x1="${C}" y1="0" x2="${C}" y2="240" stroke="#141b24"/>`;
-  if(!has){$('gg').innerHTML=g+`<text x="${C}" y="${C}" fill="var(--muted)" font-size="11" font-family="JetBrains Mono" text-anchor="middle">此圈無 G 資料</text>`;return;}
-  const inTurn=i=>selTurn>=0&&TURNS[selTurn]&&i>=TURNS[selTurn].start&&i<=TURNS[selTurn].end;
-  for(let i=0;i<s.length;i++){const p=s[i];if(p.latG==null)continue;const op=selTurn<0?0.5:(inTurn(i)?0.95:0.12),r=(selTurn>=0&&inTurn(i))?2.3:1.6;
-    g+=`<circle cx="${(C+p.latG*SC).toFixed(1)}" cy="${(C-p.lonG*SC).toFixed(1)}" r="${r}" fill="${inputColor(p)}" opacity="${op}"/>`;}
-  g+=`<circle id="ggCur" r="4.5" fill="var(--gold)" stroke="#0a0d12" stroke-width="1.5" style="display:none"/>`;
-  $('gg').innerHTML=g;}
+  if(!has)return g+`<text x="${C}" y="${C}" fill="var(--muted)" font-size="11" font-family="JetBrains Mono" text-anchor="middle">此圈無 G 資料</text>`;
+  for(let i=0;i<s.length;i++){const p=s[i];if(p.latG==null)continue;const inr=range?(i>=range[0]&&i<=range[1]):false;const op=range?(inr?0.95:0.12):0.5,r=inr?2.3:1.6;
+    g+=`<circle cx="${(C+p.latG*SC).toFixed(1)}" cy="${(C-(p.lonG||0)*SC).toFixed(1)}" r="${r}" fill="${inputColor(p)}" opacity="${op}"/>`;}
+  return g;}
+function refRange(){if(selTurn<0||!TURNS[selTurn]||!ref)return null;const t=TURNS[selTurn],d0=DD[t.start],d1=DD[t.end];let s=-1,e=-1;for(let i=0;i<refDD.length;i++){if(refDD[i]>=d0&&s<0)s=i;if(refDD[i]<=d1)e=i;}if(s<0)s=0;if(e<0)e=ref.samples.length-1;return[s,e];}
+function drawGG(){const range=selTurn>=0&&TURNS[selTurn]?[TURNS[selTurn].start,TURNS[selTurn].end]:null;
+  $('gg').innerHTML=ggSvg(cur.samples,range)+`<circle id="ggCur" r="4.5" fill="var(--gold)" stroke="#0a0d12" stroke-width="1.5" style="display:none"/>`;
+  if(CMP&&ref&&$('ggR'))$('ggR').innerHTML=ggSvg(ref.samples,refRange());}
 
 function updateCross(i){const c=$('cursor');
+  const ids=['crSpd','crPed','crHd','crThr','crBrk','crDlt'];
   const setL=(id,x,sh)=>{const e=$(id);if(!e)return;if(!sh){e.style.display='none';return;}e.setAttribute('x1',x);e.setAttribute('x2',x);e.style.display='';};
-  if(i<0||!cur){if(c)c.style.display='none';setL('crSpd',0,0);setL('crPed',0,0);setL('crHd',0,0);const gc=$('ggCur');if(gc)gc.style.display='none';
-    if(selTurn<0)$('read').innerHTML='<div>移動滑鼠看該點 · 或選彎角</div>';return;}
+  if(i<0||!cur){if(c)c.style.display='none';ids.forEach(id=>setL(id,0,0));const gc=$('ggCur');if(gc)gc.style.display='none';
+    if(selTurn<0)$('read').innerHTML='<div>移動滑鼠/手指看該點 · 或選彎角</div>';return;}
   const p=cur.samples[i],x=xS(i).toFixed(1),iw=inWin(i);
   if(c){c.setAttribute('cx',PTS[i][0].toFixed(1));c.setAttribute('cy',PTS[i][1].toFixed(1));c.style.display='';}
-  setL('crSpd',x,iw);setL('crPed',x,iw);setL('crHd',x,iw);
+  ids.forEach(id=>setL(id,x,iw));
   const gc=$('ggCur');if(gc){if(p.latG!=null){gc.setAttribute('cx',(120+p.latG*30).toFixed(1));gc.setAttribute('cy',(120-(p.lonG||0)*30).toFixed(1));gc.style.display='';}else gc.style.display='none';}
-  $('read').innerHTML=`<div>時間 <b>${p.t.toFixed(2)}s</b></div><div>速度 <b>${Math.round(p.spd)}</b></div><div>油門 <b>${p.thr}%</b></div><div>煞車 <b>${p.brk}%</b></div>`+(p.latG!=null?`<div>橫向G <b>${p.latG.toFixed(2)}</b></div>`:'')+(p.steer!=null?`<div>方向 <b>${Math.round(p.steer)}°</b></div>`:'');}
+  let rd=`<div>時間 <b>${p.t.toFixed(2)}s</b></div><div>速度 <b>${Math.round(p.spd)}</b></div><div>油門 <b>${p.thr}%</b></div><div>煞車 <b>${p.brk}%</b></div>`+(p.latG!=null?`<div>橫向G <b>${p.latG.toFixed(2)}</b></div>`:'')+(p.steer!=null?`<div>方向 <b>${Math.round(p.steer)}°</b></div>`:'');
+  if(CMP&&ref){const rs=interpAt(ref.samples,refDD,DD[i],'spd'),rt=interpAt(ref.samples,refDD,DD[i],'t');
+    if(rs!=null)rd+=`<div style="color:var(--gold)">對照速度 <b>${Math.round(rs)}</b></div>`;
+    if(rt!=null){const dd=p.t-rt;rd+=`<div style="color:var(--gold)">Δt <b style="color:${dd>0?'var(--red)':'var(--green)'}">${fmtD(dd)}s</b></div>`;}}
+  $('read').innerHTML=rd;}
 
 function findIdx(e){const r=e.currentTarget.getBoundingClientRect();const mx=(e.clientX-r.left)/r.width*600,my=(e.clientY-r.top)/r.height*600;let bi=-1,bd=1e9;for(let i=0;i<PTS.length;i++){const dx=PTS[i][0]-mx,dy=PTS[i][1]-my,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;bi=i;}}return bd<900?bi:-1;}
 $('map').addEventListener('mousemove',e=>{const i=findIdx(e);if(i>=0)updateCross(i);});
 $('map').addEventListener('mouseleave',()=>updateCross(selTurn>=0?TURNS[selTurn].peak:-1));
+$('map').addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;const i=findIdx(e);if(i>=0)updateCross(i);});
 $('map').addEventListener('click',e=>{const r=e.currentTarget.getBoundingClientRect();const mx=(e.clientX-r.left)/r.width*600,my=(e.clientY-r.top)/r.height*600;let bi=0,bd=1e9;for(let i=0;i<PTS.length;i++){const dx=PTS[i][0]-mx,dy=PTS[i][1]-my,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;bi=i;}}const ti=TURNS.findIndex(t=>bi>=t.start&&bi<=t.end);$('turnSel').value=ti;selectTurn(ti);});
+
+function idxFromX(el,clientX){const r=el.getBoundingClientRect();const fx=Math.max(0,Math.min(1,(clientX-r.left)/r.width));const dvv=VX0+fx*(VX1-VX0);let bi=-1,bd=1e9;for(let i=0;i<DD.length;i++){if(!inWin(i))continue;const d=Math.abs(DD[i]-dvv);if(d<bd){bd=d;bi=i;}}return bi;}
+function distFromX(el,clientX){const r=el.getBoundingClientRect();const fx=Math.max(0,Math.min(1,(clientX-r.left)/r.width));return VX0+fx*(VX1-VX0);}
+
+let ZSEL=false;
+function setZBtn(){const b=$('zselBtn');b.textContent=ZSEL?'🔍 框選中 · 拖出範圍':'🔍 框選縮放';b.style.color=ZSEL?'var(--green)':'var(--cyan)';b.style.borderColor=ZSEL?'var(--green)':'';}
+function zoomTo(a,b){if(b-a<Math.max(8,LEN*0.008))return;VX0=a;VX1=b;selTurn=-1;$('turnSel').value=-1;drawAll();showTurnStat(-1);updateCross(-1);}
+function zoomReset(){selTurn=-1;$('turnSel').value=-1;VX0=0;VX1=LEN;drawAll();showTurnStat(-1);updateCross(-1);}
+$('zselBtn').onclick=()=>{ZSEL=!ZSEL;setZBtn();};
+$('zoomReset').onclick=zoomReset;
+
+function drawSelRect(el,px0,px1){const r=el.getBoundingClientRect(),W=600,vh=el.viewBox.baseVal.height||130;
+  const a=Math.min(px0,px1)/r.width*W,b=Math.max(px0,px1)/r.width*W;
+  let rc=el.querySelector('#zoomRect');
+  if(!rc){rc=document.createElementNS('http://www.w3.org/2000/svg','rect');rc.id='zoomRect';rc.setAttribute('y','0');rc.setAttribute('fill','var(--cyan)');rc.setAttribute('opacity','0.2');el.appendChild(rc);}
+  rc.setAttribute('x',a.toFixed(1));rc.setAttribute('width',Math.max(0,b-a).toFixed(1));rc.setAttribute('height',vh);}
+function clearSelRect(){document.querySelectorAll('rect#zoomRect').forEach(n=>n.remove());}
+
+function bindChart(id){const el=$(id);if(!el)return;let sel=null;
+  el.addEventListener('pointerdown',e=>{try{el.setPointerCapture(e.pointerId);}catch(_){}
+    if(ZSEL){const r=el.getBoundingClientRect();sel={d0:distFromX(el,e.clientX),px0:e.clientX-r.left,left:r.left};drawSelRect(el,sel.px0,sel.px0);}
+    else{const i=idxFromX(el,e.clientX);if(i>=0)updateCross(i);}});
+  el.addEventListener('pointermove',e=>{
+    if(ZSEL&&sel){drawSelRect(el,sel.px0,e.clientX-sel.left);}
+    else if(!ZSEL){const i=idxFromX(el,e.clientX);if(i>=0)updateCross(i);}});
+  const end=e=>{if(ZSEL&&sel){const d1=distFromX(el,e.clientX);clearSelRect();const a=Math.min(sel.d0,d1),b=Math.max(sel.d0,d1);sel=null;ZSEL=false;setZBtn();zoomTo(a,b);}sel=null;};
+  el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);}
+['spd','pedal','hd','thrC','brkC','dlt'].forEach(bindChart);
 
 function detectTurns(){TURNS=[];const s=cur.samples;if(!s.some(p=>p.latG!=null))return;
   const TH=0.55,EX=TH*0.5,MINDUR=0.3,MERGE=0.7;let i=0,n=s.length,raw=[];
@@ -800,12 +924,22 @@ function selectTurn(ti){selTurn=ti;
   else{VX0=0;VX1=LEN;}
   drawAll();showTurnStat(ti);updateCross(ti>=0&&TURNS[ti]?minSpdIdx(TURNS[ti]):-1);}
 function minSpdIdx(t){let mi=t.start,mv=1e9;for(let i=t.start;i<=t.end;i++)if(cur.samples[i].spd<mv){mv=cur.samples[i].spd;mi=i;}return mi;}
-function showTurnStat(ti){if(ti<0||!TURNS[ti]){$('turnStat').innerHTML='<span>選一個彎角看細節(會同步更新所有圖)</span><span></span>';return;}
-  const t=TURNS[ti],s=cur.samples;let mnS=1e9,mxL=0;for(let i=t.start;i<=t.end;i++){mnS=Math.min(mnS,s[i].spd);if(s[i].latG!=null)mxL=Math.max(mxL,Math.abs(s[i].latG));}
-  $('turnStat').innerHTML=`<span>彎角</span><b>T${ti+1} ${t.dir}彎</b><span>最低速度</span><b>${Math.round(mnS)} km/h</b><span>進彎 → 出彎</span><b>${Math.round(s[t.start].spd)} → ${Math.round(s[t.end].spd)}</b>`+(mxL?`<span>最大橫向G</span><b>${mxL.toFixed(2)}</b>`:'')+`<span>區間</span><b>${s[t.start].t.toFixed(1)}–${s[t.end].t.toFixed(1)}s</b>`;}
+
+function statOf(s,a,b){let mnS=1e9,mxL=0;for(let i=a;i<=b;i++){mnS=Math.min(mnS,s[i].spd);if(s[i].latG!=null)mxL=Math.max(mxL,Math.abs(s[i].latG));}return{mnS,mxL,sS:s[a].spd,eS:s[b].spd,t0:s[a].t,t1:s[b].t};}
+function statHTML(lbl,t,ti,a,dmin){return `<span>${lbl}</span><b>T${ti+1} ${t.dir}彎</b><span>最低速度</span><b>${Math.round(a.mnS)} km/h${dmin!=null?` <span style="color:${dmin<0?'var(--red)':'var(--green)'}">(${dmin>=0?'+':''}${Math.round(dmin)})</span>`:''}</b><span>進彎 → 出彎</span><b>${Math.round(a.sS)} → ${Math.round(a.eS)}</b>`+(a.mxL?`<span>最大橫向G</span><b>${a.mxL.toFixed(2)}</b>`:'')+`<span>區間</span><b>${a.t0.toFixed(1)}–${a.t1.toFixed(1)}s</b>`;}
+function showTurnStat(ti){
+  if(ti<0||!TURNS[ti]){$('turnStat').innerHTML='<span>選一個彎角看細節(會同步更新所有圖)</span><span></span>';if($('turnStatR'))$('turnStatR').innerHTML='<span></span><span></span>';return;}
+  const t=TURNS[ti],a=statOf(cur.samples,t.start,t.end);
+  $('turnStat').innerHTML=statHTML(CMP?'你 · 彎角':'彎角',t,ti,a,null);
+  if(CMP&&ref&&$('turnStatR')){const r=refRange();
+    if(r){const b=statOf(ref.samples,r[0],r[1]);$('turnStatR').innerHTML=statHTML('對照 · 彎角',t,ti,b,a.mnS-b.mnS);}
+    else $('turnStatR').innerHTML='<span>對照</span><b>此距離無對應資料</b>';}}
 
 $('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>loadText(rd.result,f.name);rd.readAsText(f);};
-const src=new URLSearchParams(location.search).get('src');
-if(src){fetch(src).then(r=>{if(!r.ok)throw 0;return r.text();}).then(t=>loadText(t,src)).catch(()=>{$('meta').innerHTML=`<span class="warn">讀不到 ${src} — 顯示內建範例</span>`;loadText(DEMO_CSV,'範例');});}
-else loadText(DEMO_CSV,'範例');
+$('fileRef').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>loadRef(rd.result,f.name);rd.readAsText(f);};
+$('cmpClear').onclick=clearCmp;
+const _qp=new URLSearchParams(location.search),_src=_qp.get('src'),_ref=_qp.get('ref');
+function _loadRefUrl(){if(_ref)fetch(_ref).then(r=>{if(!r.ok)throw 0;return r.text();}).then(t=>loadRef(t,_ref)).catch(()=>{});}
+if(_src){fetch(_src).then(r=>{if(!r.ok)throw 0;return r.text();}).then(t=>{loadText(t,_src);_loadRefUrl();}).catch(()=>{$('meta').innerHTML=`<span class="warn">讀不到 ${_src} — 顯示內建範例</span>`;loadText(DEMO_CSV,'範例');_loadRefUrl();});}
+else{loadText(DEMO_CSV,'範例');_loadRefUrl();}
 </script></body></html>
