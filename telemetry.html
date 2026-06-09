@@ -39,6 +39,18 @@ svg#spd,svg#pedal,svg#hd,svg#thrC,svg#brkC,svg#dlt{touch-action:pan-y}
 #map{touch-action:pan-y}
 .cmpx{font-family:var(--mono);font-size:11px;color:var(--gold);cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:5px 9px;background:#0e141c}
 .zoombar{display:flex;align-items:center;gap:10px;margin:-4px 0 14px;flex-wrap:wrap}
+.acc>.lab{cursor:pointer;user-select:none}
+.acc>.lab::after{content:'▸';color:var(--muted);font-size:13px;margin-left:6px}
+.acc.open>.lab::after{content:'▾'}
+.acc:not(.open)>:not(.lab){display:none}
+.grip{cursor:grab;touch-action:none;color:var(--muted);font-size:17px;padding:6px 12px 6px 2px;margin:-4px 0;user-select:none;line-height:1}
+.acc.dragging{opacity:.95;outline:1px solid var(--gold);box-shadow:0 12px 30px rgba(0,0,0,.6);position:relative;z-index:5;transition:none;will-change:transform}
+@media(min-width:1024px){
+  .topgrid{display:grid;grid-template-columns:minmax(340px,44%) 1fr;gap:16px;align-items:start;margin-bottom:20px}
+  .mapcol{position:sticky;top:8px}
+  .mapcol .card{margin-bottom:0}
+  .chartcol .card.acc{margin-bottom:8px}
+}
 .zoombar .cmpx{color:var(--cyan)}
 .zhint{font-family:var(--mono);font-size:11px;color:var(--muted)}
 </style></head><body>
@@ -52,27 +64,33 @@ svg#spd,svg#pedal,svg#hd,svg#thrC,svg#brkC,svg#dlt{touch-action:pan-y}
   <div><div class="lab">對照 CSV</div><input id="fileRef" type="file" accept=".csv"></div>
   <button class="cmpx cmp-only" id="cmpClear">✕ 取消比較</button>
 </div>
+<div class="topgrid">
+<div class="mapcol">
 <div class="card"><div class="lab"><span>賽道地圖</span><span>分色 <select id="mapMode"><option value="speed">速度</option><option value="input">油門/煞車/滑行</option></select></span></div>
   <svg id="map" viewBox="0 0 600 600"></svg>
   <div class="read" id="read"><div>移動滑鼠/手指看該點 · 或選彎角</div></div>
 </div>
+</div>
+<div class="chartcol">
 <div class="zoombar">
   <button class="cmpx" id="zselBtn">🔍 框選縮放</button>
   <button class="cmpx" id="zoomReset">⤢ 全圈</button>
   <span class="zhint" id="zhint">在任一折線圖拖出範圍 → 所有圖同步放大</span>
 </div>
-<div class="card"><div class="lab"><span>速度</span><span class="legend cmp-only"><span><i class="dot" style="background:var(--green)"></i>你</span><span><i class="dash" style="color:var(--gold)"></i>對照</span></span></div><svg id="spd" viewBox="0 0 600 130"></svg></div>
-<div class="card cmp-only"><div class="lab"><span>累積時間差 Δt</span><span style="color:var(--muted);text-transform:none;letter-spacing:0">0 上＝你較慢 · 0 下＝你較快</span></div><svg id="dlt" viewBox="0 0 600 110"></svg></div>
-<div class="card solo-only"><div class="lab">油門 / 煞車</div><svg id="pedal" viewBox="0 0 600 130"></svg>
+<div class="card acc open"><div class="lab"><span>速度</span><span class="legend cmp-only"><span><i class="dot" style="background:var(--green)"></i>你</span><span><i class="dash" style="color:var(--gold)"></i>對照</span></span></div><svg id="spd" viewBox="0 0 600 130"></svg></div>
+<div class="card acc cmp-only"><div class="lab"><span>累積時間差 Δt</span><span style="color:var(--muted);text-transform:none;letter-spacing:0">0 上＝你較慢 · 0 下＝你較快</span></div><svg id="dlt" viewBox="0 0 600 110"></svg></div>
+<div class="card acc solo-only"><div class="lab">油門 / 煞車</div><svg id="pedal" viewBox="0 0 600 130"></svg>
   <div class="legend"><span><i class="dot" style="background:var(--green)"></i>油門</span><span><i class="dot" style="background:var(--red)"></i>煞車</span></div></div>
-<div class="card cmp-only"><div class="lab">油門</div><svg id="thrC" viewBox="0 0 600 110"></svg>
-  <div class="legend"><span><i class="dot" style="background:var(--green)"></i>你</span><span><i class="dash" style="color:var(--green)"></i>對照</span></div></div>
-<div class="card cmp-only"><div class="lab">煞車</div><svg id="brkC" viewBox="0 0 600 110"></svg>
-  <div class="legend"><span><i class="dot" style="background:var(--red)"></i>你</span><span><i class="dash" style="color:var(--red)"></i>對照</span></div></div>
-<div class="card"><div class="lab">方向盤 vs 偏航</div><svg id="hd" viewBox="0 0 600 150"></svg>
+<div class="card acc cmp-only"><div class="lab">油門</div><svg id="thrC" viewBox="0 0 600 110"></svg>
+  <div class="legend"><span><i class="dot" style="background:var(--green)"></i>你</span><span><i class="dash" style="color:var(--gold)"></i>對照</span></div></div>
+<div class="card acc cmp-only"><div class="lab">煞車</div><svg id="brkC" viewBox="0 0 600 110"></svg>
+  <div class="legend"><span><i class="dot" style="background:var(--red)"></i>你</span><span><i class="dash" style="color:var(--gold)"></i>對照</span></div></div>
+<div class="card acc"><div class="lab">方向盤 vs 偏航</div><svg id="hd" viewBox="0 0 600 150"></svg>
   <div class="legend solo-only"><span><i class="dot" style="background:var(--cyan)"></i>方向盤</span><span><i class="dot" style="background:var(--gold)"></i>偏航率</span></div>
-  <div class="legend cmp-only"><span><i class="dot" style="background:var(--cyan)"></i>你 方向盤</span><span><i class="dash" style="color:var(--cyan)"></i>對照 方向盤</span></div>
+  <div class="legend cmp-only"><span><i class="dot" style="background:var(--cyan)"></i>你 方向盤</span><span><i class="dash" style="color:var(--gold)"></i>對照 方向盤</span></div>
   <div class="note" id="hdNote"></div></div>
+</div>
+</div>
 <div class="two">
   <div class="card"><div class="lab">摩擦圓<span class="cmp-only"> · 你</span></div><svg id="gg" viewBox="0 0 240 240" style="max-width:280px;margin:0 auto"></svg>
     <div class="legend" style="justify-content:center"><span><i class="dot" style="background:var(--green)"></i>油門</span><span><i class="dot" style="background:var(--red)"></i>煞車</span><span><i class="dot" style="background:var(--blue)"></i>滑行</span></div></div>
@@ -757,9 +775,9 @@ function loadRef(text,label){
   ref=r.laps.find(l=>l.run_lap===rl)||r.laps.slice().sort((a,b)=>a.lap_time-b.lap_time)[0];
   refDD=ddOf(ref.samples);refLEN=refDD[refDD.length-1]||1;
   CMP=true;document.body.classList.add('cmp');
-  if(cur){updateMeta();drawAll();showTurnStat(selTurn);}
+  if(cur){updateMeta();drawAll();showTurnStat(selTurn);setupAccordion();}
 }
-function clearCmp(){CMP=false;ref=null;document.body.classList.remove('cmp');$('fileRef').value='';if(cur){updateMeta();drawAll();showTurnStat(selTurn);}}
+function clearCmp(){CMP=false;ref=null;document.body.classList.remove('cmp');$('fileRef').value='';if(cur){updateMeta();drawAll();showTurnStat(selTurn);setupAccordion();}}
 
 function updateMeta(){
   let h=`<b>${TRACK||'賽道?'}</b> · ${CAR||'車?'} · 第 ${cur.run_lap} 圈 <b>${fmtT(cur.lap_time)}</b>`;
@@ -774,7 +792,7 @@ $('lapSel').onchange=e=>{const l=LAPS.find(x=>x.run_lap==e.target.value);if(l)se
 $('mapMode').onchange=e=>{MAPMODE=e.target.value;drawMap();};
 
 function selectLap(l){cur=l;selTurn=-1;$('turnSel').value=-1;
-  computeBounds();DD=ddOf(cur.samples);LEN=DD[DD.length-1]||1;VX0=0;VX1=LEN;detectTurns();fillTurnSel();updateMeta();drawAll();showTurnStat(-1);updateCross(-1);}
+  computeBounds();DD=ddOf(cur.samples);LEN=DD[DD.length-1]||1;VX0=0;VX1=LEN;detectTurns();fillTurnSel();updateMeta();drawAll();showTurnStat(-1);updateCross(-1);setupAccordion();}
 function computeBounds(){const s=cur.samples;let a=1e9,b=-1e9,c=1e9,d=-1e9;
   for(const p of s){a=Math.min(a,p.x);b=Math.max(b,p.x);c=Math.min(c,p.z);d=Math.max(d,p.z);}
   const spanX=b-a,spanZ=d-c,span=Math.max(spanX,spanZ)||1,W=600,pad=34,dw=W-2*pad,sc=Math.min(dw,dw)/span;
@@ -806,46 +824,49 @@ function xS(i){return (DD[i]-VX0)/((VX1-VX0)||1)*600;}
 function xSd(d){return (d-VX0)/((VX1-VX0)||1)*600;}
 function inWin(i){return DD[i]>=VX0-1e-6&&DD[i]<=VX1+1e-6;}
 function band(H){if(selTurn<0||!TURNS[selTurn])return '';const t=TURNS[selTurn];const x1=Math.max(0,xS(t.start)),x2=Math.min(600,xS(t.end));return `<rect x="${x1.toFixed(1)}" y="0" width="${Math.max(0,x2-x1).toFixed(1)}" height="${H}" fill="var(--gold)" opacity="0.12"/>`;}
+const SELF_G='rgba(0,255,136,.7)',SELF_R='rgba(255,59,92,.72)',SELF_C='rgba(51,224,255,.72)',REFC='var(--gold)'; // 你=透明語意色(上層) 對照=金
+let SC_spd=1,SC_steer=1,SC_yaw=1,SC_dlt=0.05;
+function node(id,col){return `<circle id="${id}" r="4" fill="${col}" stroke="#0a0d12" stroke-width="1.5" style="display:none"/>`;}
 function tracePath(f,col,w){let d='',st=false;for(let i=0;i<cur.samples.length;i++){if(!inWin(i)){st=false;continue;}const v=f(i);if(v==null){st=false;continue;}d+=(st?'L':'M')+xS(i).toFixed(1)+' '+v.toFixed(1);st=true;}return `<path d="${d}" fill="none" stroke="${col}" stroke-width="${w}"/>`;}
 function tracePath2(s,dd,f,col,w,dash){let d='',st=false;for(let i=0;i<s.length;i++){const inw=dd[i]>=VX0-1e-6&&dd[i]<=VX1+1e-6;if(!inw){st=false;continue;}const v=f(i);if(v==null){st=false;continue;}d+=(st?'L':'M')+xSd(dd[i]).toFixed(1)+' '+v.toFixed(1);st=true;}return `<path d="${d}" fill="none" stroke="${col}" stroke-width="${w}"${dash?` stroke-dasharray="${dash}"`:''}/>`;}
 function cross(id,H){return `<line id="${id}" x1="0" y1="0" x2="0" y2="${H}" stroke="var(--gold)" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>`;}
 
 function drawSpeed(){const s=cur.samples,H=130;let mx=-1e9;for(const p of s)mx=Math.max(mx,p.spd);
   if(CMP&&ref)for(const p of ref.samples)mx=Math.max(mx,p.spd);
-  const Y=v=>H-8-(v/mx)*(H-22);let g=band(H);
-  if(CMP&&ref)g+=tracePath2(ref.samples,refDD,i=>Y(ref.samples[i].spd),'var(--gold)',1.6,'4 3');
-  g+=tracePath(i=>Y(s[i].spd),'var(--green)',2)+cross('crSpd',H);
+  const Y=v=>H-8-(v/mx)*(H-22);SC_spd=mx;let g=band(H);
+  if(CMP&&ref)g+=tracePath2(ref.samples,refDD,i=>Y(ref.samples[i].spd),REFC,1.8,'5 4');
+  g+=tracePath(i=>Y(s[i].spd),CMP?SELF_G:'var(--green)',2)+cross('crSpd',H)+node('ndSpdR',REFC)+node('ndSpdY','var(--green)');
   $('spd').innerHTML=g;}
 
 function drawDelta(){const H=110,s=cur.samples;let mxA=0.05;const dv=[];
   for(let i=0;i<s.length;i++){const rt=ref?interpAt(ref.samples,refDD,DD[i],'t'):null;const d=rt==null?null:(s[i].t-rt);dv.push(d);if(d!=null)mxA=Math.max(mxA,Math.abs(d));}
-  const Y=v=>H/2-(v/mxA)*(H/2-12);
+  const Y=v=>H/2-(v/mxA)*(H/2-12);SC_dlt=mxA;
   let g=band(H)+`<line x1="0" y1="${H/2}" x2="600" y2="${H/2}" stroke="#2a3340"/>`,prev=null;
   for(let i=0;i<s.length;i++){const v=dv[i];if(!inWin(i)||v==null){prev=null;continue;}const x=xS(i),y=Y(v);if(prev){const c=(v+prev.v)/2>0?'var(--red)':'var(--green)';g+=`<line x1="${prev.x.toFixed(1)}" y1="${prev.y.toFixed(1)}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${c}" stroke-width="2"/>`;}prev={x,y,v};}
-  g+=`<text x="4" y="11" fill="var(--red)" font-size="10" font-family="JetBrains Mono">+${mxA.toFixed(2)}s 慢</text><text x="4" y="${H-4}" fill="var(--green)" font-size="10" font-family="JetBrains Mono">−${mxA.toFixed(2)}s 快</text>`+cross('crDlt',H);
+  g+=`<text x="4" y="11" fill="var(--red)" font-size="10" font-family="JetBrains Mono">+${mxA.toFixed(2)}s 慢</text><text x="4" y="${H-4}" fill="var(--green)" font-size="10" font-family="JetBrains Mono">−${mxA.toFixed(2)}s 快</text>`+cross('crDlt',H)+node('ndDlt','var(--gold)');
   $('dlt').innerHTML=g;}
 
 function drawPedal(){const s=cur.samples,H=130;const Y=v=>H-8-(v/100)*(H-22);
-  $('pedal').innerHTML=band(H)+tracePath(i=>Y(s[i].brk),'var(--red)',1.6)+tracePath(i=>Y(s[i].thr),'var(--green)',1.6)+cross('crPed',H);}
+  $('pedal').innerHTML=band(H)+tracePath(i=>Y(s[i].brk),'var(--red)',1.6)+tracePath(i=>Y(s[i].thr),'var(--green)',1.6)+cross('crPed',H)+node('ndPedT','var(--green)')+node('ndPedB','var(--red)');}
 
 function drawPedalSplit(){const s=cur.samples,H=110;const Y=v=>H-8-(v/100)*(H-22);
-  let gt=band(H);if(ref)gt+=tracePath2(ref.samples,refDD,i=>Y(ref.samples[i].thr),'var(--green)',1.4,'4 3');
-  gt+=tracePath(i=>Y(s[i].thr),'var(--green)',1.8)+cross('crThr',H);$('thrC').innerHTML=gt;
-  let gb=band(H);if(ref)gb+=tracePath2(ref.samples,refDD,i=>Y(ref.samples[i].brk),'var(--red)',1.4,'4 3');
-  gb+=tracePath(i=>Y(s[i].brk),'var(--red)',1.8)+cross('crBrk',H);$('brkC').innerHTML=gb;}
+  let gt=band(H);if(ref)gt+=tracePath2(ref.samples,refDD,i=>Y(ref.samples[i].thr),REFC,1.8,'5 4');
+  gt+=tracePath(i=>Y(s[i].thr),SELF_G,2.2)+cross('crThr',H)+node('ndThrR',REFC)+node('ndThrY','var(--green)');$('thrC').innerHTML=gt;
+  let gb=band(H);if(ref)gb+=tracePath2(ref.samples,refDD,i=>Y(ref.samples[i].brk),REFC,1.8,'5 4');
+  gb+=tracePath(i=>Y(s[i].brk),SELF_R,2.2)+cross('crBrk',H)+node('ndBrkR',REFC)+node('ndBrkY','var(--red)');$('brkC').innerHTML=gb;}
 
 function drawSteer(){const s=cur.samples,H=150;
   if(CMP&&ref){const has=s.some(p=>p.steer!=null)||ref.samples.some(p=>p.steer!=null);
     if(!has){$('hd').innerHTML=`<text x="300" y="${H/2}" fill="var(--muted)" font-size="12" font-family="JetBrains Mono" text-anchor="middle">此圈無方向盤資料(需大封包)</text>`;$('hdNote').textContent='';return;}
     let sm=1e-6;for(const p of s)if(p.steer!=null)sm=Math.max(sm,Math.abs(p.steer));for(const p of ref.samples)if(p.steer!=null)sm=Math.max(sm,Math.abs(p.steer));
-    const Ys=v=>H/2-(v/sm)*(H/2-10);
-    $('hd').innerHTML=band(H)+`<line x1="0" y1="${H/2}" x2="600" y2="${H/2}" stroke="#1b232f"/>`+tracePath2(ref.samples,refDD,i=>ref.samples[i].steer==null?null:Ys(ref.samples[i].steer),'var(--cyan)',1.4,'4 3')+tracePath(i=>s[i].steer==null?null:Ys(s[i].steer),'var(--cyan)',1.8)+cross('crHd',H);
+    const Ys=v=>H/2-(v/sm)*(H/2-10);SC_steer=sm;
+    $('hd').innerHTML=band(H)+`<line x1="0" y1="${H/2}" x2="600" y2="${H/2}" stroke="#1b232f"/>`+tracePath2(ref.samples,refDD,i=>ref.samples[i].steer==null?null:Ys(ref.samples[i].steer),REFC,1.8,'5 4')+tracePath(i=>s[i].steer==null?null:Ys(s[i].steer),SELF_C,2.2)+cross('crHd',H)+node('ndHdR',REFC)+node('ndHdY','var(--cyan)');
     $('hdNote').textContent='兩條都是方向盤轉角:實線=你、虛線=對照。比同一彎的下舵時機與幅度。';return;}
   const has=s.some(p=>p.steer!=null&&p.yaw!=null);
   if(!has){$('hd').innerHTML=`<text x="300" y="${H/2}" fill="var(--muted)" font-size="12" font-family="JetBrains Mono" text-anchor="middle">此圈無方向盤/偏航資料(需大封包)</text>`;$('hdNote').textContent='';return;}
   let sm=1e-6,ym=1e-6;for(const p of s){if(p.steer!=null)sm=Math.max(sm,Math.abs(p.steer));if(p.yaw!=null)ym=Math.max(ym,Math.abs(p.yaw));}
-  const Ys=v=>H/2-(v/sm)*(H/2-10),Yy=v=>H/2-(v/ym)*(H/2-10);
-  $('hd').innerHTML=band(H)+`<line x1="0" y1="${H/2}" x2="600" y2="${H/2}" stroke="#1b232f"/>`+tracePath(i=>s[i].yaw==null?null:Yy(s[i].yaw),'var(--gold)',1.5)+tracePath(i=>s[i].steer==null?null:Ys(s[i].steer),'var(--cyan)',1.5)+cross('crHd',H);
+  const Ys=v=>H/2-(v/sm)*(H/2-10),Yy=v=>H/2-(v/ym)*(H/2-10);SC_steer=sm;SC_yaw=ym;
+  $('hd').innerHTML=band(H)+`<line x1="0" y1="${H/2}" x2="600" y2="${H/2}" stroke="#1b232f"/>`+tracePath(i=>s[i].yaw==null?null:Yy(s[i].yaw),'var(--gold)',1.5)+tracePath(i=>s[i].steer==null?null:Ys(s[i].steer),'var(--cyan)',1.5)+cross('crHd',H)+node('ndHdR','var(--gold)')+node('ndHdY','var(--cyan)');
   $('hdNote').textContent='兩線同向同幅=平衡;方向盤大、偏航跟不上=推頭;偏航爆走=轉向過度。';}
 
 function ggSvg(s,range){const C=120,SC=30;const has=s.some(p=>p.latG!=null&&p.lonG!=null);
@@ -863,11 +884,27 @@ function updateCross(i){const c=$('cursor');
   const ids=['crSpd','crPed','crHd','crThr','crBrk','crDlt'];
   const setL=(id,x,sh)=>{const e=$(id);if(!e)return;if(!sh){e.style.display='none';return;}e.setAttribute('x1',x);e.setAttribute('x2',x);e.style.display='';};
   if(i<0||!cur){if(c)c.style.display='none';ids.forEach(id=>setL(id,0,0));const gc=$('ggCur');if(gc)gc.style.display='none';
+    ['ndSpdY','ndSpdR','ndPedT','ndPedB','ndThrY','ndThrR','ndBrkY','ndBrkR','ndHdY','ndHdR','ndDlt'].forEach(id=>{const e=$(id);if(e)e.style.display='none';});
     if(selTurn<0)$('read').innerHTML='<div>移動滑鼠/手指看該點 · 或選彎角</div>';return;}
   const p=cur.samples[i],x=xS(i).toFixed(1),iw=inWin(i);
   if(c){c.setAttribute('cx',PTS[i][0].toFixed(1));c.setAttribute('cy',PTS[i][1].toFixed(1));c.style.display='';}
   ids.forEach(id=>setL(id,x,iw));
   const gc=$('ggCur');if(gc){if(p.latG!=null){gc.setAttribute('cx',(120+p.latG*30).toFixed(1));gc.setAttribute('cy',(120-(p.lonG||0)*30).toFixed(1));gc.style.display='';}else gc.style.display='none';}
+  // 折線圖節點:你=色點、對照=金點(標出該 x 上兩者位置)
+  {const xf=+x;
+   const yS=v=>v==null?null:130-8-(v/SC_spd)*(130-22);
+   const yP=(v,H)=>v==null?null:H-8-(v/100)*(H-22);
+   const ySt=v=>v==null?null:150/2-(v/SC_steer)*(150/2-10);
+   const yYa=v=>v==null?null:150/2-(v/SC_yaw)*(150/2-10);
+   const setN=(id,yy,sh)=>{const e=$(id);if(!e)return;if(!sh||yy==null){e.style.display='none';return;}e.setAttribute('cx',xf);e.setAttribute('cy',yy.toFixed(1));e.style.display='';};
+   setN('ndSpdY',yS(p.spd),iw);
+   setN('ndPedT',yP(p.thr,130),iw);setN('ndPedB',yP(p.brk,130),iw);
+   setN('ndThrY',yP(p.thr,110),iw);setN('ndBrkY',yP(p.brk,110),iw);
+   setN('ndHdY',ySt(p.steer),iw);
+   if(CMP&&ref){const rs=interpAt(ref.samples,refDD,DD[i],'spd'),rT=interpAt(ref.samples,refDD,DD[i],'thr'),rB=interpAt(ref.samples,refDD,DD[i],'brk'),rSt=interpAt(ref.samples,refDD,DD[i],'steer'),rt2=interpAt(ref.samples,refDD,DD[i],'t');
+     setN('ndSpdR',yS(rs),iw);setN('ndThrR',yP(rT,110),iw);setN('ndBrkR',yP(rB,110),iw);setN('ndHdR',ySt(rSt),iw);
+     const dd2=rt2==null?null:(p.t-rt2);setN('ndDlt',dd2==null?null:(110/2-(dd2/SC_dlt)*(110/2-12)),iw);}
+   else{setN('ndSpdR',null,0);setN('ndThrR',null,0);setN('ndBrkR',null,0);setN('ndHdR',yYa(p.yaw),iw);setN('ndDlt',null,0);}}
   let rd=`<div>時間 <b>${p.t.toFixed(2)}s</b></div><div>速度 <b>${Math.round(p.spd)}</b></div><div>油門 <b>${p.thr}%</b></div><div>煞車 <b>${p.brk}%</b></div>`+(p.latG!=null?`<div>橫向G <b>${p.latG.toFixed(2)}</b></div>`:'')+(p.steer!=null?`<div>方向 <b>${Math.round(p.steer)}°</b></div>`:'');
   if(CMP&&ref){const rs=interpAt(ref.samples,refDD,DD[i],'spd'),rt=interpAt(ref.samples,refDD,DD[i],'t');
     if(rs!=null)rd+=`<div style="color:var(--gold)">對照速度 <b>${Math.round(rs)}</b></div>`;
@@ -935,6 +972,61 @@ function showTurnStat(ti){
     if(r){const b=statOf(ref.samples,r[0],r[1]);$('turnStatR').innerHTML=statHTML('對照 · 彎角',t,ti,b,a.mnS-b.mnS);}
     else $('turnStatR').innerHTML='<span>對照</span><b>此距離無對應資料</b>';}}
 
+// —— 折線圖手風琴(全尺寸:點標題開合;寬螢幕展開超過地圖高度自動收最上面)——
+let lastOpened=null,drag=null;
+const isWide=()=>matchMedia('(min-width:1024px)').matches;
+function accCap(){
+  if(!isWide())return;
+  const mc=document.querySelector('.mapcol'),cc=document.querySelector('.chartcol');
+  if(!mc||!cc)return;let guard=0;
+  while(cc.scrollHeight>mc.offsetHeight+6&&guard++<12){
+    const open=[...cc.querySelectorAll('.acc.open')].filter(c=>getComputedStyle(c).display!=='none');
+    if(open.length<=1)break;
+    (open.find(c=>c!==lastOpened)||open[0]).classList.remove('open');
+  }
+}
+function setupAccordion(){
+  const vis=[...document.querySelectorAll('.chartcol .acc')].filter(c=>getComputedStyle(c).display!=='none');
+  if(vis.length&&!vis.some(c=>c.classList.contains('open')))vis[0].classList.add('open');
+  accCap();
+}
+// 拖曳排序(把想比較的圖拉到地圖下方=清單最上);拖曳時卡片跟著手指浮動
+function chartCards(){return [...document.querySelectorAll('.chartcol .acc')].filter(c=>getComputedStyle(c).display!=='none');}
+let dStartY=0,dStartOff=0;
+function dragBegin(card,y){drag=card;dStartY=y;dStartOff=card.offsetTop;card.classList.add('dragging');}
+function onDragMove(y){
+  if(!drag)return;
+  if(y<90)scrollBy(0,-12);else if(y>innerHeight-90)scrollBy(0,12);
+  const cc=document.querySelector('.chartcol');let placed=false;
+  for(const c of chartCards()){if(c===drag)continue;const r=c.getBoundingClientRect();if(y<r.top+r.height/2){cc.insertBefore(drag,c);placed=true;break;}}
+  if(!placed)cc.appendChild(drag);
+  const shift=drag.offsetTop-dStartOff;            // 排序造成的版面位移
+  drag.style.transform='translateY('+((y-dStartY)-shift)+'px)';   // 扣掉位移=視覺持續貼著手指
+}
+function dragEnd(){if(drag){drag.style.transform='';drag.classList.remove('dragging');drag=null;}}
+document.querySelectorAll('.chartcol .acc').forEach(card=>{
+  const lab=card.querySelector('.lab');if(!lab)return;
+  const grip=document.createElement('span');grip.className='grip';grip.textContent='⠿';grip.title='按住拖曳排序';
+  lab.insertBefore(grip,lab.firstChild);
+  // 觸控:preventDefault 直接擋掉頁面捲動(pointer 事件在手機擋不住)
+  grip.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();if(e.touches[0])dragBegin(card,e.touches[0].clientY);},{passive:false});
+  grip.addEventListener('touchmove',e=>{e.preventDefault();if(drag&&e.touches[0])onDragMove(e.touches[0].clientY);},{passive:false});
+  grip.addEventListener('touchend',e=>{e.preventDefault();dragEnd();},{passive:false});
+  grip.addEventListener('touchcancel',dragEnd);
+  // 滑鼠(桌機)
+  grip.addEventListener('mousedown',e=>{e.preventDefault();dragBegin(card,e.clientY);
+    const mv=ev=>{if(drag)onDragMove(ev.clientY);};
+    const up=()=>{dragEnd();removeEventListener('mousemove',mv);removeEventListener('mouseup',up);};
+    addEventListener('mousemove',mv);addEventListener('mouseup',up);
+  });
+  lab.addEventListener('click',e=>{
+    if(e.target.closest('select,input,button,.grip'))return;
+    const willOpen=!card.classList.contains('open');
+    card.classList.toggle('open');
+    if(willOpen){lastOpened=card;accCap();}
+  });
+});
+let _rz;addEventListener('resize',()=>{clearTimeout(_rz);_rz=setTimeout(setupAccordion,160);});
 $('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>loadText(rd.result,f.name);rd.readAsText(f);};
 $('fileRef').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>loadRef(rd.result,f.name);rd.readAsText(f);};
 $('cmpClear').onclick=clearCmp;
