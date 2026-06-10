@@ -741,6 +741,9 @@ const $=id=>document.getElementById(id);
 const num=v=>(typeof v==='number'&&!isNaN(v))?v:null;
 let LAPS=[],TRACK='',CAR='',SRC='範例',cur=null,PTS=[],TURNS=[],selTurn=-1,DD=[],LEN=1,VX0=0,VX1=1,MAPMODE='speed';
 let ref=null,refDD=[],refLEN=1,CMP=false;
+let ALLCOACH=null;
+function _coachKey(){const s=(TRACK||'');return /拉古|Laguna/i.test(s)?'laguna':(/沃特|Watkins/i.test(s)?'watkins':null);}
+function coachFor(t){if(!ALLCOACH||!t)return null;const k=_coachKey();if(!k||!ALLCOACH[k])return null;const f=DD[t.peak]/LEN;let best=null,bd=0.05;for(const c of ALLCOACH[k]){const dd=Math.abs(c.frac-f);if(dd<bd){bd=dd;best=c;}}return best;}
 
 function parseLaps(text){
   const lines=text.split(/\r?\n/);
@@ -968,6 +971,8 @@ function showTurnStat(ti){
   if(ti<0||!TURNS[ti]){$('turnStat').innerHTML='<span>選一個彎角看細節(會同步更新所有圖)</span><span></span>';if($('turnStatR'))$('turnStatR').innerHTML='<span></span><span></span>';return;}
   const t=TURNS[ti],a=statOf(cur.samples,t.start,t.end);
   $('turnStat').innerHTML=statHTML(CMP?'你 · 彎角':'彎角',t,ti,a,null);
+  const _cn=coachFor(t);
+  if(_cn)$('turnStat').innerHTML+=`<span style="grid-column:1/-1;margin-top:.5rem;color:var(--gold);font-weight:700">📋 教練註記 ${_cn.turn||''}${_cn.loss?' · 丟 '+_cn.loss.toFixed(2)+'s':''}</span><span style="grid-column:1/-1;color:#e8ecf1;font-weight:400;line-height:1.45">${_cn.note}</span>`;
   if(CMP&&ref&&$('turnStatR')){const r=refRange();
     if(r){const b=statOf(ref.samples,r[0],r[1]);$('turnStatR').innerHTML=statHTML('對照 · 彎角',t,ti,b,a.mnS-b.mnS);}
     else $('turnStatR').innerHTML='<span>對照</span><b>此距離無對應資料</b>';}}
@@ -1034,4 +1039,5 @@ const _qp=new URLSearchParams(location.search),_src=_qp.get('src'),_ref=_qp.get(
 function _loadRefUrl(){if(_ref)fetch(_ref).then(r=>{if(!r.ok)throw 0;return r.text();}).then(t=>loadRef(t,_ref)).catch(()=>{});}
 if(_src){fetch(_src).then(r=>{if(!r.ok)throw 0;return r.text();}).then(t=>{loadText(t,_src);_loadRefUrl();}).catch(()=>{$('meta').innerHTML=`<span class="warn">讀不到 ${_src} — 顯示內建範例</span>`;loadText(DEMO_CSV,'範例');_loadRefUrl();});}
 else{loadText(DEMO_CSV,'範例');_loadRefUrl();}
+fetch('./data.json').then(r=>r.ok?r.json():null).then(j=>{if(j&&j.meta&&j.meta.coachNotes){ALLCOACH=j.meta.coachNotes;if(selTurn>=0)showTurnStat(selTurn);}}).catch(()=>{});
 </script></body></html>
