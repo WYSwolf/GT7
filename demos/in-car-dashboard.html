@@ -1,0 +1,256 @@
+<!DOCTYPE html><html lang="zh-Hant"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GT7 即時儀表板</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#05070a;--panel:#0d1219;--panel2:#0a0e14;--line:#1b232f;--txt:#eef3f9;--muted:#6b7787;--green:#00ff88;--gold:#ffd43b;--red:#ff3b5c;--blue:#36b3ff;--cyan:#33e0ff;--mag:#c86bff;--mono:'JetBrains Mono',monospace;--disp:'Bebas Neue',sans-serif;--body:'Noto Sans TC',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none}
+html,body{height:100%}
+body{background:radial-gradient(1200px 800px at 50% -10%,#0a121b,var(--bg));color:var(--txt);font-family:var(--body);overflow:hidden;display:flex;flex-direction:column;padding:1.4vh 1.2vw;gap:1vh}
+.grp-t{font-family:var(--mono);font-size:1.25vh;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:.6vh}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:1.4vh;padding:1.2vh}
+.main{flex:1;display:grid;grid-template-columns:0.98fr 1.05fr 1.2fr;gap:1vw;min-height:0}
+.col{display:flex;flex-direction:column;min-height:0}
+/* 左:車況 */
+.car{flex:1.5 1 0;display:grid;grid-template-columns:1fr 1.9fr 1fr;grid-template-rows:1.75fr 0.4fr 1.75fr;gap:1vh 1vw;min-height:0;align-items:stretch}
+.ty{position:relative;border-radius:1vh/1.5vh;background:#0c121a;border:.28vh solid var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--mono);transition:.15s}
+.ty .pos{position:absolute;top:.6vh;font-size:1.2vh;letter-spacing:.1em;color:var(--muted)}
+.ty .deg{font-size:4vh;font-weight:700;color:var(--muted)}
+.fl{grid-column:1;grid-row:1}.fr{grid-column:3;grid-row:1}.rl{grid-column:1;grid-row:3}.rr{grid-column:3;grid-row:3}
+.tank{grid-column:2;grid-row:1/4;position:relative;border-radius:2vh;overflow:hidden;background:#0a0f16;border:1px solid var(--line)}
+.tank .fill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(0deg,#1c5,#2ea869 70%,#2ea86930);transition:height .25s,background .3s;opacity:.85}
+.tank .inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.3vh;text-align:center}
+.tank .lab{font-family:var(--mono);font-size:1.2vh;letter-spacing:.2em;color:var(--muted);text-transform:uppercase}
+.tank .laps{font-family:var(--mono);font-weight:700;font-size:7.2vh;line-height:.85;color:var(--txt);white-space:nowrap;letter-spacing:-1px}
+.tank .unit{font-family:var(--mono);font-size:1.2vh;color:var(--muted);letter-spacing:.1em}
+.tank .fuel{position:absolute;bottom:1vh;left:0;right:0;text-align:center;font-family:var(--mono);font-size:1.3vh;color:var(--muted)}
+.tank .fuel b{color:var(--txt)}
+/* 中:轉速燈 + 時速 + 圈 */
+.center{justify-content:space-between}
+.lights{display:flex;gap:.4vw;height:4.8vh}
+.topbar{padding:1vh 1.2vw}
+.topbar .rpmtop{margin:.6vh 0 0}
+.lights .c{flex:1;border-radius:.5vh;background:#0d141c;border:1px solid #151d27}
+.rpmtop{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);margin-bottom:.5vh}
+.rpmtop .lab{font-size:1.2vh;letter-spacing:.2em;color:var(--muted)}
+.rpmtop b{font-size:1.7vh;color:var(--txt)}.rpmtop b small{color:var(--muted);font-size:.62em}
+.spdwrap{text-align:center}
+.center .spdwrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.center{justify-content:space-between;border:1.5px dashed rgba(255,255,255,.16);border-radius:1.4vh;padding:1.2vh 1.4vh}
+.spd{font-family:var(--mono);font-weight:700;font-size:16.5vh;line-height:.82;color:var(--green);letter-spacing:-3px}
+.spd small{font-size:.16em;color:var(--muted);letter-spacing:.14em;font-weight:500}
+.toprow{position:relative;text-align:center;margin-top:1.4vh}
+.toprow .ll{font-family:var(--mono);font-size:1.2vh;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:.4vh}
+.toprow .lapt{font-family:var(--mono);font-weight:700;font-size:5.6vh;color:var(--txt);line-height:1;letter-spacing:-1px}
+.dblk{text-align:center;margin-top:1vh}
+.dnum{font-family:var(--mono);font-weight:700;font-size:3.4vh;line-height:1;color:var(--muted)}
+.dbar{position:relative;height:1.8vh;width:60%;margin:.9vh auto 0;background:#0d141c;border:1px solid #161d27;border-radius:1vh;overflow:hidden}
+.dbar .mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:#36404e;z-index:2}
+.dbar i{position:absolute;top:0;bottom:0;left:50%;width:0;transition:left .12s,width .12s,background .12s}
+.dbar .ends{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:center;padding:0 .5vw;font-family:var(--mono);font-size:1.05vh;color:#3a4655}
+.lapstack{flex:1.2 1 0;display:flex;flex-direction:column;gap:.8vh;margin-top:1vh;min-height:0}
+.lr{flex:1;display:flex;flex-direction:column;justify-content:center;gap:.6vh;background:#0c121a;border:1px solid var(--line);border-radius:1vh;padding:.6vh 1.1vw}
+.lr-top{display:flex;justify-content:space-between;align-items:baseline}
+.lr .lab{font-family:var(--mono);font-size:1.5vh;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.lr b{font-family:var(--mono);font-weight:700;font-size:4.2vh;line-height:1}
+.lr-bar{height:1vh;background:#0d141c;border:1px solid #161d27;border-radius:.6vh;overflow:hidden}
+.lr-bar i{display:block;height:100%;width:0;border-radius:.6vh;transition:width .25s}
+#lastB{background:#cdd8e3}#bestB{background:var(--mag)}#optB{background:var(--gold)}
+/* 右:轉向操控圓 + TCS */
+.right{align-items:center;justify-content:space-between}
+.ring{width:100%;display:flex;justify-content:center}
+.ring svg{width:auto;height:42vh;max-width:100%}
+.ped{width:100%;margin-top:.4vh}
+.ped svg{width:100%;height:9vh;display:block}
+.pedlab{display:flex;justify-content:space-between;font-family:var(--mono);font-size:1.1vh;color:var(--muted);margin-top:.2vh}
+.aids{display:flex;gap:1vw;width:100%;margin-top:.4vh}
+.aid{flex:1;text-align:center;font-family:var(--mono);font-size:1.4vh;letter-spacing:.16em;padding:.5vh 0;border-radius:2vh;border:1px solid var(--line);color:var(--muted);transition:.1s}
+.aid.on{font-weight:700}
+.tcs.on{background:var(--blue);color:#04222b;border-color:var(--blue);box-shadow:0 0 1.4vh var(--blue)}
+.asm.on{background:var(--gold);color:#2a2102;border-color:var(--gold);box-shadow:0 0 1.4vh var(--gold)}
+.status{font-family:var(--mono);font-size:1.4vh;color:var(--muted);text-align:center}.status b{color:var(--green)}.off #conn{color:var(--red)!important}
+.center .status{width:100%;border-top:1px solid var(--line);padding-top:.9vh;margin-top:.6vh}
+.status #info{color:var(--muted)}.status #info b{color:var(--txt)}
+</style></head><body>
+
+<div class="topbar card">
+  <div class="lights" id="lights"></div>
+  <div class="rpmtop"><span class="lab">轉速 RPM</span><b><span id="rpmN">0</span><small> / <span id="rpmMax">0</span></small></b></div>
+</div>
+<div class="main">
+  <!-- 左:車況 -->
+  <div class="col card">
+    <div class="grp-t">車況 · 胎溫 / 油箱 / 剩餘圈</div>
+    <div class="car">
+      <div class="ty fl" id="fl"><span class="pos">FL</span><span class="deg">—</span></div>
+      <div class="ty fr" id="fr"><span class="pos">FR</span><span class="deg">—</span></div>
+      <div class="tank">
+        <div class="fill" id="fuelFill"></div>
+        <div class="inner"><span class="lab">剩餘圈</span><span class="laps" id="laps">—</span><span class="unit">LAPS LEFT</span></div>
+        <div class="fuel">油量 <b id="fuelL">—</b> L</div>
+      </div>
+      <div class="ty rl" id="rl"><span class="pos">RL</span><span class="deg">—</span></div>
+      <div class="ty rr" id="rr"><span class="pos">RR</span><span class="deg">—</span></div>
+    </div>
+    <div class="lapstack">
+      <div class="lr"><div class="lr-top"><span class="lab">上一圈</span><b id="lastT" style="color:var(--txt)">—</b></div><div class="lr-bar"><i id="lastB"></i></div></div>
+      <div class="lr"><div class="lr-top"><span class="lab">最佳</span><b id="bestT" style="color:var(--mag)">—</b></div><div class="lr-bar"><i id="bestB"></i></div></div>
+      <div class="lr"><div class="lr-top"><span class="lab">OPT 潛力</span><b id="optT" style="color:var(--gold)">—</b></div><div class="lr-bar"><i id="optB"></i></div></div>
+    </div>
+  </div>
+
+  <!-- 中:時速 + 圈 -->
+  <div class="col center">
+    <div>
+      <div class="toprow"><span class="ll">本圈</span><div class="lapt" id="lapt">0:00.000</div></div>
+      <div class="dblk"><div class="dnum" id="dnum">—</div>
+        <div class="dbar"><div class="ends"><span>快</span><span>慢</span></div><div class="mid"></div><i id="dbarI"></i></div>
+        <div class="ll" style="margin-top:.5vh">vs 最佳</div></div>
+    </div>
+    <div class="spdwrap"><div class="spd"><span id="spd">0</span><small>km/h</small></div></div>
+    <div class="status" id="status"><span id="conn">等待遙測…</span><span id="info"></span></div>
+  </div>
+
+  <!-- 右:轉向操控圓 -->
+  <div class="col card right">
+    <div class="grp-t">轉向 / 操控</div>
+    <div class="ring">
+      <svg viewBox="0 0 340 340">
+        <defs>
+          <radialGradient id="bowl" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#142231" stop-opacity="0"/><stop offset="60%" stop-color="#142231" stop-opacity="0.18"/><stop offset="100%" stop-color="#0b1622" stop-opacity="0.5"/></radialGradient>
+          <radialGradient id="glow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#1d3247" stop-opacity="0.5"/><stop offset="70%" stop-color="#1d3247" stop-opacity="0.12"/><stop offset="100%" stop-color="#1d3247" stop-opacity="0"/></radialGradient>
+        </defs>
+        <circle cx="170" cy="170" r="124" fill="url(#glow)"/><circle cx="170" cy="170" r="124" fill="url(#bowl)"/>
+        <text id="ctrGear" x="170" y="200" fill="var(--gold)" opacity="0.6" font-size="120" font-family="Bebas Neue" text-anchor="middle">N</text>
+        <circle cx="170" cy="170" r="42" fill="none" stroke="#141b24" stroke-opacity="0.5"/><circle cx="170" cy="170" r="83" fill="none" stroke="#27384a" stroke-opacity="0.8"/><circle cx="170" cy="170" r="124" fill="none" stroke="#3a5167"/>
+        <line x1="170" y1="46" x2="170" y2="294" stroke="#141b24" stroke-opacity="0.6"/><line x1="46" y1="170" x2="294" y2="170" stroke="#141b24" stroke-opacity="0.6"/>
+        <path d="M170 308 A138 138 0 0 0 170 32" fill="none" stroke="#0e2018" stroke-width="10"/><path d="M170 308 A138 138 0 0 1 170 32" fill="none" stroke="#22121a" stroke-width="10"/>
+        <path id="thrFill" d="M170 308 A138 138 0 0 0 170 32" pathLength="100" fill="none" stroke="var(--green)" stroke-width="10" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100"/>
+        <path id="brkFill" d="M170 308 A138 138 0 0 1 170 32" pathLength="100" fill="none" stroke="var(--red)" stroke-width="10" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100"/>
+        <circle id="thrHalo" r="11" fill="var(--green)" opacity="0"/><circle id="brkHalo" r="11" fill="var(--red)" opacity="0"/><circle id="thrTip" r="4" fill="#caffe6" opacity="0"/><circle id="brkTip" r="4" fill="#ffd0d9" opacity="0"/>
+        <text x="312" y="174" fill="#2f8a5e" font-size="10" font-family="JetBrains Mono" text-anchor="middle">油</text><text x="28" y="174" fill="#9c3046" font-size="10" font-family="JetBrains Mono" text-anchor="middle">煞</text>
+        <g id="steerRing"><circle cx="170" cy="170" r="158" fill="none" stroke="#223040" stroke-width="2"/><circle cx="170" cy="170" r="158" fill="none" stroke="var(--cyan)" stroke-width="3" stroke-dasharray="2 22" opacity="0.4"/><line x1="170" y1="6" x2="170" y2="40" stroke="var(--cyan)" stroke-width="5" stroke-linecap="round"/><circle cx="170" cy="22" r="3.5" fill="var(--cyan)"/></g>
+        <text x="170" y="58" fill="#3a4655" font-size="9" font-family="JetBrains Mono" text-anchor="middle">加速</text><text x="170" y="288" fill="#3a4655" font-size="9" font-family="JetBrains Mono" text-anchor="middle">減速</text>
+        <g id="trail"></g>
+        <line id="slipArrow" x1="170" y1="170" x2="170" y2="170" stroke="var(--gold)" stroke-width="3" stroke-linecap="round" opacity="0"/>
+        <circle id="ggDot" cx="170" cy="170" r="9" fill="var(--green)"/>
+      </svg>
+    </div>
+    <div class="ped">
+      <svg viewBox="0 0 300 70" preserveAspectRatio="none">
+        <line x1="0" y1="35" x2="300" y2="35" stroke="#161d27" stroke-width="1"/>
+        <path id="pthrA" fill="var(--green)" fill-opacity="0.18" stroke="none" d=""/>
+        <path id="pbrkA" fill="var(--red)" fill-opacity="0.18" stroke="none" d=""/>
+        <polyline id="pthrL" fill="none" stroke="var(--green)" stroke-width="1.6" vector-effect="non-scaling-stroke" points=""/>
+        <polyline id="pbrkL" fill="none" stroke="var(--red)" stroke-width="1.6" vector-effect="non-scaling-stroke" points=""/>
+      </svg>
+      <div class="pedlab"><span style="color:var(--green)">油門</span><span>近 10 秒</span><span style="color:var(--red)">煞車</span></div>
+    </div>
+    <div class="aids"><div class="aid tcs" id="tcs">TCS</div><div class="aid asm" id="asm">ASM</div></div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const fmtT=s=>{if(s==null)return'—';const m=Math.floor(s/60);return m+':'+(s-m*60).toFixed(3).padStart(6,'0');};
+const LATMAX=3.4,LONMAX=2.2,RAD=124,R0=170,PR=138,SLIPMAX=12;
+let REDLINE=8000;
+// 轉速燈
+const NL=24;let lh='';for(let i=0;i<NL;i++)lh+='<div class="c"></div>';$('lights').innerHTML=lh;
+const cells=[...document.querySelectorAll('#lights .c')];
+const GRN='#00ff88',GLD='#ffd43b',RED='#ff3b5c',BLU='#36b3ff',CYN='#33e0ff',MAG='#c86bff',TXT='#eef3f9',MUT='#6b7787';
+const lightColor=i=>{const f=i/NL;return f<0.55?GRN:f<0.82?RED:MAG;};
+const tyColor=c=>c==null?MUT:c<60?BLU:c<90?GRN:c<105?GLD:RED;
+const slipColor=a=>a<2?GRN:a<5?GLD:RED;
+const clamp=(v,m)=>Math.max(-1,Math.min(1,v/m));
+const trail=[];
+const pedHist=[];
+function setTy(id,c){const e=$(id),b=e.querySelector('.deg');if(c==null||isNaN(c)){b.textContent='—';e.style.borderColor=MUT;b.style.color=MUT;e.style.boxShadow='none';return;}const col=tyColor(c);b.textContent=Math.round(c)+'°';b.style.color=col;e.style.borderColor=col;e.style.boxShadow='inset 0 0 1.4vh -.6vh '+col;}
+function tip(side,frac){const a=frac*Math.PI;return[R0+side*PR*Math.sin(a),R0+PR*Math.cos(a)];}
+function render(d){
+  // 轉速燈:用 GT7 的 rpmMin=換檔警示RPM 當該升檔的閃燈點(遠低於限轉),rpmMax=限轉只當顯示
+  const rpm=d.rpm||0;
+  REDLINE=(d.rpmMax&&d.rpmMax>3000)?d.rpmMax:Math.max(REDLINE,rpm);
+  const warn=(d.rpmMin&&d.rpmMin>2000)?d.rpmMin:REDLINE*0.9;   // 該升檔的轉速
+  const lo=warn*0.7,shift=warn;
+  const lit=Math.round(Math.max(0,Math.min(1,(rpm-lo)/((shift-lo)||1)))*NL),over=rpm>=shift,flash=over&&(performance.now()%140<80);
+  cells.forEach((c,i)=>{if(flash){c.style.background=BLU;c.style.boxShadow='0 0 1vh '+BLU;}else if(i<lit){const col=lightColor(i);c.style.background=col;c.style.boxShadow='0 0 .8vh '+col;}else{c.style.background='#0d141c';c.style.boxShadow='none';}});
+  $('rpmN').textContent=Math.round(rpm);$('rpmMax').textContent=Math.round(REDLINE);
+  // 時速 + 圈
+  $('spd').textContent=Math.round(d.spd||0);
+  $('lapt').textContent=fmtT(d.lapt!=null?d.lapt:0);
+  {const dv=d.delta,dn=$('dnum'),bi=$('dbarI');
+   if(dv==null){dn.textContent='—';dn.style.color=MUT;bi.style.width='0';}
+   else{dn.textContent=(dv>=0?'+':'')+dv.toFixed(2);const col=dv<=0?GRN:RED;dn.style.color=col;
+     const w=Math.min(1,Math.abs(dv)/2)*50;bi.style.left=(dv<=0?50-w:50)+'%';bi.style.width=w+'%';bi.style.background=col;}}
+  $('bestT').textContent=fmtT(d.best);$('optT').textContent=fmtT(d.opt);$('lastT').textContent=fmtT(d.last);
+  {const vs=[['lastB',d.last],['bestB',d.best],['optB',d.opt]];
+   const pr=vs.filter(x=>x[1]!=null).map(x=>x[1]);
+   if(pr.length){const mn=Math.min(...pr),mx=Math.max(...pr),sp=mx-mn;
+     for(const x of vs){const el=$(x[0]);if(x[1]==null){el.style.width='0';continue;}
+       el.style.width=((sp>0?0.35+0.65*(x[1]-mn)/sp:1)*100).toFixed(1)+'%';}}}
+  // 左:輪胎 + 油箱
+  setTy('fl',d.tFL);setTy('fr',d.tFR);setTy('rl',d.tRL);setTy('rr',d.tRR);
+  const cap=(d.fuelCap&&d.fuelCap>0)?d.fuelCap:100;   // 容量缺漏時假設 100(GT7 常以 100 為滿)
+  const pct=d.fuel!=null?Math.max(0,Math.min(1,d.fuel/cap)):0;
+  $('fuelFill').style.height=(pct*100)+'%';
+  $('fuelL').textContent=d.fuel!=null?d.fuel.toFixed(1):'—';
+  if(d.lapsLeft!=null){const L=d.lapsLeft;$('laps').textContent=L.toFixed(1);$('laps').style.color=L>6?GRN:L>3?GLD:RED;
+    $('fuelFill').style.background=L>6?'linear-gradient(0deg,#1c5,#2ea869 70%,#2ea86930)':L>3?'linear-gradient(0deg,#caa12a,#caa12a70 70%,#caa12a20)':'linear-gradient(0deg,#c0314a,#c0314a70 70%,#c0314a20)';}
+  else{$('laps').textContent='—';$('laps').style.color=MUT;}
+  // 右:轉向操控圓
+  $('steerRing').setAttribute('transform','rotate('+(d.steer||0).toFixed(1)+' '+R0+' '+R0+')');
+  $('thrFill').setAttribute('stroke-dashoffset',(100-(d.thr||0)).toFixed(1));
+  $('brkFill').setAttribute('stroke-dashoffset',(100-(d.brk||0)).toFixed(1));
+  $('ctrGear').textContent=(d.gear==null||d.gear<1)?'N':d.gear;
+  const setTip=(halo,tipc,side,frac)=>{const p=tip(side,frac),o=Math.max(0,(frac-0.55)/0.45);$(halo).setAttribute('cx',p[0].toFixed(1));$(halo).setAttribute('cy',p[1].toFixed(1));$(halo).setAttribute('opacity',(o*0.55).toFixed(2));$(halo).setAttribute('r',(8+o*5).toFixed(1));$(tipc).setAttribute('cx',p[0].toFixed(1));$(tipc).setAttribute('cy',p[1].toFixed(1));$(tipc).setAttribute('opacity',frac>0.04?Math.min(1,0.3+o).toFixed(2):0);};
+  setTip('thrHalo','thrTip',1,(d.thr||0)/100);setTip('brkHalo','brkTip',-1,(d.brk||0)/100);
+  const lat=d.latG||0,lon=d.lonG||0,slip=d.slip||0;
+  const dx=R0+clamp(lat,LATMAX)*RAD,dy=R0-clamp(lon,LONMAX)*RAD;
+  if(!d.paused){trail.push([dx,dy]);if(trail.length>16)trail.shift();}
+  let tg='';for(let i=0;i<trail.length;i++){const f=i/trail.length;tg+='<circle cx="'+trail[i][0].toFixed(1)+'" cy="'+trail[i][1].toFixed(1)+'" r="'+(1.5+f*4).toFixed(1)+'" fill="'+CYN+'" opacity="'+(f*0.3).toFixed(2)+'"/>';}
+  $('trail').innerHTML=tg;
+  const col=slipColor(Math.abs(slip)),mag=Math.min(1,Math.hypot(lat/LATMAX,lon/LONMAX)),dist=Math.hypot(dx-R0,dy-R0);
+  const dot=$('ggDot');dot.setAttribute('cx',dx.toFixed(1));dot.setAttribute('cy',dy.toFixed(1));dot.setAttribute('r',(8+mag*5).toFixed(1));dot.setAttribute('fill',col);dot.setAttribute('opacity',(0.35+0.65*Math.min(1,dist/58)).toFixed(2));
+  const aw=Math.min(1,Math.abs(slip)/SLIPMAX),a=$('slipArrow');a.setAttribute('x1',dx.toFixed(1));a.setAttribute('y1',dy.toFixed(1));a.setAttribute('x2',(dx+Math.sign(slip)*aw*46).toFixed(1));a.setAttribute('y2',dy.toFixed(1));a.setAttribute('stroke',col);a.setAttribute('opacity',aw>0.05?0.85:0);
+  // TCS / ASM
+  $('tcs').className='aid tcs'+(d.tcs?' on':'');
+  $('asm').className='aid asm'+(d.asm?' on':'');
+  // 油門/煞車 近10秒曲線(暫停時凍結,不再進資料)
+  if(!d.paused){
+    const PW=300,PH=70,WIN=10,tn=performance.now()/1000;
+    pedHist.push([tn,d.thr||0,d.brk||0]);
+    while(pedHist.length>1&&tn-pedHist[0][0]>WIN)pedHist.shift();
+    let tpt='',bpt='';
+    for(const e of pedHist){const x=(PW*(1-(tn-e[0])/WIN)).toFixed(1);tpt+=x+','+(PH-e[1]/100*PH).toFixed(1)+' ';bpt+=x+','+(PH-e[2]/100*PH).toFixed(1)+' ';}
+    $('pthrL').setAttribute('points',tpt.trim());$('pbrkL').setAttribute('points',bpt.trim());
+    const area=p=>{const a=p.trim().split(' ');if(a.length<2||!a[0])return'';const x0=a[0].split(',')[0],xN=a[a.length-1].split(',')[0];return 'M'+x0+','+PH+' L'+a.join(' L')+' L'+xN+','+PH+' Z';};
+    $('pthrA').setAttribute('d',area(tpt));$('pbrkA').setAttribute('d',area(bpt));
+  }
+  // 底部資訊列
+  let info=[];
+  if(d.track)info.push(d.track);
+  if(d.car)info.push(d.car);
+  if(d.lap!=null&&d.lap>0)info.push('第 '+d.lap+' 圈');
+  $('info').innerHTML=info.length?('&nbsp;&nbsp;·&nbsp;&nbsp;'+info.join('&nbsp;&nbsp;·&nbsp;&nbsp;')):'';
+}
+// —— 預覽用模擬資料 ——
+let _g=1,_rpm=1800,_spd=0,_fuel=52,_lapt=0,_lapN=3,_last=81.9,_t0=performance.now(),_lt=performance.now();
+function simD(){const now=performance.now(),dt=Math.min(0.05,(now-_lt)/1000),t=(now-_t0)/1000;_lt=now;
+  _rpm+=3600*dt; if(_rpm>=9150){if(_g<6){_g++;_rpm=5400;}else _rpm=9150;}
+  _spd=(_g-1)*40+(_rpm/9500)*46; _lapt+=dt; if(_g>=6&&_spd>250){_g=1;_rpm=1900;_last=_lapt;_lapt=0;_lapN++;}
+  _fuel-=0.05; if(_fuel<4)_fuel=57;
+  const sg=Math.sin(t*0.62)*0.62+Math.sin(t*1.7+1)*0.26,sn=Math.max(-1,Math.min(1,sg));
+  const ph=Math.sin(t*0.62+0.4),thr=Math.max(0,ph)*100,brk=Math.max(0,-ph)*100;
+  const over=Math.max(0,Math.abs(sn)-0.66)/0.34,slip=Math.sign(sn)*over*(2.5+7*Math.abs(Math.sin(t*2.2)));
+  const base=82+Math.sin(t*0.5)*6;
+  return {spd:_spd,gear:_g,rpm:_rpm,rpmMin:8400,rpmMax:9500,thr,brk,steer:sn*150,
+    latG:sn*3.1*(0.9+0.1*Math.sin(t*3)),lonG:(thr/100)*1.3-(brk/100)*1.9,slip,
+    tFL:base+10,tFR:base+12,tRL:base+2,tRR:base+3,lapt:_lapt,delta:Math.sin(t*0.5)*0.7,
+    fuel:_fuel,fuelCap:60,lapsLeft:_fuel/4.3,best:81.645,opt:81.184,paused:0,
+    tcs:Math.abs(slip)>5?1:0,asm:(brk>60&&Math.abs(slip)>3)?1:0,
+    last:_last,lap:_lapN,track:'Laguna Seca',car:'Gr.4'};
+}
+function preview(){render(simD());$('conn').innerHTML='<b>● 預覽(模擬資料)</b>';requestAnimationFrame(preview);}
+preview();
+</script></body></html>
