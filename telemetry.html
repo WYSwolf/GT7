@@ -43,7 +43,7 @@ body.cmp .cmp-only{display:block}
 body.cmp .legend.cmp-only{display:flex}
 body.cmp .solo-only{display:none}
 body.cmp .lab .cmp-only{display:inline}
-svg#spd,svg#pedal,svg#hd,svg#thrC,svg#brkC,svg#dlt{touch-action:pan-y}
+svg#spd,svg#pedal,svg#hd,svg#thrC,svg#brkC,svg#dlt,svg#gr{touch-action:pan-y}
 #map{touch-action:pan-y}
 .cmpx{font-family:var(--mono);font-size:11px;color:var(--gold);cursor:pointer;border:1px solid var(--line);border-radius:2px;padding:5px 9px;background:#0f141b;transition:all .2s}
 .cmpx:hover{border-color:var(--green);color:var(--green)}
@@ -99,6 +99,11 @@ svg#spd,svg#pedal,svg#hd,svg#thrC,svg#brkC,svg#dlt{touch-action:pan-y}
   <div class="legend solo-only"><span><i class="dot" style="background:var(--cyan)"></i>方向盤</span><span><i class="dot" style="background:var(--gold)"></i>偏航率</span></div>
   <div class="legend cmp-only"><span><i class="dot" style="background:var(--cyan)"></i>你 方向盤</span><span><i class="dash" style="color:var(--gold)"></i>對照 方向盤</span></div>
   <div class="note" id="hdNote"></div></div>
+<div class="card acc"><div class="lab">檔位 / 轉速</div><svg id="gr" viewBox="0 0 600 130"></svg>
+  <div class="legend solo-only"><span><i class="dot" style="background:var(--green)"></i>檔位</span><span><i class="dot" style="background:rgba(54,179,255,.7)"></i>轉速</span></div>
+  <div class="legend cmp-only"><span><i class="dot" style="background:var(--green)"></i>你 檔位</span><span><i class="dash" style="color:var(--gold)"></i>對照 檔位</span></div></div>
+<div class="card acc cmp-only"><div class="lab">每彎時間損失 · vs 對照</div><div id="tloss"></div>
+  <div class="note">含彎前煞車段 · 紅=你較慢 · 點一列跳到該彎</div></div>
 </div>
 </div>
 <div class="two">
@@ -106,8 +111,11 @@ svg#spd,svg#pedal,svg#hd,svg#thrC,svg#brkC,svg#dlt{touch-action:pan-y}
     <div class="legend" style="justify-content:center"><span><i class="dot" style="background:var(--green)"></i>油門</span><span><i class="dot" style="background:var(--red)"></i>煞車</span><span><i class="dot" style="background:var(--blue)"></i>滑行</span></div></div>
   <div class="card cmp-only"><div class="lab">摩擦圓 · 對照</div><svg id="ggR" viewBox="0 0 240 240" style="max-width:280px;margin:0 auto"></svg>
     <div class="legend" style="justify-content:center"><span><i class="dot" style="background:var(--green)"></i>油門</span><span><i class="dot" style="background:var(--red)"></i>煞車</span><span><i class="dot" style="background:var(--blue)"></i>滑行</span></div></div>
-  <div class="card"><div class="lab">本彎資料<span class="cmp-only"> · 你</span></div><div class="tstat" id="turnStat"><span>選一個彎角看細節</span><span></span></div></div>
+  <div class="card"><div class="lab">本彎資料<span class="cmp-only"> · 你</span></div><div class="tstat" id="turnStat"><span>選一個彎角看細節</span><span></span></div>
+    <div class="note">煞車點=煞車踩過50%處 · 回油點=最低速後油門>90%處 · 皆為單圈距離(m)</div></div>
   <div class="card cmp-only"><div class="lab">本彎資料 · 對照</div><div class="tstat" id="turnStatR"><span></span><span></span></div></div>
+  <div class="card"><div class="lab">駕駛指紋<span class="cmp-only"> · 你 / 對照</span></div><div class="tstat" id="fprint"><span>載入中</span><span></span></div>
+    <div class="note">以時間佔比計算 · 滑行%偏高通常就是丟時間的位置</div></div>
 </div>
 <script>
 const DEMO_CSV=`# gt7 capture | captured=demo | track=LAGUNA SECA | car=911 GT3 R (992) 22 | packet=C | hz=20
@@ -763,7 +771,7 @@ function parseLaps(text){
   const m=new Map();
   for(const r of p.data){if(r.run_lap==null)continue;if(!m.has(r.run_lap))m.set(r.run_lap,[]);m.get(r.run_lap).push(r);}
   const laps=[...m.entries()].map(([rl,rs])=>({run_lap:rl,lap_time:rs[0].lap_time,
-    samples:rs.map(r=>({t:r.t,x:r.x,z:r.z,spd:r.spd,thr:r.thr,brk:r.brk,latG:num(r.latG),lonG:num(r.lonG),steer:num(r.steer),yaw:num(r.yaw)}))}))
+    samples:rs.map(r=>({t:r.t,x:r.x,z:r.z,spd:r.spd,thr:r.thr,brk:r.brk,latG:num(r.latG),lonG:num(r.lonG),steer:num(r.steer),yaw:num(r.yaw),rpm:num(r.rpm),gear:num(r.gear)}))}))
     .filter(l=>l.lap_time>0&&l.samples.length>20).sort((a,b)=>a.run_lap-b.run_lap);
   return {laps,track,car};
 }
@@ -821,7 +829,63 @@ function interpAt(s,dd,d,key){
   const f=(d-dd[lo])/((dd[hi]-dd[lo])||1),a=s[lo][key],b=s[hi][key];
   if(a==null||b==null)return a==null?b:a;return a+(b-a)*f;}
 
-function drawAll(){drawMap();drawSpeed();if(CMP){drawPedalSplit();}else drawPedal();drawSteer();drawGG();}
+function drawAll(){drawMap();drawSpeed();if(CMP){drawPedalSplit();}else drawPedal();drawSteer();drawGG();drawGear();buildTurnLoss();buildFingerprint();}
+
+// ===== 檔位 / 轉速 =====
+function drawGear(){const el=$('gr');if(!el)return;const s=cur.samples,H=130;
+  if(!s.some(p=>p.gear!=null)){el.innerHTML=`<text x="300" y="${H/2}" fill="var(--muted)" font-size="12" font-family="JetBrains Mono" text-anchor="middle">此圈無檔位資料</text>`;return;}
+  let gmax=1;for(const p of s)if(p.gear!=null)gmax=Math.max(gmax,p.gear);
+  if(CMP&&ref)for(const p of ref.samples)if(p.gear!=null)gmax=Math.max(gmax,p.gear);
+  const Yg=v=>H-10-((v-0.5)/gmax)*(H-26);
+  let g=band(H)+brakeBands(s,H);
+  for(let gi=1;gi<=gmax;gi++)g+=`<line x1="0" y1="${Yg(gi).toFixed(1)}" x2="600" y2="${Yg(gi).toFixed(1)}" stroke="#1b232f"/><text x="3" y="${(Yg(gi)-2).toFixed(1)}" fill="var(--muted)" font-size="8" font-family="JetBrains Mono">${gi}</text>`;
+  if(CMP&&ref)g+=tracePath2(ref.samples,refDD,i=>ref.samples[i].gear==null?null:Yg(ref.samples[i].gear),REFC,1.8,'5 4');
+  else{let rmax=1;for(const p of s)if(p.rpm!=null)rmax=Math.max(rmax,p.rpm);
+    if(rmax>1){const Yr=v=>H-8-(v/rmax)*(H-22);
+      g+=tracePath(i=>s[i].rpm==null?null:Yr(s[i].rpm),'rgba(54,179,255,.55)',1.2);}}
+  g+=tracePath(i=>s[i].gear==null?null:Yg(s[i].gear),'var(--green)',2)+cross('crGear',H);
+  el.innerHTML=g;}
+
+// ===== 每彎時間損失(對照模式)=====
+function turnLoss(){ // 每彎(含彎前煞車段)的 Δt 變化:正 = 你較慢
+  if(!(CMP&&ref)||!TURNS.length)return [];
+  const dlt=d=>{const rt=interpAt(ref.samples,refDD,d,'t'),ct=interpAt(cur.samples,DD,d,'t');
+    return(rt==null||ct==null)?null:(ct-rt);};
+  return TURNS.map((t,i)=>{
+    const pad=Math.min(60,(DD[t.end]-DD[t.start])*0.5+20);
+    const a=dlt(Math.max(0,DD[t.start]-pad)),b=dlt(Math.min(LEN-1,DD[t.end]+pad));
+    return{i,dir:t.dir,loss:(a==null||b==null)?null:b-a};
+  }).filter(r=>r.loss!=null);}
+function buildTurnLoss(){const el=$('tloss');if(!el)return;
+  const rows=turnLoss();
+  if(!rows.length){el.innerHTML='<div class="note">需要對照圈才能計算</div>';return;}
+  const mx=Math.max(...rows.map(r=>Math.abs(r.loss)))||1;
+  const sorted=[...rows].sort((a,b)=>b.loss-a.loss);
+  el.innerHTML=sorted.map(r=>{
+    const w=Math.max(2,Math.abs(r.loss)/mx*100),col=r.loss>0?'var(--red)':'var(--green)';
+    return `<div class="tl-row" data-ti="${r.i}" style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-family:var(--mono);font-size:12px;border-bottom:1px solid #161d27">
+      <span style="width:52px;color:var(--txt)">T${r.i+1} ${r.dir}</span>
+      <span style="flex:1;height:8px;background:#0f141b;overflow:hidden"><i style="display:block;height:100%;width:${w.toFixed(0)}%;background:${col}"></i></span>
+      <b style="width:64px;text-align:right;color:${col}">${r.loss>=0?'+':'−'}${Math.abs(r.loss).toFixed(2)}s</b></div>`;}).join('');
+  el.querySelectorAll('.tl-row').forEach(r=>r.onclick=()=>{const ti=+r.dataset.ti;$('turnSel').value=ti;selectTurn(ti);});}
+
+// ===== 駕駛指紋(全圈時間佔比)=====
+function fingerprint(s){
+  let tt=0,ft=0,br=0,co=0,n=0,prev=false;
+  for(let i=1;i<s.length;i++){const dt=s[i].t-s[i-1].t;if(!(dt>0)||dt>1)continue;const p=s[i];
+    tt+=dt;
+    if(p.thr>=95)ft+=dt;
+    if(p.brk>5)br+=dt;
+    if(p.thr<5&&p.brk<5)co+=dt;
+    const on=p.brk>10;if(on&&!prev)n++;prev=on;}
+  if(!tt)return null;
+  return{ft:ft/tt*100,br:br/tt*100,co:co/tt*100,n};}
+function buildFingerprint(){const el=$('fprint');if(!el)return;
+  const a=fingerprint(cur.samples);
+  if(!a){el.innerHTML='<span>資料不足</span><b></b>';return;}
+  const b=(CMP&&ref)?fingerprint(ref.samples):null;
+  const f=(v,r)=>`<b>${v.toFixed(1)}%${r!=null?` <span style="color:var(--gold)">/ ${r.toFixed(1)}%</span>`:''}</b>`;
+  el.innerHTML=`<span>全油門</span>${f(a.ft,b?b.ft:null)}<span>煞車</span>${f(a.br,b?b.br:null)}<span>滑行</span>${f(a.co,b?b.co:null)}<span>煞車次數</span><b>${a.n}${b?` <span style="color:var(--gold)">/ ${b.n}</span>`:''}</b>`;}
 
 function applyVB(){$('map').setAttribute('viewBox',`${MVB.x.toFixed(1)} ${MVB.y.toFixed(1)} ${MVB.w.toFixed(1)} ${MVB.w.toFixed(1)}`);updCurtain();}
 function updCurtain(){const dX=MVB.x+CURT*MVB.w,k=MVB.w/600;
@@ -960,7 +1024,7 @@ function drawGG(){const range=selTurn>=0&&TURNS[selTurn]?[TURNS[selTurn].start,T
   if(CMP&&ref&&$('ggR'))$('ggR').innerHTML=ggSvg(ref.samples,refRange());}
 
 function updateCross(i){const c=$('cursor');
-  const ids=['crSpd','crPed','crHd','crThr','crBrk'];
+  const ids=['crSpd','crPed','crHd','crThr','crBrk','crGear'];
   const setL=(id,x,sh)=>{const e=$(id);if(!e)return;if(!sh){e.style.display='none';return;}e.setAttribute('x1',x);e.setAttribute('x2',x);e.style.display='';};
   if(i<0||!cur){if(c)c.style.display='none';ids.forEach(id=>setL(id,0,0));const gc=$('ggCur');if(gc)gc.style.display='none';
     ['ndSpdY','ndSpdR','ndPedT','ndPedB','ndThrY','ndThrR','ndBrkY','ndBrkR','ndHdY','ndHdR','ndDlt'].forEach(id=>{const e=$(id);if(e)e.style.display='none';});
@@ -1059,7 +1123,7 @@ function bindChart(id){const el=$(id);if(!el)return;let sel=null;
     else if(!ZSEL){const i=idxFromX(el,e.clientX);if(i>=0)updateCross(i);}});
   const end=e=>{if(ZSEL&&sel){const d1=distFromX(el,e.clientX);clearSelRect();const a=Math.min(sel.d0,d1),b=Math.max(sel.d0,d1);sel=null;ZSEL=false;setZBtn();zoomTo(a,b);}sel=null;};
   el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);}
-['spd','pedal','hd','thrC','brkC','dlt'].forEach(bindChart);
+['spd','pedal','hd','thrC','brkC','dlt','gr'].forEach(bindChart);
 
 function detectTurns(){TURNS=[];const s=cur.samples;if(!s.some(p=>p.latG!=null))return;
   const TH=0.55,EX=TH*0.5,MINDUR=0.3,MERGE=0.7;let i=0,n=s.length,raw=[];
@@ -1078,15 +1142,38 @@ function selectTurn(ti){selTurn=ti;
   drawAll();showTurnStat(ti);updateCross(ti>=0&&TURNS[ti]?minSpdIdx(TURNS[ti]):-1);}
 function minSpdIdx(t){let mi=t.start,mv=1e9;for(let i=t.start;i<=t.end;i++)if(cur.samples[i].spd<mv){mv=cur.samples[i].spd;mi=i;}return mi;}
 
-function statOf(s,a,b){let mnS=1e9,mxL=0;for(let i=a;i<=b;i++){mnS=Math.min(mnS,s[i].spd);if(s[i].latG!=null)mxL=Math.max(mxL,Math.abs(s[i].latG));}return{mnS,mxL,sS:s[a].spd,eS:s[b].spd,t0:s[a].t,t1:s[b].t};}
-function statHTML(lbl,t,ti,a,dmin){return `<span>${lbl}</span><b>T${ti+1} ${t.dir}彎</b><span>最低速度</span><b>${Math.round(a.mnS)} km/h${dmin!=null?` <span style="color:${dmin<0?'var(--red)':'var(--green)'}">(${dmin>=0?'+':''}${Math.round(dmin)})</span>`:''}</b><span>進彎 → 出彎</span><b>${Math.round(a.sS)} → ${Math.round(a.eS)}</b>`+(a.mxL?`<span>最大橫向G</span><b>${a.mxL.toFixed(2)}</b>`:'')+`<span>區間</span><b>${a.t0.toFixed(1)}–${a.t1.toFixed(1)}s</b>`;}
+function statOf(s,dd,a,b){
+  let mnS=1e9,mxL=0,mi=a;
+  for(let i=a;i<=b;i++){if(s[i].spd<mnS){mnS=s[i].spd;mi=i;}if(s[i].latG!=null)mxL=Math.max(mxL,Math.abs(s[i].latG));}
+  // 煞車點:從彎前回溯,找第一個煞車踩過 50% 的上升點(單圈距離)
+  const pad=Math.min(150,(dd[b]-dd[a])*1.2+40);
+  let i0=a;while(i0>0&&dd[a]-dd[i0]<pad)i0--;
+  let bi=-1;for(let i=Math.max(1,i0);i<=b;i++){if(s[i].brk>50&&s[i-1].brk<=50){bi=i;break;}}
+  // 回油點:最低速之後第一個油門 >90%
+  let ti2=-1;const lim=Math.min(s.length-1,b+Math.round((b-a)*0.5));
+  for(let i=mi;i<=lim;i++){if(s[i].thr>90){ti2=i;break;}}
+  return{mnS,mxL,sS:s[a].spd,eS:s[b].spd,t0:s[a].t,t1:s[b].t,brakeD:bi>=0?dd[bi]:null,thrD:ti2>=0?dd[ti2]:null};}
+function statHTML(lbl,t,ti,a,c){
+  const dmin=c?c.dmin:null;
+  let h=`<span>${lbl}</span><b>T${ti+1} ${t.dir}彎</b><span>最低速度</span><b>${Math.round(a.mnS)} km/h${dmin!=null?` <span style="color:${dmin<0?'var(--red)':'var(--green)'}">(${dmin>=0?'+':''}${Math.round(dmin)})</span>`:''}</b><span>進彎 → 出彎</span><b>${Math.round(a.sS)} → ${Math.round(a.eS)}</b>`;
+  if(a.brakeD!=null){h+=`<span>煞車點</span><b>${Math.round(a.brakeD)}m`;
+    if(c&&c.dBrake!=null)h+=` <span style="color:var(--gold)">(${c.dBrake>=0?'晚':'早'} ${Math.abs(c.dBrake).toFixed(0)}m)</span>`;h+='</b>';}
+  if(a.thrD!=null){h+=`<span>回油點</span><b>${Math.round(a.thrD)}m`;
+    if(c&&c.dThr!=null)h+=` <span style="color:${c.dThr>0?'var(--red)':'var(--green)'}">(${c.dThr>=0?'晚':'早'} ${Math.abs(c.dThr).toFixed(0)}m)</span>`;h+='</b>';}
+  h+=(a.mxL?`<span>最大橫向G</span><b>${a.mxL.toFixed(2)}</b>`:'')+`<span>區間</span><b>${a.t0.toFixed(1)}–${a.t1.toFixed(1)}s</b>`;
+  return h;}
 function showTurnStat(ti){
   if(ti<0||!TURNS[ti]){$('turnStat').innerHTML='<span>選一個彎角看細節(會同步更新所有圖)</span><span></span>';if($('turnStatR'))$('turnStatR').innerHTML='<span></span><span></span>';return;}
-  const t=TURNS[ti],a=statOf(cur.samples,t.start,t.end);
-  $('turnStat').innerHTML=statHTML(CMP?'你 · 彎角':'彎角',t,ti,a,null);
+  const t=TURNS[ti],a=statOf(cur.samples,DD,t.start,t.end);
+  let cmpS=null;
   if(CMP&&ref&&$('turnStatR')){const r=refRange();
-    if(r){const b=statOf(ref.samples,r[0],r[1]);$('turnStatR').innerHTML=statHTML('對照 · 彎角',t,ti,b,a.mnS-b.mnS);}
-    else $('turnStatR').innerHTML='<span>對照</span><b>此距離無對應資料</b>';}}
+    if(r){const b=statOf(ref.samples,refDD,r[0],r[1]);
+      cmpS={dmin:a.mnS-b.mnS,
+        dBrake:(a.brakeD!=null&&b.brakeD!=null)?a.brakeD-b.brakeD:null,
+        dThr:(a.thrD!=null&&b.thrD!=null)?a.thrD-b.thrD:null};
+      $('turnStatR').innerHTML=statHTML('對照 · 彎角',t,ti,b,null);}
+    else $('turnStatR').innerHTML='<span>對照</span><b>此距離無對應資料</b>';}
+  $('turnStat').innerHTML=statHTML(CMP?'你 · 彎角':'彎角',t,ti,a,cmpS);}
 
 // —— 折線圖手風琴(全尺寸:點標題開合;寬螢幕展開超過地圖高度自動收最上面)——
 let lastOpened=null,drag=null;
