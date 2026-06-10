@@ -83,9 +83,11 @@ svg#spd,svg#pedal,svg#hd,svg#thrC,svg#brkC,svg#dlt,svg#gr{touch-action:pan-y}
 </div>
 <div class="chartcol">
 <div class="zoombar">
+  <button class="cmpx" id="playBtn" style="color:var(--green)">▶ 播放</button>
+  <button class="cmpx" id="playSpd">1×</button>
   <button class="cmpx" id="zselBtn">🔍 框選縮放</button>
   <button class="cmpx" id="zoomReset">⤢ 全圈</button>
-  <span class="zhint" id="zhint">在任一折線圖拖出範圍 → 所有圖同步放大</span>
+  <span class="zhint" id="zhint">播放=圖表跟著行駛範圍移動 · 或拖出範圍同步放大</span>
 </div>
 <div class="card acc open"><div class="lab"><span>車速與時間差距</span><span class="legend cmp-only"><span><i class="dot" style="background:var(--green)"></i>你</span><span><i class="dash" style="color:var(--gold)"></i>對照</span><span><i class="dot" style="background:rgba(255,59,92,.5)"></i>Δt落後</span><span><i class="dot" style="background:rgba(0,255,136,.45)"></i>Δt領先</span></span></div><svg id="spd" viewBox="0 0 600 150"></svg>
   <div class="legend"><span><i class="dot" style="background:rgba(255,59,92,.28)"></i>淡紅底＝煞車區段</span></div></div>
@@ -811,7 +813,7 @@ $('lapSel').onchange=e=>{const l=LAPS.find(x=>x.run_lap==e.target.value);if(l)se
 $('mapMode').onchange=e=>{MAPMODE=e.target.value;drawMap();applyVB();};
 $('mapReset').onclick=resetView;
 
-function selectLap(l){cur=l;selTurn=-1;$('turnSel').value=-1;
+function selectLap(l){playStop();cur=l;selTurn=-1;$('turnSel').value=-1;
   computeBounds();DD=ddOf(cur.samples);LEN=DD[DD.length-1]||1;VX0=0;VX1=LEN;detectTurns();fillTurnSel();updateMeta();drawAll();showTurnStat(-1);updateCross(-1);setupAccordion();}
 function computeBounds(){const s=cur.samples;let a=1e9,b=-1e9,c=1e9,d=-1e9;
   const all=(CMP&&ref)?s.concat(ref.samples):s;
@@ -830,6 +832,38 @@ function interpAt(s,dd,d,key){
   if(a==null||b==null)return a==null?b:a;return a+(b-a)*f;}
 
 function drawAll(){drawMap();drawSpeed();if(CMP){drawPedalSplit();}else drawPedal();drawSteer();drawGG();drawGear();buildTurnLoss();buildFingerprint();}
+// 播放時的輕量重繪:只重畫折線圖(地圖播放中不重繪,停止時才補畫)
+function redrawWin(){drawSpeed();if(CMP){drawPedalSplit();}else drawPedal();drawSteer();drawGear();}
+
+// ===== 播放(全平滑相機跟隨:游標釘在視窗35%處,視窗每幀平移)=====
+let PLAY=null;const PSPDS=[1,2,4];let PSI=0;
+function playBtnUI(){const b=$('playBtn');if(b)b.textContent=PLAY?'⏸ 暫停':'▶ 播放';}
+function playStop(){if(PLAY){cancelAnimationFrame(PLAY.raf);PLAY=null;playBtnUI();drawMap();}}
+function playToggle(){
+  if(PLAY){playStop();return;}
+  if(!cur)return;
+  const sm=cur.samples;
+  const full=VX0<=1e-6&&VX1>=LEN-1e-6;
+  if(full){const W=Math.max(200,LEN*0.15);VX0=0;VX1=Math.min(LEN,W);redrawWin();}
+  let i0=0;while(i0<sm.length-1&&DD[i0]<VX0)i0++;
+  PLAY={i:i0,t:sm[i0].t,lastTs:performance.now(),slide:full,raf:0};
+  playBtnUI();updateCross(PLAY.i);
+  const step=ts=>{
+    if(!PLAY)return;
+    const sm2=cur.samples;
+    PLAY.t+=(ts-PLAY.lastTs)/1000*PSPDS[PSI];PLAY.lastTs=ts;
+    while(PLAY.i<sm2.length-1&&sm2[PLAY.i+1].t<=PLAY.t)PLAY.i++;
+    const atEnd=PLAY.i>=sm2.length-1||(!PLAY.slide&&DD[PLAY.i]>=VX1-1e-6);
+    if(PLAY.slide){
+      const W=VX1-VX0,lead=W*0.35,d=DD[PLAY.i];
+      if(d>VX0+lead&&VX1<LEN-1e-6){           // 跟隨段:視窗平移、游標釘在35%
+        VX0=Math.max(0,Math.min(LEN-W,d-lead));VX1=VX0+W;
+        redrawWin();}}                          // 進場/收尾段:視窗不動、游標自己跑
+    updateCross(PLAY.i);
+    if(atEnd){playStop();return;}
+    PLAY.raf=requestAnimationFrame(step);};
+  PLAY.raf=requestAnimationFrame(step);}
+
 
 // ===== 檔位 / 轉速 =====
 function drawGear(){const el=$('gr');if(!el)return;const s=cur.samples,H=130;
@@ -1092,7 +1126,7 @@ $('map').addEventListener('touchmove',e=>{
   if(mapCurt&&e.touches.length===1){e.preventDefault();const v=vbOf(e.touches[0]);CURT=Math.max(.04,Math.min(.96,(v.x-MVB.x)/MVB.w));updCurtain();}
 },{passive:false});
 $('map').addEventListener('touchend',e=>{if(pinch&&e.touches.length<2){pinch=null;schedRedraw();}if(e.touches.length===0)mapCurt=false;});
-$('map').addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;const v=vbOf(e);if(nearCurt(v)||pinch)return;const i=findIdx(e);if(i>=0)updateCross(i);});
+$('map').addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;playStop();const v=vbOf(e);if(nearCurt(v)||pinch)return;const i=findIdx(e);if(i>=0)updateCross(i);});
 $('map').addEventListener('click',e=>{if(mapMoved){mapMoved=false;return;}const v=vbOf(e);if(nearCurt(v))return;
   let bi=0,bd=1e9;for(let i=0;i<PTS.length;i++){const dx=PTS[i][0]-v.x,dy=PTS[i][1]-v.y,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;bi=i;}}
   const ti=TURNS.findIndex(t=>bi>=t.start&&bi<=t.end);$('turnSel').value=ti;selectTurn(ti);});
@@ -1102,10 +1136,12 @@ function distFromX(el,clientX){const r=el.getBoundingClientRect();const fx=Math.
 
 let ZSEL=false;
 function setZBtn(){const b=$('zselBtn');b.textContent=ZSEL?'🔍 框選中 · 拖出範圍':'🔍 框選縮放';b.style.color=ZSEL?'var(--green)':'var(--cyan)';b.style.borderColor=ZSEL?'var(--green)':'';}
-function zoomTo(a,b){if(b-a<Math.max(8,LEN*0.008))return;VX0=a;VX1=b;selTurn=-1;$('turnSel').value=-1;drawAll();showTurnStat(-1);updateCross(-1);}
-function zoomReset(){selTurn=-1;$('turnSel').value=-1;VX0=0;VX1=LEN;drawAll();showTurnStat(-1);updateCross(-1);}
+function zoomTo(a,b){if(b-a<Math.max(8,LEN*0.008))return;playStop();VX0=a;VX1=b;selTurn=-1;$('turnSel').value=-1;drawAll();showTurnStat(-1);updateCross(-1);}
+function zoomReset(){playStop();selTurn=-1;$('turnSel').value=-1;VX0=0;VX1=LEN;drawAll();showTurnStat(-1);updateCross(-1);}
 $('zselBtn').onclick=()=>{ZSEL=!ZSEL;setZBtn();};
 $('zoomReset').onclick=zoomReset;
+$('playBtn').onclick=playToggle;
+$('playSpd').onclick=()=>{PSI=(PSI+1)%PSPDS.length;$('playSpd').textContent=PSPDS[PSI]+'\u00d7';};
 
 function drawSelRect(el,px0,px1){const r=el.getBoundingClientRect(),W=600,vh=el.viewBox.baseVal.height||130;
   const a=Math.min(px0,px1)/r.width*W,b=Math.max(px0,px1)/r.width*W;
@@ -1115,7 +1151,7 @@ function drawSelRect(el,px0,px1){const r=el.getBoundingClientRect(),W=600,vh=el.
 function clearSelRect(){document.querySelectorAll('rect#zoomRect').forEach(n=>n.remove());}
 
 function bindChart(id){const el=$(id);if(!el)return;let sel=null;
-  el.addEventListener('pointerdown',e=>{try{el.setPointerCapture(e.pointerId);}catch(_){}
+  el.addEventListener('pointerdown',e=>{playStop();try{el.setPointerCapture(e.pointerId);}catch(_){}
     if(ZSEL){const r=el.getBoundingClientRect();sel={d0:distFromX(el,e.clientX),px0:e.clientX-r.left,left:r.left};drawSelRect(el,sel.px0,sel.px0);}
     else{const i=idxFromX(el,e.clientX);if(i>=0)updateCross(i);}});
   el.addEventListener('pointermove',e=>{
@@ -1136,7 +1172,7 @@ function detectTurns(){TURNS=[];const s=cur.samples;if(!s.some(p=>p.latG!=null))
   TURNS.forEach(t=>t.dir=s[t.peak].latG>0?'右':'左');}
 function fillTurnSel(){$('turnSel').innerHTML='<option value="-1">全圈</option>'+TURNS.map((t,i)=>`<option value="${i}">T${i+1} ${t.dir}</option>`).join('');}
 $('turnSel').onchange=e=>selectTurn(+e.target.value);
-function selectTurn(ti){selTurn=ti;
+function selectTurn(ti){playStop();selTurn=ti;
   if(ti>=0&&TURNS[ti]){const t=TURNS[ti],pad=Math.max(20,(DD[t.end]-DD[t.start])*0.6);VX0=Math.max(0,DD[t.start]-pad);VX1=Math.min(LEN,DD[t.end]+pad);}
   else{VX0=0;VX1=LEN;}
   drawAll();showTurnStat(ti);updateCross(ti>=0&&TURNS[ti]?minSpdIdx(TURNS[ti]):-1);}
