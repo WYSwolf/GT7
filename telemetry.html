@@ -66,7 +66,7 @@ svg#spd,svg#pedal,svg#hd,svg#thrC,svg#brkC,svg#dlt{touch-action:pan-y}
 </div>
 <div class="topgrid">
 <div class="mapcol">
-<div class="card"><div class="lab"><span>賽道地圖</span><span>分色 <select id="mapMode"><option value="speed">速度</option><option value="input">油門/煞車/滑行</option></select></span></div>
+<div class="card"><div class="lab"><span>賽道地圖</span><span><button class="cmpx" id="mapReset" style="margin-right:6px">⤢ 還原</button>分色 <select id="mapMode"><option value="speed">速度</option><option value="input">油門/煞車/滑行</option></select></span></div>
   <svg id="map" viewBox="0 0 600 600"></svg>
   <div class="read" id="read"><div>移動滑鼠/手指看該點 · 或選彎角</div></div>
 </div>
@@ -739,6 +739,7 @@ run_lap,inlap,carcode,lap_time,wall,t,spd,thr,brk,rpm,gear,x,z,yaw,latG,lonG,ste
 const $=id=>document.getElementById(id);
 const num=v=>(typeof v==='number'&&!isNaN(v))?v:null;
 let LAPS=[],TRACK='',CAR='',SRC='範例',cur=null,PTS=[],TURNS=[],selTurn=-1,DD=[],LEN=1,VX0=0,VX1=1,MAPMODE='speed';
+let RPTS=[],CURT=0.5,MVB={x:0,y:0,w:600},_rdT=null;
 let ref=null,refDD=[],refLEN=1,CMP=false;
 
 function parseLaps(text){
@@ -773,10 +774,10 @@ function loadRef(text,label){
   const rl=+new URLSearchParams(location.search).get('reflap');
   ref=r.laps.find(l=>l.run_lap===rl)||r.laps.slice().sort((a,b)=>a.lap_time-b.lap_time)[0];
   refDD=ddOf(ref.samples);refLEN=refDD[refDD.length-1]||1;
-  CMP=true;document.body.classList.add('cmp');
-  if(cur){updateMeta();drawAll();showTurnStat(selTurn);setupAccordion();}
+  CMP=true;document.body.classList.add('cmp');CURT=0.5;
+  if(cur){computeBounds();updateMeta();drawAll();applyVB();showTurnStat(selTurn);setupAccordion();}
 }
-function clearCmp(){CMP=false;ref=null;document.body.classList.remove('cmp');$('fileRef').value='';if(cur){updateMeta();drawAll();showTurnStat(selTurn);setupAccordion();}}
+function clearCmp(){CMP=false;ref=null;document.body.classList.remove('cmp');$('fileRef').value='';if(cur){computeBounds();updateMeta();drawAll();applyVB();showTurnStat(selTurn);setupAccordion();}}
 
 function updateMeta(){
   let h=`<b>${TRACK||'賽道?'}</b> · ${CAR||'車?'} · 第 ${cur.run_lap} 圈 <b>${fmtT(cur.lap_time)}</b>`;
@@ -788,15 +789,18 @@ function updateMeta(){
 function fillLapSel(rl){const fast=LAPS.slice().sort((a,b)=>a.lap_time-b.lap_time)[0].run_lap;
   $('lapSel').innerHTML=LAPS.map(l=>`<option value="${l.run_lap}" ${l.run_lap===rl?'selected':''}>第 ${l.run_lap} 圈 — ${fmtT(l.lap_time)}${l.run_lap===fast?' ★':''}</option>`).join('');}
 $('lapSel').onchange=e=>{const l=LAPS.find(x=>x.run_lap==e.target.value);if(l)selectLap(l);};
-$('mapMode').onchange=e=>{MAPMODE=e.target.value;drawMap();};
+$('mapMode').onchange=e=>{MAPMODE=e.target.value;drawMap();applyVB();};
+$('mapReset').onclick=resetView;
 
 function selectLap(l){cur=l;selTurn=-1;$('turnSel').value=-1;
   computeBounds();DD=ddOf(cur.samples);LEN=DD[DD.length-1]||1;VX0=0;VX1=LEN;detectTurns();fillTurnSel();updateMeta();drawAll();showTurnStat(-1);updateCross(-1);setupAccordion();}
 function computeBounds(){const s=cur.samples;let a=1e9,b=-1e9,c=1e9,d=-1e9;
-  for(const p of s){a=Math.min(a,p.x);b=Math.max(b,p.x);c=Math.min(c,p.z);d=Math.max(d,p.z);}
+  const all=(CMP&&ref)?s.concat(ref.samples):s;
+  for(const p of all){a=Math.min(a,p.x);b=Math.max(b,p.x);c=Math.min(c,p.z);d=Math.max(d,p.z);}
   const spanX=b-a,spanZ=d-c,span=Math.max(spanX,spanZ)||1,W=600,pad=34,dw=W-2*pad,sc=Math.min(dw,dw)/span;
   const ox=(dw-spanX*sc)/2,oy=(dw-spanZ*sc)/2;
-  PTS=s.map(p=>{const fx=pad+(p.x-a)*sc+ox,fy=pad+(p.z-c)*sc+oy;return[W-fx,W-fy];});}
+  const prj=p=>{const fx=pad+(p.x-a)*sc+ox,fy=pad+(p.z-c)*sc+oy;return[W-fx,W-fy];};
+  PTS=s.map(prj);RPTS=(CMP&&ref)?ref.samples.map(prj):[];}
 function spdColor(v,mn,mx){const f=Math.max(0,Math.min(1,(v-mn)/((mx-mn)||1)));return `hsl(${Math.round(f*120)},90%,55%)`;}
 function inputColor(p){if(p.brk>5)return 'var(--red)';if(p.thr>5)return 'var(--green)';return 'var(--blue)';}
 function interpAt(s,dd,d,key){
@@ -808,15 +812,41 @@ function interpAt(s,dd,d,key){
 
 function drawAll(){drawMap();drawSpeed();if(CMP){drawPedalSplit();}else drawPedal();drawSteer();drawGG();}
 
-function drawMap(){const s=cur.samples;let mn=1e9,mx=-1e9;for(const p of s){mn=Math.min(mn,p.spd);mx=Math.max(mx,p.spd);}
-  let g='';for(let i=1;i<PTS.length;i++){const[x1,y1]=PTS[i-1],[x2,y2]=PTS[i];
-    const col=MAPMODE==='speed'?spdColor(s[i].spd,mn,mx):inputColor(s[i]);
-    g+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${col}" stroke-width="3.2" stroke-linecap="round"/>`;}
-  if(selTurn>=0&&TURNS[selTurn]){const t=TURNS[selTurn];let d='';for(let i=t.start;i<=t.end;i++){d+=(i===t.start?'M':'L')+PTS[i][0].toFixed(1)+' '+PTS[i][1].toFixed(1);}g+=`<path d="${d}" fill="none" stroke="var(--gold)" stroke-width="5" stroke-linecap="round" opacity="0.9"/>`;}
-  else if(VX0>0||VX1<LEN-1e-6){let d='',st=false;for(let i=0;i<PTS.length;i++){if(!inWin(i)){st=false;continue;}d+=(st?'L':'M')+PTS[i][0].toFixed(1)+' '+PTS[i][1].toFixed(1);st=true;}g+=`<path d="${d}" fill="none" stroke="var(--cyan)" stroke-width="5" stroke-linecap="round" opacity="0.85"/>`;}
-  TURNS.forEach((t,i)=>{const[x,y]=PTS[t.peak];g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="11" fill="#0a0d12" stroke="${i===selTurn?'var(--gold)':'#2a3340'}" stroke-width="${i===selTurn?2.5:1.5}"/><text x="${x.toFixed(1)}" y="${(y+4).toFixed(1)}" fill="${i===selTurn?'var(--gold)':'var(--muted)'}" font-size="11" font-family="JetBrains Mono" text-anchor="middle">${i+1}</text>`;});
-  const[sx,sy]=PTS[0];g+=`<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="5" fill="var(--green)"/>`;
-  g+=`<circle id="cursor" r="6" fill="var(--gold)" stroke="#0a0d12" stroke-width="2" style="display:none"/>`;
+function applyVB(){$('map').setAttribute('viewBox',`${MVB.x.toFixed(1)} ${MVB.y.toFixed(1)} ${MVB.w.toFixed(1)} ${MVB.w.toFixed(1)}`);updCurtain();}
+function updCurtain(){const dX=MVB.x+CURT*MVB.w,k=MVB.w/600;
+  const e=id=>$(id);if(!e('curtL'))return;
+  e('cpYr').setAttribute('width',(1e5+dX));e('cpRr').setAttribute('x',dX);
+  const L=e('curtL');L.setAttribute('x1',dX);L.setAttribute('x2',dX);L.setAttribute('y1',MVB.y);L.setAttribute('y2',MVB.y+MVB.w);
+  const G=e('curtG');G.setAttribute('cx',dX);G.setAttribute('cy',MVB.y+MVB.w/2);G.setAttribute('r',13*k);
+  const T=e('curtGt');T.setAttribute('x',dX);T.setAttribute('y',MVB.y+MVB.w/2+4.2*k);T.setAttribute('font-size',12*k);
+  const ly=e('labY');ly.setAttribute('x',dX-9*k);ly.setAttribute('y',MVB.y+18*k);ly.setAttribute('font-size',12*k);
+  const lr=e('labR');lr.setAttribute('x',dX+9*k);lr.setAttribute('y',MVB.y+18*k);lr.setAttribute('font-size',12*k);}
+function resetView(){MVB={x:0,y:0,w:600};drawMap();applyVB();}
+function schedRedraw(){clearTimeout(_rdT);_rdT=setTimeout(()=>{drawMap();applyVB();},120);}
+
+function drawMap(){const s=cur.samples,k=MVB.w/600,both=CMP&&ref&&RPTS.length>0;
+  let mn=1e9,mx=-1e9;for(const p of s){mn=Math.min(mn,p.spd);mx=Math.max(mx,p.spd);}
+  if(both)for(const p of ref.samples){mn=Math.min(mn,p.spd);mx=Math.max(mx,p.spd);}
+  const segs=(pts,smp)=>{let g2='';for(let i=1;i<pts.length;i++){const[x1,y1]=pts[i-1],[x2,y2]=pts[i];
+    const col=MAPMODE==='speed'?spdColor(smp[i].spd,mn,mx):inputColor(smp[i]);
+    g2+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${col}" stroke-width="${(3.2*k).toFixed(2)}" stroke-linecap="round"/>`;}return g2;};
+  let you=segs(PTS,s);
+  if(selTurn>=0&&TURNS[selTurn]){const t=TURNS[selTurn];let d='';for(let i=t.start;i<=t.end;i++){d+=(i===t.start?'M':'L')+PTS[i][0].toFixed(1)+' '+PTS[i][1].toFixed(1);}you+=`<path d="${d}" fill="none" stroke="var(--gold)" stroke-width="${(5*k).toFixed(2)}" stroke-linecap="round" opacity="0.9"/>`;}
+  else if(VX0>0||VX1<LEN-1e-6){let d='',st=false;for(let i=0;i<PTS.length;i++){if(!inWin(i)){st=false;continue;}d+=(st?'L':'M')+PTS[i][0].toFixed(1)+' '+PTS[i][1].toFixed(1);st=true;}you+=`<path d="${d}" fill="none" stroke="var(--cyan)" stroke-width="${(5*k).toFixed(2)}" stroke-linecap="round" opacity="0.85"/>`;}
+  let g='';
+  if(both){const dX=MVB.x+CURT*MVB.w;
+    g+=`<defs><clipPath id="cpY"><rect id="cpYr" x="-100000" y="-100000" width="${(1e5+dX).toFixed(1)}" height="200000"/></clipPath><clipPath id="cpR"><rect id="cpRr" x="${dX.toFixed(1)}" y="-100000" width="200000" height="200000"/></clipPath></defs>`;
+    g+=`<g clip-path="url(#cpY)">${you}</g><g clip-path="url(#cpR)">${segs(RPTS,ref.samples)}</g>`;
+  }else g+=you;
+  TURNS.forEach((t,i)=>{const[x,y]=PTS[t.peak];g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(11*k).toFixed(2)}" fill="#0a0d12" stroke="${i===selTurn?'var(--gold)':'#2a3340'}" stroke-width="${((i===selTurn?2.5:1.5)*k).toFixed(2)}"/><text x="${x.toFixed(1)}" y="${(y+4*k).toFixed(1)}" fill="${i===selTurn?'var(--gold)':'var(--muted)'}" font-size="${(11*k).toFixed(2)}" font-family="JetBrains Mono" text-anchor="middle">${i+1}</text>`;});
+  const[sx,sy]=PTS[0];g+=`<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="${(5*k).toFixed(2)}" fill="var(--green)"/>`;
+  if(both){const dX=MVB.x+CURT*MVB.w,my=MVB.y+MVB.w/2;
+    g+=`<line id="curtL" x1="${dX.toFixed(1)}" y1="${MVB.y.toFixed(1)}" x2="${dX.toFixed(1)}" y2="${(MVB.y+MVB.w).toFixed(1)}" stroke="#fff" stroke-width="${(1.6*k).toFixed(2)}" opacity=".75"/>`;
+    g+=`<text id="labY" x="${(dX-9*k).toFixed(1)}" y="${(MVB.y+18*k).toFixed(1)}" fill="var(--green)" font-size="${(12*k).toFixed(2)}" font-family="JetBrains Mono" text-anchor="end">◀ 你</text>`;
+    g+=`<text id="labR" x="${(dX+9*k).toFixed(1)}" y="${(MVB.y+18*k).toFixed(1)}" fill="var(--gold)" font-size="${(12*k).toFixed(2)}" font-family="JetBrains Mono" text-anchor="start">對照 ▶</text>`;
+    g+=`<circle id="curtG" cx="${dX.toFixed(1)}" cy="${my.toFixed(1)}" r="${(13*k).toFixed(2)}" fill="#10161f" stroke="#fff" stroke-width="${(1.6*k).toFixed(2)}" opacity=".95"/>`;
+    g+=`<text id="curtGt" x="${dX.toFixed(1)}" y="${(my+4.2*k).toFixed(1)}" fill="#fff" font-size="${(12*k).toFixed(2)}" font-family="JetBrains Mono" text-anchor="middle">⇄</text>`;}
+  g+=`<circle id="cursor" r="${(6*k).toFixed(2)}" fill="var(--gold)" stroke="#0a0d12" stroke-width="${(2*k).toFixed(2)}" style="display:none"/>`;
   $('map').innerHTML=g;}
 
 function xS(i){return (DD[i]-VX0)/((VX1-VX0)||1)*600;}
@@ -916,11 +946,48 @@ function updateCross(i){const c=$('cursor');
     if(rt!=null){const dd=p.t-rt;rd+=`<div style="color:var(--gold)">Δt <b style="color:${dd>0?'var(--red)':'var(--green)'}">${fmtD(dd)}s</b></div>`;}}
   $('read').innerHTML=rd;}
 
-function findIdx(e){const r=e.currentTarget.getBoundingClientRect();const mx=(e.clientX-r.left)/r.width*600,my=(e.clientY-r.top)/r.height*600;let bi=-1,bd=1e9;for(let i=0;i<PTS.length;i++){const dx=PTS[i][0]-mx,dy=PTS[i][1]-my,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;bi=i;}}return bd<900?bi:-1;}
-$('map').addEventListener('mousemove',e=>{const i=findIdx(e);if(i>=0)updateCross(i);});
-$('map').addEventListener('mouseleave',()=>updateCross(selTurn>=0?TURNS[selTurn].peak:-1));
-$('map').addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;const i=findIdx(e);if(i>=0)updateCross(i);});
-$('map').addEventListener('click',e=>{const r=e.currentTarget.getBoundingClientRect();const mx=(e.clientX-r.left)/r.width*600,my=(e.clientY-r.top)/r.height*600;let bi=0,bd=1e9;for(let i=0;i<PTS.length;i++){const dx=PTS[i][0]-mx,dy=PTS[i][1]-my,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;bi=i;}}const ti=TURNS.findIndex(t=>bi>=t.start&&bi<=t.end);$('turnSel').value=ti;selectTurn(ti);});
+function vbOf(e){const r=$('map').getBoundingClientRect();const sx=MVB.w/r.width;
+  return{x:MVB.x+(e.clientX-r.left)*sx,y:MVB.y+(e.clientY-r.top)*sx,sx,r};}
+function findIdx(e){const v=vbOf(e);let bi=-1,bd=1e9;for(let i=0;i<PTS.length;i++){const dx=PTS[i][0]-v.x,dy=PTS[i][1]-v.y,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;bi=i;}}const thr=30*MVB.w/600;return bd<thr*thr?bi:-1;}
+function clampVB(){MVB.w=Math.max(40,Math.min(600,MVB.w));MVB.x=Math.max(0,Math.min(600-MVB.w,MVB.x));MVB.y=Math.max(0,Math.min(600-MVB.w,MVB.y));}
+function zoomAt(fx,fy,f){const vx=MVB.x+fx*MVB.w,vy=MVB.y+fy*MVB.w;MVB.w*=f;clampVB();MVB.x=vx-fx*MVB.w;MVB.y=vy-fy*MVB.w;clampVB();applyVB();schedRedraw();}
+let mapPan=null,mapCurt=false,mapMoved=false,pinch=null;
+const nearCurt=v=>CMP&&ref&&RPTS.length&&Math.abs(v.x-(MVB.x+CURT*MVB.w))<18*MVB.w/600;
+$('map').addEventListener('mousemove',e=>{
+  if(mapCurt){const v=vbOf(e);CURT=Math.max(.04,Math.min(.96,(v.x-MVB.x)/MVB.w));updCurtain();mapMoved=true;return;}
+  if(mapPan){const v=vbOf(e);MVB.x=mapPan.vx-(e.clientX-mapPan.cx)*v.sx;MVB.y=mapPan.vy-(e.clientY-mapPan.cy)*v.sx;clampVB();applyVB();mapMoved=true;return;}
+  const i=findIdx(e);if(i>=0)updateCross(i);});
+$('map').addEventListener('mousedown',e=>{const v=vbOf(e);mapMoved=false;
+  if(nearCurt(v)){mapCurt=true;e.preventDefault();return;}
+  mapPan={cx:e.clientX,cy:e.clientY,vx:MVB.x,vy:MVB.y};e.preventDefault();});
+addEventListener('mouseup',()=>{mapPan=null;mapCurt=false;});
+$('map').addEventListener('mouseleave',()=>{if(!mapPan&&!mapCurt)updateCross(selTurn>=0?TURNS[selTurn].peak:-1);});
+$('map').addEventListener('wheel',e=>{e.preventDefault();const r=$('map').getBoundingClientRect();
+  zoomAt((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height,e.deltaY>0?1.18:1/1.18);},{passive:false});
+$('map').addEventListener('dblclick',e=>{e.preventDefault();resetView();});
+// 觸控:單指=游標/拉簾、雙指=捏合縮放+平移
+$('map').addEventListener('touchstart',e=>{
+  if(e.touches.length>=2){e.preventDefault();const r=$('map').getBoundingClientRect();
+    const[a,b]=[e.touches[0],e.touches[1]];
+    pinch={d:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),mx:(a.clientX+b.clientX)/2,my:(a.clientY+b.clientY)/2,vb:{...MVB},r};return;}
+  const t=e.touches[0],v=vbOf(t);
+  if(nearCurt(v)){e.preventDefault();mapCurt=true;}
+},{passive:false});
+$('map').addEventListener('touchmove',e=>{
+  if(pinch&&e.touches.length>=2){e.preventDefault();const[a,b]=[e.touches[0],e.touches[1]];
+    const d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)||1,mx=(a.clientX+b.clientX)/2,my=(a.clientY+b.clientY)/2;
+    const f=pinch.d/d,w0=pinch.vb.w,sx0=w0/pinch.r.width;
+    const fx=(pinch.mx-pinch.r.left)/pinch.r.width,fy=(pinch.my-pinch.r.top)/pinch.r.height;
+    const vx=pinch.vb.x+fx*w0,vy=pinch.vb.y+fy*w0;
+    MVB.w=Math.max(40,Math.min(600,w0*f));
+    MVB.x=vx-fx*MVB.w-(mx-pinch.mx)*sx0;MVB.y=vy-fy*MVB.w-(my-pinch.my)*sx0;clampVB();applyVB();return;}
+  if(mapCurt&&e.touches.length===1){e.preventDefault();const v=vbOf(e.touches[0]);CURT=Math.max(.04,Math.min(.96,(v.x-MVB.x)/MVB.w));updCurtain();}
+},{passive:false});
+$('map').addEventListener('touchend',e=>{if(pinch&&e.touches.length<2){pinch=null;schedRedraw();}if(e.touches.length===0)mapCurt=false;});
+$('map').addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;const v=vbOf(e);if(nearCurt(v)||pinch)return;const i=findIdx(e);if(i>=0)updateCross(i);});
+$('map').addEventListener('click',e=>{if(mapMoved){mapMoved=false;return;}const v=vbOf(e);if(nearCurt(v))return;
+  let bi=0,bd=1e9;for(let i=0;i<PTS.length;i++){const dx=PTS[i][0]-v.x,dy=PTS[i][1]-v.y,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;bi=i;}}
+  const ti=TURNS.findIndex(t=>bi>=t.start&&bi<=t.end);$('turnSel').value=ti;selectTurn(ti);});
 
 function idxFromX(el,clientX){const r=el.getBoundingClientRect();const fx=Math.max(0,Math.min(1,(clientX-r.left)/r.width));const dvv=VX0+fx*(VX1-VX0);let bi=-1,bd=1e9;for(let i=0;i<DD.length;i++){if(!inWin(i))continue;const d=Math.abs(DD[i]-dvv);if(d<bd){bd=d;bi=i;}}return bi;}
 function distFromX(el,clientX){const r=el.getBoundingClientRect();const fx=Math.max(0,Math.min(1,(clientX-r.left)/r.width));return VX0+fx*(VX1-VX0);}
