@@ -1701,6 +1701,8 @@ function renderCarSection(g) {
             <div><span>平均</span> ${fmtTime(s.avg)}</div>
             <div><span>一致性</span> ${(s.avg - s.best).toFixed(2)}s</div>
           </div>
+          ${s.csv ? `<a class="tele-link" href="telemetry.html?src=${encodeURIComponent(s.csv)}${s.pbRl ? '&lap=' + s.pbRl : ''}" target="_blank" rel="noopener" style="display:block;margin-top:.7rem;text-align:center;padding:.45rem;border:1px solid var(--session-color, #00ff88);border-radius:8px;color:var(--session-color, #00ff88);text-decoration:none;font-size:.78rem;font-weight:700;letter-spacing:.04em;">🔍 遙測分析</a>` : ''}
+          ${(s.csv && ref && ref.csv) ? `<a class="wr-link" href="telemetry.html?src=${encodeURIComponent(s.csv)}${s.pbRl ? '&lap=' + s.pbRl : ''}&ref=${encodeURIComponent(ref.csv)}" target="_blank" rel="noopener" style="display:block;margin-top:.45rem;text-align:center;padding:.45rem;border:1px solid var(--gold, #ffd43b);border-radius:8px;color:var(--gold, #ffd43b);text-decoration:none;font-size:.78rem;font-weight:700;letter-spacing:.04em;">⚡ vs WR ghost</a>` : ''}
         </div>
       `).join('')}
     </div>
@@ -1723,34 +1725,6 @@ function renderCarSection(g) {
       </div>
     </div>
   ` : '';
-
-  const telemetryHTML = (() => {
-    const withCsv = (g.sessions || []).filter(s => s.csv);
-    if (!withCsv.length) return '';
-    const cref = getCarReference(g.carKey);
-    const wrCsv = cref && cref.csv ? cref.csv : null;
-    return `
-    <div class="panel" style="margin-bottom:1.25rem;">
-      <div class="panel-header"><div class="panel-title">🔍 遙測走線</div><div class="panel-meta">TELEMETRY</div></div>
-      <div class="panel-body" style="padding:.25rem 1rem;">
-        ${withCsv.map(s => {
-          const lap = s.pbRl != null ? ('&lap=' + s.pbRl) : '';
-          const tag = s.session ? ('Session ' + s.session) : 'Session';
-          const wrBtn = wrCsv ? `<a href="telemetry.html?src=telemetry/${s.csv}${lap}&ref=telemetry/${wrCsv}" target="_blank" rel="noopener" style="flex:0 0 auto;padding:.55rem .85rem;border-radius:8px;background:var(--gold);color:#2a2102;font-weight:700;font-size:.8rem;text-decoration:none;white-space:nowrap;">⚡ vs WR</a>` : '';
-          return `<div style="display:flex;align-items:center;gap:.6rem;padding:.6rem .1rem;border-bottom:1px solid #1b232f;">
-            <a href="telemetry.html?src=telemetry/${s.csv}${lap}" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;gap:.75rem;text-decoration:none;min-width:0;">
-              <span style="flex:0 0 auto;width:34px;height:34px;border-radius:9px;background:var(--accent);color:#04221a;display:flex;align-items:center;justify-content:center;font-size:.9rem;">🔍</span>
-              <span style="flex:1;min-width:0;">
-                <span style="display:block;color:#e8ecf1;font-weight:600;font-size:.9rem;">${tag} · PB ${fmtTime(s.best)}</span>
-                <span style="display:block;color:var(--text-secondary);font-size:.74rem;margin-top:.15rem;">走線 / 摩擦圓 / 選彎</span>
-              </span>
-            </a>
-            ${wrBtn}
-          </div>`;
-        }).join('')}
-      </div>
-    </div>`;
-  })();
 
   const sectorsHeader = g.sectorCount === 4
     ? '<tr><th>圈</th><th>S1</th><th>S2</th><th>S3</th><th>S4</th><th>圈速</th><th>備註</th></tr>'
@@ -1787,7 +1761,6 @@ function renderCarSection(g) {
     </div>
     ${renderLeaderboard(g)}
     ${sessionCards}
-    ${telemetryHTML}
     <div class="panel">
       <div class="panel-header"><div class="panel-title">圈速追蹤</div><div class="panel-meta">預設排除大失誤圈 · 雙指縮放 Y <button onclick="resetChartZoom('lapChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .5rem;border-radius:6px;border:1px solid #2a3340;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:.7rem;font-family:inherit;">⟲ 重置</button></div></div>
       <div class="panel-body"><div class="chart-wrap tall"><canvas id="lapChart-${g.key}"></canvas></div></div>
