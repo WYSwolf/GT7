@@ -1690,7 +1690,7 @@ function renderCarSection(g) {
 
   const sessionCards = g.sessions.length > 1 ? `
     <div class="grid-3" style="margin-bottom: 1.5rem;">
-      ${g.sessions.map(s => `
+      ${[...g.sessions].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.session||'').localeCompare(a.session||'')).map(s => `
         <div class="session-card" style="--session-color: ${s.session ? SESSION_COLORS[s.session] : 'var(--accent)'};">
           <div class="session-header">
             <div class="session-tag">${s.session ? 'SESSION ' + s.session : 'SESSION'}</div>

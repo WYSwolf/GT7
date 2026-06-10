@@ -3674,8 +3674,8 @@
           "s2": 40.629,
           "s3": 24.596,
           "total": 87.3,
-          "invalid": false,
-          "note": "遙測推估分段 ⚠失誤圈"
+          "invalid": true,
+          "note": "遙測推估分段 · ⚠大失誤(排除)"
         },
         {
           "lap": 11,
@@ -3728,12 +3728,32 @@
           "s2": 50.589,
           "s3": 24.908,
           "total": 97.648,
-          "invalid": false,
-          "note": "遙測推估分段 ⚠失誤圈"
+          "invalid": true,
+          "note": "遙測推估分段 · ⚠大失誤(排除)"
         }
       ],
       "csv": "telemetry/gt7-2026-06-10.csv",
-      "pbRl": 15
+      "pbRl": 15,
+      "id": "2026-06-10-laguna-A",
+      "trackEn": "LAGUNA SECA",
+      "route": "",
+      "carClass": "Gr.3",
+      "tire": "RS",
+      "totalLaps": 16,
+      "sessionLabel": "6/10 場次一",
+      "best": 82.309,
+      "avg": 84.704,
+      "worst": 97.648,
+      "opt": 82.195,
+      "sectorBest": {
+        "s1": 21.856,
+        "s2": 36.634,
+        "s3": 23.705
+      },
+      "topSpeed": 228,
+      "notes": "16 圈 14 有效。遙測推估分段。",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     },
     {
       "date": "2026-06-10",
@@ -3788,8 +3808,8 @@
           "s2": 41.924,
           "s3": 24.546,
           "total": 88.378,
-          "invalid": false,
-          "note": "⚠失誤圈"
+          "invalid": true,
+          "note": "⚠大失誤(排除)"
         },
         {
           "lap": 6,
@@ -3797,8 +3817,8 @@
           "s2": 47.923,
           "s3": 24.118,
           "total": 93.843,
-          "invalid": false,
-          "note": "⚠失誤圈"
+          "invalid": true,
+          "note": "⚠大失誤(排除)"
         },
         {
           "lap": 7,
@@ -3815,8 +3835,8 @@
           "s2": 36.755,
           "s3": 35.147,
           "total": 93.679,
-          "invalid": false,
-          "note": "⚠失誤圈"
+          "invalid": true,
+          "note": "⚠大失誤(排除)"
         },
         {
           "lap": 9,
@@ -3842,8 +3862,8 @@
           "s2": 38.138,
           "s3": 43.43,
           "total": 104.295,
-          "invalid": false,
-          "note": "遙測推估分段 ⚠失誤圈"
+          "invalid": true,
+          "note": "遙測推估分段 · ⚠大失誤(排除)"
         },
         {
           "lap": 12,
@@ -3856,7 +3876,27 @@
         }
       ],
       "csv": "telemetry/gt7-2026-06-10.csv",
-      "pbRl": 23
+      "pbRl": 23,
+      "id": "2026-06-10-laguna-B",
+      "trackEn": "LAGUNA SECA",
+      "route": "",
+      "carClass": "Gr.3",
+      "tire": "RS",
+      "totalLaps": 12,
+      "sessionLabel": "6/10 場次二",
+      "best": 82.389,
+      "avg": 87.213,
+      "worst": 104.295,
+      "opt": 82.009,
+      "sectorBest": {
+        "s1": 21.851,
+        "s2": 36.538,
+        "s3": 23.62
+      },
+      "topSpeed": 228,
+      "notes": "12 圈 8 有效。官方9+推估3。",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     },
     {
       "date": "2026-06-10",
@@ -3902,8 +3942,8 @@
           "s2": 38.324,
           "s3": 27.835,
           "total": 88.046,
-          "invalid": false,
-          "note": "⚠失誤圈"
+          "invalid": true,
+          "note": "⚠大失誤(排除)"
         },
         {
           "lap": 5,
@@ -3970,7 +4010,27 @@
         }
       ],
       "csv": "telemetry/gt7-2026-06-10.csv",
-      "pbRl": 39
+      "pbRl": 39,
+      "id": "2026-06-10-laguna-C",
+      "trackEn": "LAGUNA SECA",
+      "route": "",
+      "carClass": "Gr.3",
+      "tire": "RS",
+      "totalLaps": 8,
+      "sessionLabel": "6/10 場次三",
+      "best": 82.136,
+      "avg": 83.557,
+      "worst": 88.046,
+      "opt": 81.808,
+      "sectorBest": {
+        "s1": 21.742,
+        "s2": 36.345,
+        "s3": 23.721
+      },
+      "topSpeed": 228,
+      "notes": "8 圈 7 有效。官方分段。",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
+      "eventLabel": "Time Trial · Days of Play (Week 22)"
     }
   ]
 }
