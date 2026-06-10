@@ -4,19 +4,27 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
-:root{--bg:#0a0d12;--panel:#0d1219;--panel2:#0a0e14;--line:#1b232f;--txt:#eef3f9;--muted:#6b7787;--green:#00ff88;--gold:#ffd43b;--red:#ff3b5c;--blue:#36b3ff;--cyan:#33e0ff;--mag:#c86bff;--mono:'JetBrains Mono',monospace;--disp:'Bebas Neue',sans-serif;--body:'Noto Sans TC',sans-serif;}
+:root{--bg:#0a0d12;--panel:#131820;--panel2:#1a2029;--line:#2a3340;--txt:#e8ecf1;--muted:#8b96a8;--green:#00ff88;--green-dim:#00b85e;--gold:#ffd43b;--red:#ff3b5c;--blue:#36b3ff;--cyan:#33e0ff;--mag:#c266ff;--mono:'JetBrains Mono',monospace;--disp:'Bebas Neue',sans-serif;--body:'Noto Sans TC',sans-serif;}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--txt);font-family:var(--body);padding:16px;max-width:1100px;margin:0 auto}
+body{background:var(--bg);color:var(--txt);font-family:var(--body);padding:16px;max-width:1100px;margin:0 auto;
+  background-image:radial-gradient(ellipse at top,rgba(0,255,136,.04) 0%,transparent 50%)}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);
+  background-size:40px 40px}
 .top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:14px}
-.tt{font-family:var(--disp);font-size:30px;letter-spacing:.04em;color:var(--green);line-height:1}
-.tt small{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--muted)}
+.logomark{width:34px;height:34px;background:linear-gradient(135deg,var(--green),var(--green-dim));clip-path:polygon(0 0,100% 0,100% 70%,70% 100%,0 100%);position:relative;flex:0 0 auto}
+.logomark::after{content:'';position:absolute;inset:4px;background:var(--bg);clip-path:polygon(0 0,100% 0,100% 60%,60% 100%,0 100%)}
+.tt{font-family:var(--disp);font-size:28px;letter-spacing:.06em;color:var(--txt);line-height:1}
+.tt small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--green);text-transform:uppercase;margin-top:2px}
 .meta{font-family:var(--mono);font-size:13px;color:var(--muted)}.meta b{color:var(--txt)}
 .spacer{flex:1}
-select{background:#0e141c;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-family:var(--mono);font-size:13px}
+select{background:#0f141b;color:var(--txt);border:1px solid var(--line);border-radius:2px;padding:7px 10px;font-family:var(--mono);font-size:13px}
 input[type=file]{font-family:var(--mono);font-size:12px;color:var(--muted);max-width:180px}
 .lab{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .lab select{padding:3px 7px;font-size:11px}
-.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:0;padding:14px;margin-bottom:14px;position:relative;z-index:1}
+.card>.lab{border-left:3px solid var(--green);padding-left:8px;color:var(--txt);font-weight:700}
+.card>.lab select{font-weight:400}
 svg{display:block;width:100%;height:auto}
 #map{cursor:crosshair;max-width:620px;margin:0 auto}
 .read{display:flex;flex-wrap:wrap;gap:14px;font-family:var(--mono);font-size:13px;margin-top:8px;justify-content:center}
@@ -37,7 +45,8 @@ body.cmp .solo-only{display:none}
 body.cmp .lab .cmp-only{display:inline}
 svg#spd,svg#pedal,svg#hd,svg#thrC,svg#brkC,svg#dlt{touch-action:pan-y}
 #map{touch-action:pan-y}
-.cmpx{font-family:var(--mono);font-size:11px;color:var(--gold);cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:5px 9px;background:#0e141c}
+.cmpx{font-family:var(--mono);font-size:11px;color:var(--gold);cursor:pointer;border:1px solid var(--line);border-radius:2px;padding:5px 9px;background:#0f141b;transition:all .2s}
+.cmpx:hover{border-color:var(--green);color:var(--green)}
 .zoombar{display:flex;align-items:center;gap:10px;margin:-4px 0 14px;flex-wrap:wrap}
 .acc>.lab{cursor:pointer;user-select:none}
 .acc>.lab::after{content:'▸';color:var(--muted);font-size:13px;margin-left:6px}
@@ -55,7 +64,8 @@ svg#spd,svg#pedal,svg#hd,svg#thrC,svg#brkC,svg#dlt{touch-action:pan-y}
 .zhint{font-family:var(--mono);font-size:11px;color:var(--muted)}
 </style></head><body>
 <div class="top">
-  <div class="tt">GT7 遙測<small>賽道地圖分析</small></div>
+  <div class="logomark"></div>
+  <div class="tt">GT7 遙測<small>Telemetry · 賽道地圖分析</small></div>
   <div class="meta" id="meta">載入中…</div>
   <div class="spacer"></div>
   <div><div class="lab">圈次</div><select id="lapSel"></select></div>
@@ -77,7 +87,8 @@ svg#spd,svg#pedal,svg#hd,svg#thrC,svg#brkC,svg#dlt{touch-action:pan-y}
   <button class="cmpx" id="zoomReset">⤢ 全圈</button>
   <span class="zhint" id="zhint">在任一折線圖拖出範圍 → 所有圖同步放大</span>
 </div>
-<div class="card acc open"><div class="lab"><span>車速與時間差距</span><span class="legend cmp-only"><span><i class="dot" style="background:var(--green)"></i>你</span><span><i class="dash" style="color:var(--gold)"></i>對照</span><span><i class="dot" style="background:#aeb9c6"></i>Δt</span></span></div><svg id="spd" viewBox="0 0 600 150"></svg></div>
+<div class="card acc open"><div class="lab"><span>車速與時間差距</span><span class="legend cmp-only"><span><i class="dot" style="background:var(--green)"></i>你</span><span><i class="dash" style="color:var(--gold)"></i>對照</span><span><i class="dot" style="background:rgba(255,59,92,.5)"></i>Δt落後</span><span><i class="dot" style="background:rgba(0,255,136,.45)"></i>Δt領先</span></span></div><svg id="spd" viewBox="0 0 600 150"></svg>
+  <div class="legend"><span><i class="dot" style="background:rgba(255,59,92,.28)"></i>淡紅底＝煞車區段</span></div></div>
 <div class="card acc solo-only"><div class="lab">油門 / 煞車</div><svg id="pedal" viewBox="0 0 600 130"></svg>
   <div class="legend"><span><i class="dot" style="background:var(--green)"></i>油門</span><span><i class="dot" style="background:var(--red)"></i>煞車</span></div></div>
 <div class="card acc cmp-only"><div class="lab">油門</div><svg id="thrC" viewBox="0 0 600 110"></svg>
@@ -839,7 +850,17 @@ function drawMap(){const s=cur.samples,k=MVB.w/600,both=CMP&&ref&&RPTS.length>0;
     g+=`<g clip-path="url(#cpY)">${you}</g><g clip-path="url(#cpR)">${segs(RPTS,ref.samples)}</g>`;
   }else g+=you;
   TURNS.forEach((t,i)=>{const[x,y]=PTS[t.peak];g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(11*k).toFixed(2)}" fill="#0a0d12" stroke="${i===selTurn?'var(--gold)':'#2a3340'}" stroke-width="${((i===selTurn?2.5:1.5)*k).toFixed(2)}"/><text x="${x.toFixed(1)}" y="${(y+4*k).toFixed(1)}" fill="${i===selTurn?'var(--gold)':'var(--muted)'}" font-size="${(11*k).toFixed(2)}" font-family="JetBrains Mono" text-anchor="middle">${i+1}</text>`;});
-  const[sx,sy]=PTS[0];g+=`<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="${(5*k).toFixed(2)}" fill="var(--green)"/>`;
+  // 起終點線(垂直於行車方向)+ S/F 標籤 + 行車方向箭頭(隨地圖縮放)
+  {const[ax,ay]=PTS[0],[bx,by]=PTS[Math.min(3,PTS.length-1)];
+   let dx2=bx-ax,dy2=by-ay;const L2=Math.hypot(dx2,dy2)||1;dx2/=L2;dy2/=L2;
+   const nx=-dy2,ny=dx2,e=9*k;
+   g+=`<line x1="${(ax-nx*e).toFixed(1)}" y1="${(ay-ny*e).toFixed(1)}" x2="${(ax+nx*e).toFixed(1)}" y2="${(ay+ny*e).toFixed(1)}" stroke="#e8ecf1" stroke-width="${(3*k).toFixed(2)}" stroke-dasharray="${(3*k).toFixed(1)} ${(3*k).toFixed(1)}"/>`;
+   g+=`<text x="${(ax+nx*18*k).toFixed(1)}" y="${(ay+ny*18*k+3*k).toFixed(1)}" fill="var(--muted)" font-size="${(10*k).toFixed(2)}" font-family="JetBrains Mono" text-anchor="middle">S/F</text>`;
+   const ai=Math.max(5,Math.floor(PTS.length*0.03));
+   const[px,py]=PTS[ai],[qx,qy]=PTS[Math.min(ai+2,PTS.length-1)];
+   let ux=qx-px,uy=qy-py;const UL=Math.hypot(ux,uy)||1;ux/=UL;uy/=UL;
+   const vx2=-uy,vy2=ux,a1=8*k,a2=5*k;
+   g+=`<path d="M${(px+ux*a1).toFixed(1)} ${(py+uy*a1).toFixed(1)} L${(px-ux*a1*0.4+vx2*a2).toFixed(1)} ${(py-uy*a1*0.4+vy2*a2).toFixed(1)} L${(px-ux*a1*0.4-vx2*a2).toFixed(1)} ${(py-uy*a1*0.4-vy2*a2).toFixed(1)} Z" fill="#e8ecf1" opacity="0.9"/>`;}
   if(both){const dX=MVB.x+CURT*MVB.w,my=MVB.y+MVB.w/2;
     g+=`<line id="curtL" x1="${dX.toFixed(1)}" y1="${MVB.y.toFixed(1)}" x2="${dX.toFixed(1)}" y2="${(MVB.y+MVB.w).toFixed(1)}" stroke="#fff" stroke-width="${(1.6*k).toFixed(2)}" opacity=".75"/>`;
     g+=`<text id="labY" x="${(dX-9*k).toFixed(1)}" y="${(MVB.y+18*k).toFixed(1)}" fill="var(--green)" font-size="${(12*k).toFixed(2)}" font-family="JetBrains Mono" text-anchor="end">◀ 你</text>`;
@@ -860,15 +881,38 @@ function tracePath(f,col,w){let d='',st=false;for(let i=0;i<cur.samples.length;i
 function tracePath2(s,dd,f,col,w,dash){let d='',st=false;for(let i=0;i<s.length;i++){const inw=dd[i]>=VX0-1e-6&&dd[i]<=VX1+1e-6;if(!inw){st=false;continue;}const v=f(i);if(v==null){st=false;continue;}d+=(st?'L':'M')+xSd(dd[i]).toFixed(1)+' '+v.toFixed(1);st=true;}return `<path d="${d}" fill="none" stroke="${col}" stroke-width="${w}"${dash?` stroke-dasharray="${dash}"`:''}/>`;}
 function cross(id,H){return `<line id="${id}" x1="0" y1="0" x2="0" y2="${H}" stroke="var(--gold)" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>`;}
 
+function brakeBands(s,H){ // 煞車>10% 的連續區段鋪淡紅底,一眼看到煞車點
+  let g2='',st=-1;
+  for(let i=0;i<s.length;i++){
+    const on=inWin(i)&&s[i].brk>10;
+    if(on&&st<0)st=i;
+    if((!on||i===s.length-1)&&st>=0){const e=on?i:i-1;
+      const x1=Math.max(0,xS(st)),x2=Math.min(600,xS(e));
+      if(x2-x1>0.5)g2+=`<rect x="${x1.toFixed(1)}" y="0" width="${(x2-x1).toFixed(1)}" height="${H}" fill="var(--red)" opacity="0.07"/>`;
+      st=-1;}}
+  return g2;}
+
 function drawSpeed(){const s=cur.samples,H=150;let mx=-1e9;for(const p of s)mx=Math.max(mx,p.spd);
   if(CMP&&ref)for(const p of ref.samples)mx=Math.max(mx,p.spd);
-  const Y=v=>H-8-(v/mx)*(H-22);SC_spd=mx;let g=band(H);
+  const Y=v=>H-8-(v/mx)*(H-22);SC_spd=mx;let g=band(H)+brakeBands(s,H);
   if(CMP&&ref){
     // 累積時間差 Δt:中線=0,你較慢往下、你較快往上(用最大絕對值縮放,反向比較也正確)
     const dv=[];let dmax=0.05;
     for(let i=0;i<s.length;i++){const rt=interpAt(ref.samples,refDD,DD[i],'t');const d=rt==null?null:(s[i].t-rt);dv.push(d);if(d!=null)dmax=Math.max(dmax,Math.abs(d));}
     SC_dlt=dmax;const DCOL='#aeb9c6',M=H/2;
     const Yd=v=>Math.max(6,Math.min(H-4,M+(v/dmax)*(M-12)));
+    // Δt 面積填色:落後(線在中線下)=紅、領先=綠 — MoTeC 慣例
+    const dltArea=(sign,col)=>{let d='',st=false,lx='0';
+      for(let i=0;i<s.length;i++){
+        const ok=inWin(i)&&dv[i]!=null;
+        const v=ok?(sign>0?Math.max(0,dv[i]):Math.min(0,dv[i])):null;
+        if(v==null){if(st){d+='L'+lx+' '+M+'Z';st=false;}continue;}
+        const x=xS(i).toFixed(1),y=Yd(v).toFixed(1);
+        if(!st){d+='M'+x+' '+M;st=true;}
+        d+='L'+x+' '+y;lx=x;}
+      if(st)d+='L'+lx+' '+M+'Z';
+      return d?`<path d="${d}" fill="${col}" opacity="0.22" stroke="none"/>`:'';};
+    g+=dltArea(1,'var(--red)')+dltArea(-1,'var(--green)');
     g+=`<line x1="0" y1="${M}" x2="600" y2="${M}" stroke="#2a3340" stroke-dasharray="2 4"/><text x="4" y="${M-3}" fill="${DCOL}" font-size="9" font-family="JetBrains Mono">Δt 0 (下慢／上快)</text>`;
     let dp='',st=false;for(let i=0;i<s.length;i++){if(!inWin(i)||dv[i]==null){st=false;continue;}dp+=(st?'L':'M')+xS(i).toFixed(1)+' '+Yd(dv[i]).toFixed(1);st=true;}
     g+=`<path d="${dp}" fill="none" stroke="${DCOL}" stroke-width="1.5" opacity=".9"/>`;
