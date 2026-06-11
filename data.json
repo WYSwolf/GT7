@@ -147,9 +147,9 @@
     },
     "medalPct": {
      "platinum": 0.02,
-     "gold": 10.63,
-     "silver": 29.03,
-     "bronze": 58.2
+     "gold": 10.61,
+     "silver": 18.4,
+     "bronze": 29.17
     },
     "endDate": "2026-06-18",
     "standings": [
@@ -159,14 +159,7 @@
       "note": "首日。金牌達標(-0.347s)"
      }
     ],
-    "playerRank": {
-     "rankEstimate": 10700,
-     "pct": 10.4,
-     "pb": 113.199,
-     "asOf": "2026-06-11",
-     "source": "dg-edge 門檻內插(估計)",
-     "player": "[TUE] WYS · b95208010"
-    }
+    "medalPctMode": "band"
    }
   },
   "sectorCalibration": {
