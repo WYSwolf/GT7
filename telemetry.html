@@ -4,27 +4,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
-:root{--bg:#0a0d12;--panel:#131820;--panel2:#1a2029;--line:#2a3340;--txt:#e8ecf1;--muted:#8b96a8;--green:#00ff88;--green-dim:#00b85e;--gold:#ffd43b;--red:#ff3b5c;--blue:#36b3ff;--cyan:#33e0ff;--mag:#c266ff;--mono:'JetBrains Mono',monospace;--disp:'Bebas Neue',sans-serif;--body:'Noto Sans TC',sans-serif;}
+:root{--bg:#0a0d12;--panel:#0d1219;--panel2:#0a0e14;--line:#1b232f;--txt:#eef3f9;--muted:#6b7787;--green:#00ff88;--gold:#ffd43b;--red:#ff3b5c;--blue:#36b3ff;--cyan:#33e0ff;--mag:#c86bff;--mono:'JetBrains Mono',monospace;--disp:'Bebas Neue',sans-serif;--body:'Noto Sans TC',sans-serif;}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--txt);font-family:var(--body);padding:16px;max-width:1100px;margin:0 auto;
-  background-image:radial-gradient(ellipse at top,rgba(0,255,136,.04) 0%,transparent 50%)}
-body::before{content:'';position:fixed;inset:0;pointer-events:none;
-  background-image:linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);
-  background-size:40px 40px}
+body{background:var(--bg);color:var(--txt);font-family:var(--body);padding:16px;max-width:1100px;margin:0 auto}
 .top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:14px}
-.logomark{width:34px;height:34px;background:linear-gradient(135deg,var(--green),var(--green-dim));clip-path:polygon(0 0,100% 0,100% 70%,70% 100%,0 100%);position:relative;flex:0 0 auto}
-.logomark::after{content:'';position:absolute;inset:4px;background:var(--bg);clip-path:polygon(0 0,100% 0,100% 60%,60% 100%,0 100%)}
-.tt{font-family:var(--disp);font-size:28px;letter-spacing:.06em;color:var(--txt);line-height:1}
-.tt small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--green);text-transform:uppercase;margin-top:2px}
+.tt{font-family:var(--disp);font-size:30px;letter-spacing:.04em;color:var(--green);line-height:1}
+.tt small{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--muted)}
 .meta{font-family:var(--mono);font-size:13px;color:var(--muted)}.meta b{color:var(--txt)}
 .spacer{flex:1}
-select{background:#0f141b;color:var(--txt);border:1px solid var(--line);border-radius:2px;padding:7px 10px;font-family:var(--mono);font-size:13px}
+select{background:#0e141c;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-family:var(--mono);font-size:13px}
 input[type=file]{font-family:var(--mono);font-size:12px;color:var(--muted);max-width:180px}
 .lab{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .lab select{padding:3px 7px;font-size:11px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:0;padding:14px;margin-bottom:14px;position:relative;z-index:1}
-.card>.lab{border-left:3px solid var(--green);padding-left:8px;color:var(--txt);font-weight:700}
-.card>.lab select{font-weight:400}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
 svg{display:block;width:100%;height:auto}
 #map{cursor:crosshair;max-width:620px;margin:0 auto}
 .read{display:flex;flex-wrap:wrap;gap:14px;font-family:var(--mono);font-size:13px;margin-top:8px;justify-content:center}
@@ -43,10 +35,9 @@ body.cmp .cmp-only{display:block}
 body.cmp .legend.cmp-only{display:flex}
 body.cmp .solo-only{display:none}
 body.cmp .lab .cmp-only{display:inline}
-svg#spd,svg#pedal,svg#hd,svg#thrC,svg#brkC,svg#dlt,svg#gr{touch-action:pan-y}
+svg#spd,svg#pedal,svg#hd,svg#thrC,svg#brkC,svg#dlt{touch-action:pan-y}
 #map{touch-action:pan-y}
-.cmpx{font-family:var(--mono);font-size:11px;color:var(--gold);cursor:pointer;border:1px solid var(--line);border-radius:2px;padding:5px 9px;background:#0f141b;transition:all .2s}
-.cmpx:hover{border-color:var(--green);color:var(--green)}
+.cmpx{font-family:var(--mono);font-size:11px;color:var(--gold);cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:5px 9px;background:#0e141c}
 .zoombar{display:flex;align-items:center;gap:10px;margin:-4px 0 14px;flex-wrap:wrap}
 .acc>.lab{cursor:pointer;user-select:none}
 .acc>.lab::after{content:'▸';color:var(--muted);font-size:13px;margin-left:6px}
@@ -64,8 +55,7 @@ svg#spd,svg#pedal,svg#hd,svg#thrC,svg#brkC,svg#dlt,svg#gr{touch-action:pan-y}
 .zhint{font-family:var(--mono);font-size:11px;color:var(--muted)}
 </style></head><body>
 <div class="top">
-  <div class="logomark"></div>
-  <div class="tt">GT7 遙測<small>Telemetry · 賽道地圖分析</small></div>
+  <div class="tt">GT7 遙測<small>賽道地圖分析</small></div>
   <div class="meta" id="meta">載入中…</div>
   <div class="spacer"></div>
   <div><div class="lab">圈次</div><select id="lapSel"></select></div>
@@ -76,21 +66,19 @@ svg#spd,svg#pedal,svg#hd,svg#thrC,svg#brkC,svg#dlt,svg#gr{touch-action:pan-y}
 </div>
 <div class="topgrid">
 <div class="mapcol">
-<div class="card"><div class="lab"><span>賽道地圖</span><span><button class="cmpx" id="mapReset" style="margin-right:6px">⤢ 還原</button>分色 <select id="mapMode"><option value="speed">速度</option><option value="input">油門/煞車/滑行</option></select></span></div>
+<div class="card"><div class="lab"><span>賽道地圖</span><span>分色 <select id="mapMode"><option value="speed">速度</option><option value="input">油門/煞車/滑行</option></select></span></div>
   <svg id="map" viewBox="0 0 600 600"></svg>
   <div class="read" id="read"><div>移動滑鼠/手指看該點 · 或選彎角</div></div>
 </div>
 </div>
 <div class="chartcol">
 <div class="zoombar">
-  <button class="cmpx" id="playBtn" style="color:var(--green)">▶ 播放</button>
-  <button class="cmpx" id="playSpd">1×</button>
   <button class="cmpx" id="zselBtn">🔍 框選縮放</button>
   <button class="cmpx" id="zoomReset">⤢ 全圈</button>
-  <span class="zhint" id="zhint">播放=圖表跟著行駛範圍移動 · 或拖出範圍同步放大</span>
+  <span class="zhint" id="zhint">在任一折線圖拖出範圍 → 所有圖同步放大</span>
 </div>
-<div class="card acc open"><div class="lab"><span>車速與時間差距</span><span class="legend cmp-only"><span><i class="dot" style="background:var(--green)"></i>你</span><span><i class="dash" style="color:var(--gold)"></i>對照</span><span><i class="dot" style="background:rgba(255,59,92,.5)"></i>Δt落後</span><span><i class="dot" style="background:rgba(0,255,136,.45)"></i>Δt領先</span></span></div><svg id="spd" viewBox="0 0 600 150"></svg>
-  <div class="legend"><span><i class="dot" style="background:rgba(255,59,92,.28)"></i>淡紅底＝煞車區段</span></div></div>
+<div class="card acc open"><div class="lab"><span>速度</span><span class="legend cmp-only"><span><i class="dot" style="background:var(--green)"></i>你</span><span><i class="dash" style="color:var(--gold)"></i>對照</span></span></div><svg id="spd" viewBox="0 0 600 130"></svg></div>
+<div class="card acc cmp-only"><div class="lab"><span>累積時間差 Δt</span><span style="color:var(--muted);text-transform:none;letter-spacing:0">0 上＝你較慢 · 0 下＝你較快</span></div><svg id="dlt" viewBox="0 0 600 110"></svg></div>
 <div class="card acc solo-only"><div class="lab">油門 / 煞車</div><svg id="pedal" viewBox="0 0 600 130"></svg>
   <div class="legend"><span><i class="dot" style="background:var(--green)"></i>油門</span><span><i class="dot" style="background:var(--red)"></i>煞車</span></div></div>
 <div class="card acc cmp-only"><div class="lab">油門</div><svg id="thrC" viewBox="0 0 600 110"></svg>
@@ -101,11 +89,6 @@ svg#spd,svg#pedal,svg#hd,svg#thrC,svg#brkC,svg#dlt,svg#gr{touch-action:pan-y}
   <div class="legend solo-only"><span><i class="dot" style="background:var(--cyan)"></i>方向盤</span><span><i class="dot" style="background:var(--gold)"></i>偏航率</span></div>
   <div class="legend cmp-only"><span><i class="dot" style="background:var(--cyan)"></i>你 方向盤</span><span><i class="dash" style="color:var(--gold)"></i>對照 方向盤</span></div>
   <div class="note" id="hdNote"></div></div>
-<div class="card acc"><div class="lab">檔位 / 轉速</div><svg id="gr" viewBox="0 0 600 130"></svg>
-  <div class="legend solo-only"><span><i class="dot" style="background:var(--green)"></i>檔位</span><span><i class="dot" style="background:rgba(54,179,255,.7)"></i>轉速</span></div>
-  <div class="legend cmp-only"><span><i class="dot" style="background:var(--green)"></i>你 檔位</span><span><i class="dash" style="color:var(--gold)"></i>對照 檔位</span></div></div>
-<div class="card acc cmp-only"><div class="lab">每彎時間損失 · vs 對照</div><div id="tloss"></div>
-  <div class="note">含彎前煞車段 · 紅=你較慢 · 點一列跳到該彎</div></div>
 </div>
 </div>
 <div class="two">
@@ -113,11 +96,8 @@ svg#spd,svg#pedal,svg#hd,svg#thrC,svg#brkC,svg#dlt,svg#gr{touch-action:pan-y}
     <div class="legend" style="justify-content:center"><span><i class="dot" style="background:var(--green)"></i>油門</span><span><i class="dot" style="background:var(--red)"></i>煞車</span><span><i class="dot" style="background:var(--blue)"></i>滑行</span></div></div>
   <div class="card cmp-only"><div class="lab">摩擦圓 · 對照</div><svg id="ggR" viewBox="0 0 240 240" style="max-width:280px;margin:0 auto"></svg>
     <div class="legend" style="justify-content:center"><span><i class="dot" style="background:var(--green)"></i>油門</span><span><i class="dot" style="background:var(--red)"></i>煞車</span><span><i class="dot" style="background:var(--blue)"></i>滑行</span></div></div>
-  <div class="card"><div class="lab">本彎資料<span class="cmp-only"> · 你</span></div><div class="tstat" id="turnStat"><span>選一個彎角看細節</span><span></span></div>
-    <div class="note">煞車點=煞車踩過50%處 · 回油點=最低速後油門>90%處 · 皆為單圈距離(m)</div></div>
+  <div class="card"><div class="lab">本彎資料<span class="cmp-only"> · 你</span></div><div class="tstat" id="turnStat"><span>選一個彎角看細節</span><span></span></div></div>
   <div class="card cmp-only"><div class="lab">本彎資料 · 對照</div><div class="tstat" id="turnStatR"><span></span><span></span></div></div>
-  <div class="card"><div class="lab">駕駛指紋<span class="cmp-only"> · 你 / 對照</span></div><div class="tstat" id="fprint"><span>載入中</span><span></span></div>
-    <div class="note">以時間佔比計算 · 滑行%偏高通常就是丟時間的位置</div></div>
 </div>
 <script>
 const DEMO_CSV=`# gt7 capture | captured=demo | track=LAGUNA SECA | car=911 GT3 R (992) 22 | packet=C | hz=20
@@ -760,8 +740,10 @@ run_lap,inlap,carcode,lap_time,wall,t,spd,thr,brk,rpm,gear,x,z,yaw,latG,lonG,ste
 const $=id=>document.getElementById(id);
 const num=v=>(typeof v==='number'&&!isNaN(v))?v:null;
 let LAPS=[],TRACK='',CAR='',SRC='範例',cur=null,PTS=[],TURNS=[],selTurn=-1,DD=[],LEN=1,VX0=0,VX1=1,MAPMODE='speed';
-let RPTS=[],CURT=0.5,MVB={x:0,y:0,w:600},_rdT=null;
 let ref=null,refDD=[],refLEN=1,CMP=false;
+let ALLCOACH=null;
+function _coachKey(){const s=(TRACK||'');return /拉古|Laguna/i.test(s)?'laguna':/沃特|Watkins/i.test(s)?'watkins':/深林|深森|Deep ?Forest/i.test(s)?'deepforest':null;}
+function coachFor(t){if(!ALLCOACH||!t)return null;const k=_coachKey();if(!k||!ALLCOACH[k])return null;const f=DD[t.peak]/LEN;let best=null,bd=0.05;for(const c of ALLCOACH[k]){const dd=Math.abs(c.frac-f);if(dd<bd){bd=dd;best=c;}}return best;}
 
 function parseLaps(text){
   const lines=text.split(/\r?\n/);
@@ -773,7 +755,7 @@ function parseLaps(text){
   const m=new Map();
   for(const r of p.data){if(r.run_lap==null)continue;if(!m.has(r.run_lap))m.set(r.run_lap,[]);m.get(r.run_lap).push(r);}
   const laps=[...m.entries()].map(([rl,rs])=>({run_lap:rl,lap_time:rs[0].lap_time,
-    samples:rs.map(r=>({t:r.t,x:r.x,z:r.z,spd:r.spd,thr:r.thr,brk:r.brk,latG:num(r.latG),lonG:num(r.lonG),steer:num(r.steer),yaw:num(r.yaw),rpm:num(r.rpm),gear:num(r.gear)}))}))
+    samples:rs.map(r=>({t:r.t,x:r.x,z:r.z,spd:r.spd,thr:r.thr,brk:r.brk,latG:num(r.latG),lonG:num(r.lonG),steer:num(r.steer),yaw:num(r.yaw)}))}))
     .filter(l=>l.lap_time>0&&l.samples.length>20).sort((a,b)=>a.run_lap-b.run_lap);
   return {laps,track,car};
 }
@@ -795,10 +777,10 @@ function loadRef(text,label){
   const rl=+new URLSearchParams(location.search).get('reflap');
   ref=r.laps.find(l=>l.run_lap===rl)||r.laps.slice().sort((a,b)=>a.lap_time-b.lap_time)[0];
   refDD=ddOf(ref.samples);refLEN=refDD[refDD.length-1]||1;
-  CMP=true;document.body.classList.add('cmp');CURT=0.5;
-  if(cur){computeBounds();updateMeta();drawAll();applyVB();showTurnStat(selTurn);setupAccordion();}
+  CMP=true;document.body.classList.add('cmp');
+  if(cur){updateMeta();drawAll();showTurnStat(selTurn);setupAccordion();}
 }
-function clearCmp(){CMP=false;ref=null;document.body.classList.remove('cmp');$('fileRef').value='';if(cur){computeBounds();updateMeta();drawAll();applyVB();showTurnStat(selTurn);setupAccordion();}}
+function clearCmp(){CMP=false;ref=null;document.body.classList.remove('cmp');$('fileRef').value='';if(cur){updateMeta();drawAll();showTurnStat(selTurn);setupAccordion();}}
 
 function updateMeta(){
   let h=`<b>${TRACK||'賽道?'}</b> · ${CAR||'車?'} · 第 ${cur.run_lap} 圈 <b>${fmtT(cur.lap_time)}</b>`;
@@ -810,18 +792,15 @@ function updateMeta(){
 function fillLapSel(rl){const fast=LAPS.slice().sort((a,b)=>a.lap_time-b.lap_time)[0].run_lap;
   $('lapSel').innerHTML=LAPS.map(l=>`<option value="${l.run_lap}" ${l.run_lap===rl?'selected':''}>第 ${l.run_lap} 圈 — ${fmtT(l.lap_time)}${l.run_lap===fast?' ★':''}</option>`).join('');}
 $('lapSel').onchange=e=>{const l=LAPS.find(x=>x.run_lap==e.target.value);if(l)selectLap(l);};
-$('mapMode').onchange=e=>{MAPMODE=e.target.value;drawMap();applyVB();};
-$('mapReset').onclick=resetView;
+$('mapMode').onchange=e=>{MAPMODE=e.target.value;drawMap();};
 
-function selectLap(l){playStop();cur=l;selTurn=-1;$('turnSel').value=-1;
+function selectLap(l){cur=l;selTurn=-1;$('turnSel').value=-1;
   computeBounds();DD=ddOf(cur.samples);LEN=DD[DD.length-1]||1;VX0=0;VX1=LEN;detectTurns();fillTurnSel();updateMeta();drawAll();showTurnStat(-1);updateCross(-1);setupAccordion();}
 function computeBounds(){const s=cur.samples;let a=1e9,b=-1e9,c=1e9,d=-1e9;
-  const all=(CMP&&ref)?s.concat(ref.samples):s;
-  for(const p of all){a=Math.min(a,p.x);b=Math.max(b,p.x);c=Math.min(c,p.z);d=Math.max(d,p.z);}
+  for(const p of s){a=Math.min(a,p.x);b=Math.max(b,p.x);c=Math.min(c,p.z);d=Math.max(d,p.z);}
   const spanX=b-a,spanZ=d-c,span=Math.max(spanX,spanZ)||1,W=600,pad=34,dw=W-2*pad,sc=Math.min(dw,dw)/span;
   const ox=(dw-spanX*sc)/2,oy=(dw-spanZ*sc)/2;
-  const prj=p=>{const fx=pad+(p.x-a)*sc+ox,fy=pad+(p.z-c)*sc+oy;return[W-fx,W-fy];};
-  PTS=s.map(prj);RPTS=(CMP&&ref)?ref.samples.map(prj):[];}
+  PTS=s.map(p=>{const fx=pad+(p.x-a)*sc+ox,fy=pad+(p.z-c)*sc+oy;return[W-fx,W-fy];});}
 function spdColor(v,mn,mx){const f=Math.max(0,Math.min(1,(v-mn)/((mx-mn)||1)));return `hsl(${Math.round(f*120)},90%,55%)`;}
 function inputColor(p){if(p.brk>5)return 'var(--red)';if(p.thr>5)return 'var(--green)';return 'var(--blue)';}
 function interpAt(s,dd,d,key){
@@ -831,141 +810,17 @@ function interpAt(s,dd,d,key){
   const f=(d-dd[lo])/((dd[hi]-dd[lo])||1),a=s[lo][key],b=s[hi][key];
   if(a==null||b==null)return a==null?b:a;return a+(b-a)*f;}
 
-function drawAll(){drawMap();drawSpeed();if(CMP){drawPedalSplit();}else drawPedal();drawSteer();drawGG();drawGear();buildTurnLoss();buildFingerprint();}
-// 播放時的輕量重繪:只重畫折線圖(地圖播放中不重繪,停止時才補畫)
-function redrawWin(){drawSpeed();if(CMP){drawPedalSplit();}else drawPedal();drawSteer();drawGear();}
+function drawAll(){drawMap();drawSpeed();if(CMP){drawDelta();drawPedalSplit();}else drawPedal();drawSteer();drawGG();}
 
-// ===== 播放(全平滑相機跟隨:游標釘在視窗35%處,視窗每幀平移)=====
-let PLAY=null;const PSPDS=[1,2,4];let PSI=0;
-function playBtnUI(){const b=$('playBtn');if(b)b.textContent=PLAY?'⏸ 暫停':'▶ 播放';}
-function playStop(){if(PLAY){cancelAnimationFrame(PLAY.raf);PLAY=null;playBtnUI();drawMap();}}
-function playToggle(){
-  if(PLAY){playStop();return;}
-  if(!cur)return;
-  const sm=cur.samples;
-  const full=VX0<=1e-6&&VX1>=LEN-1e-6;
-  if(full){const W=Math.max(200,LEN*0.15);VX0=0;VX1=Math.min(LEN,W);redrawWin();}
-  let i0=0;while(i0<sm.length-1&&DD[i0]<VX0)i0++;
-  PLAY={i:i0,t:sm[i0].t,lastTs:performance.now(),slide:full,raf:0};
-  playBtnUI();updateCross(PLAY.i);
-  const step=ts=>{
-    if(!PLAY)return;
-    const sm2=cur.samples;
-    PLAY.t+=(ts-PLAY.lastTs)/1000*PSPDS[PSI];PLAY.lastTs=ts;
-    while(PLAY.i<sm2.length-1&&sm2[PLAY.i+1].t<=PLAY.t)PLAY.i++;
-    const atEnd=PLAY.i>=sm2.length-1||(!PLAY.slide&&DD[PLAY.i]>=VX1-1e-6);
-    if(PLAY.slide){
-      const W=VX1-VX0,lead=W*0.35,d=DD[PLAY.i];
-      if(d>VX0+lead&&VX1<LEN-1e-6){           // 跟隨段:視窗平移、游標釘在35%
-        VX0=Math.max(0,Math.min(LEN-W,d-lead));VX1=VX0+W;
-        redrawWin();}}                          // 進場/收尾段:視窗不動、游標自己跑
-    updateCross(PLAY.i);
-    if(atEnd){playStop();return;}
-    PLAY.raf=requestAnimationFrame(step);};
-  PLAY.raf=requestAnimationFrame(step);}
-
-
-// ===== 檔位 / 轉速 =====
-function drawGear(){const el=$('gr');if(!el)return;const s=cur.samples,H=130;
-  if(!s.some(p=>p.gear!=null)){el.innerHTML=`<text x="300" y="${H/2}" fill="var(--muted)" font-size="12" font-family="JetBrains Mono" text-anchor="middle">此圈無檔位資料</text>`;return;}
-  let gmax=1;for(const p of s)if(p.gear!=null)gmax=Math.max(gmax,p.gear);
-  if(CMP&&ref)for(const p of ref.samples)if(p.gear!=null)gmax=Math.max(gmax,p.gear);
-  const Yg=v=>H-10-((v-0.5)/gmax)*(H-26);
-  let g=band(H)+brakeBands(s,H);
-  for(let gi=1;gi<=gmax;gi++)g+=`<line x1="0" y1="${Yg(gi).toFixed(1)}" x2="600" y2="${Yg(gi).toFixed(1)}" stroke="#1b232f"/><text x="3" y="${(Yg(gi)-2).toFixed(1)}" fill="var(--muted)" font-size="8" font-family="JetBrains Mono">${gi}</text>`;
-  if(CMP&&ref)g+=tracePath2(ref.samples,refDD,i=>ref.samples[i].gear==null?null:Yg(ref.samples[i].gear),REFC,1.8,'5 4');
-  else{let rmax=1;for(const p of s)if(p.rpm!=null)rmax=Math.max(rmax,p.rpm);
-    if(rmax>1){const Yr=v=>H-8-(v/rmax)*(H-22);
-      g+=tracePath(i=>s[i].rpm==null?null:Yr(s[i].rpm),'rgba(54,179,255,.55)',1.2);}}
-  g+=tracePath(i=>s[i].gear==null?null:Yg(s[i].gear),'var(--green)',2)+cross('crGear',H);
-  el.innerHTML=g;}
-
-// ===== 每彎時間損失(對照模式)=====
-function turnLoss(){ // 每彎(含彎前煞車段)的 Δt 變化:正 = 你較慢
-  if(!(CMP&&ref)||!TURNS.length)return [];
-  const dlt=d=>{const rt=interpAt(ref.samples,refDD,d,'t'),ct=interpAt(cur.samples,DD,d,'t');
-    return(rt==null||ct==null)?null:(ct-rt);};
-  return TURNS.map((t,i)=>{
-    const pad=Math.min(60,(DD[t.end]-DD[t.start])*0.5+20);
-    const a=dlt(Math.max(0,DD[t.start]-pad)),b=dlt(Math.min(LEN-1,DD[t.end]+pad));
-    return{i,dir:t.dir,loss:(a==null||b==null)?null:b-a};
-  }).filter(r=>r.loss!=null);}
-function buildTurnLoss(){const el=$('tloss');if(!el)return;
-  const rows=turnLoss();
-  if(!rows.length){el.innerHTML='<div class="note">需要對照圈才能計算</div>';return;}
-  const mx=Math.max(...rows.map(r=>Math.abs(r.loss)))||1;
-  const sorted=[...rows].sort((a,b)=>b.loss-a.loss);
-  el.innerHTML=sorted.map(r=>{
-    const w=Math.max(2,Math.abs(r.loss)/mx*100),col=r.loss>0?'var(--red)':'var(--green)';
-    return `<div class="tl-row" data-ti="${r.i}" style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-family:var(--mono);font-size:12px;border-bottom:1px solid #161d27">
-      <span style="width:52px;color:var(--txt)">T${r.i+1} ${r.dir}</span>
-      <span style="flex:1;height:8px;background:#0f141b;overflow:hidden"><i style="display:block;height:100%;width:${w.toFixed(0)}%;background:${col}"></i></span>
-      <b style="width:64px;text-align:right;color:${col}">${r.loss>=0?'+':'−'}${Math.abs(r.loss).toFixed(2)}s</b></div>`;}).join('');
-  el.querySelectorAll('.tl-row').forEach(r=>r.onclick=()=>{const ti=+r.dataset.ti;$('turnSel').value=ti;selectTurn(ti);});}
-
-// ===== 駕駛指紋(全圈時間佔比)=====
-function fingerprint(s){
-  let tt=0,ft=0,br=0,co=0,n=0,prev=false;
-  for(let i=1;i<s.length;i++){const dt=s[i].t-s[i-1].t;if(!(dt>0)||dt>1)continue;const p=s[i];
-    tt+=dt;
-    if(p.thr>=95)ft+=dt;
-    if(p.brk>5)br+=dt;
-    if(p.thr<5&&p.brk<5)co+=dt;
-    const on=p.brk>10;if(on&&!prev)n++;prev=on;}
-  if(!tt)return null;
-  return{ft:ft/tt*100,br:br/tt*100,co:co/tt*100,n};}
-function buildFingerprint(){const el=$('fprint');if(!el)return;
-  const a=fingerprint(cur.samples);
-  if(!a){el.innerHTML='<span>資料不足</span><b></b>';return;}
-  const b=(CMP&&ref)?fingerprint(ref.samples):null;
-  const f=(v,r)=>`<b>${v.toFixed(1)}%${r!=null?` <span style="color:var(--gold)">/ ${r.toFixed(1)}%</span>`:''}</b>`;
-  el.innerHTML=`<span>全油門</span>${f(a.ft,b?b.ft:null)}<span>煞車</span>${f(a.br,b?b.br:null)}<span>滑行</span>${f(a.co,b?b.co:null)}<span>煞車次數</span><b>${a.n}${b?` <span style="color:var(--gold)">/ ${b.n}</span>`:''}</b>`;}
-
-function applyVB(){$('map').setAttribute('viewBox',`${MVB.x.toFixed(1)} ${MVB.y.toFixed(1)} ${MVB.w.toFixed(1)} ${MVB.w.toFixed(1)}`);updCurtain();}
-function updCurtain(){const dX=MVB.x+CURT*MVB.w,k=MVB.w/600;
-  const e=id=>$(id);if(!e('curtL'))return;
-  e('cpYr').setAttribute('width',(1e5+dX));e('cpRr').setAttribute('x',dX);
-  const L=e('curtL');L.setAttribute('x1',dX);L.setAttribute('x2',dX);L.setAttribute('y1',MVB.y);L.setAttribute('y2',MVB.y+MVB.w);
-  const G=e('curtG');G.setAttribute('cx',dX);G.setAttribute('cy',MVB.y+MVB.w/2);G.setAttribute('r',13*k);
-  const T=e('curtGt');T.setAttribute('x',dX);T.setAttribute('y',MVB.y+MVB.w/2+4.2*k);T.setAttribute('font-size',12*k);
-  const ly=e('labY');ly.setAttribute('x',dX-9*k);ly.setAttribute('y',MVB.y+18*k);ly.setAttribute('font-size',12*k);
-  const lr=e('labR');lr.setAttribute('x',dX+9*k);lr.setAttribute('y',MVB.y+18*k);lr.setAttribute('font-size',12*k);}
-function resetView(){MVB={x:0,y:0,w:600};drawMap();applyVB();}
-function schedRedraw(){clearTimeout(_rdT);_rdT=setTimeout(()=>{drawMap();applyVB();},120);}
-
-function drawMap(){const s=cur.samples,k=MVB.w/600,both=CMP&&ref&&RPTS.length>0;
-  let mn=1e9,mx=-1e9;for(const p of s){mn=Math.min(mn,p.spd);mx=Math.max(mx,p.spd);}
-  if(both)for(const p of ref.samples){mn=Math.min(mn,p.spd);mx=Math.max(mx,p.spd);}
-  const segs=(pts,smp)=>{let g2='';for(let i=1;i<pts.length;i++){const[x1,y1]=pts[i-1],[x2,y2]=pts[i];
-    const col=MAPMODE==='speed'?spdColor(smp[i].spd,mn,mx):inputColor(smp[i]);
-    g2+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${col}" stroke-width="${(3.2*k).toFixed(2)}" stroke-linecap="round"/>`;}return g2;};
-  let you=segs(PTS,s);
-  if(selTurn>=0&&TURNS[selTurn]){const t=TURNS[selTurn];let d='';for(let i=t.start;i<=t.end;i++){d+=(i===t.start?'M':'L')+PTS[i][0].toFixed(1)+' '+PTS[i][1].toFixed(1);}you+=`<path d="${d}" fill="none" stroke="var(--gold)" stroke-width="${(5*k).toFixed(2)}" stroke-linecap="round" opacity="0.9"/>`;}
-  else if(VX0>0||VX1<LEN-1e-6){let d='',st=false;for(let i=0;i<PTS.length;i++){if(!inWin(i)){st=false;continue;}d+=(st?'L':'M')+PTS[i][0].toFixed(1)+' '+PTS[i][1].toFixed(1);st=true;}you+=`<path d="${d}" fill="none" stroke="var(--cyan)" stroke-width="${(5*k).toFixed(2)}" stroke-linecap="round" opacity="0.85"/>`;}
-  let g='';
-  if(both){const dX=MVB.x+CURT*MVB.w;
-    g+=`<defs><clipPath id="cpY"><rect id="cpYr" x="-100000" y="-100000" width="${(1e5+dX).toFixed(1)}" height="200000"/></clipPath><clipPath id="cpR"><rect id="cpRr" x="${dX.toFixed(1)}" y="-100000" width="200000" height="200000"/></clipPath></defs>`;
-    g+=`<g clip-path="url(#cpY)">${you}</g><g clip-path="url(#cpR)">${segs(RPTS,ref.samples)}</g>`;
-  }else g+=you;
-  TURNS.forEach((t,i)=>{const[x,y]=PTS[t.peak];g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(11*k).toFixed(2)}" fill="#0a0d12" stroke="${i===selTurn?'var(--gold)':'#2a3340'}" stroke-width="${((i===selTurn?2.5:1.5)*k).toFixed(2)}"/><text x="${x.toFixed(1)}" y="${(y+4*k).toFixed(1)}" fill="${i===selTurn?'var(--gold)':'var(--muted)'}" font-size="${(11*k).toFixed(2)}" font-family="JetBrains Mono" text-anchor="middle">${i+1}</text>`;});
-  // 起終點線(垂直於行車方向)+ S/F 標籤 + 行車方向箭頭(隨地圖縮放)
-  {const[ax,ay]=PTS[0],[bx,by]=PTS[Math.min(3,PTS.length-1)];
-   let dx2=bx-ax,dy2=by-ay;const L2=Math.hypot(dx2,dy2)||1;dx2/=L2;dy2/=L2;
-   const nx=-dy2,ny=dx2,e=9*k;
-   g+=`<line x1="${(ax-nx*e).toFixed(1)}" y1="${(ay-ny*e).toFixed(1)}" x2="${(ax+nx*e).toFixed(1)}" y2="${(ay+ny*e).toFixed(1)}" stroke="#e8ecf1" stroke-width="${(3*k).toFixed(2)}" stroke-dasharray="${(3*k).toFixed(1)} ${(3*k).toFixed(1)}"/>`;
-   g+=`<text x="${(ax+nx*18*k).toFixed(1)}" y="${(ay+ny*18*k+3*k).toFixed(1)}" fill="var(--muted)" font-size="${(10*k).toFixed(2)}" font-family="JetBrains Mono" text-anchor="middle">S/F</text>`;
-   const ai=Math.max(5,Math.floor(PTS.length*0.03));
-   const[px,py]=PTS[ai],[qx,qy]=PTS[Math.min(ai+2,PTS.length-1)];
-   let ux=qx-px,uy=qy-py;const UL=Math.hypot(ux,uy)||1;ux/=UL;uy/=UL;
-   const vx2=-uy,vy2=ux,a1=8*k,a2=5*k;
-   g+=`<path d="M${(px+ux*a1).toFixed(1)} ${(py+uy*a1).toFixed(1)} L${(px-ux*a1*0.4+vx2*a2).toFixed(1)} ${(py-uy*a1*0.4+vy2*a2).toFixed(1)} L${(px-ux*a1*0.4-vx2*a2).toFixed(1)} ${(py-uy*a1*0.4-vy2*a2).toFixed(1)} Z" fill="#e8ecf1" opacity="0.9"/>`;}
-  if(both){const dX=MVB.x+CURT*MVB.w,my=MVB.y+MVB.w/2;
-    g+=`<line id="curtL" x1="${dX.toFixed(1)}" y1="${MVB.y.toFixed(1)}" x2="${dX.toFixed(1)}" y2="${(MVB.y+MVB.w).toFixed(1)}" stroke="#fff" stroke-width="${(1.6*k).toFixed(2)}" opacity=".75"/>`;
-    g+=`<text id="labY" x="${(dX-9*k).toFixed(1)}" y="${(MVB.y+18*k).toFixed(1)}" fill="var(--green)" font-size="${(12*k).toFixed(2)}" font-family="JetBrains Mono" text-anchor="end">◀ 你</text>`;
-    g+=`<text id="labR" x="${(dX+9*k).toFixed(1)}" y="${(MVB.y+18*k).toFixed(1)}" fill="var(--gold)" font-size="${(12*k).toFixed(2)}" font-family="JetBrains Mono" text-anchor="start">對照 ▶</text>`;
-    g+=`<circle id="curtG" cx="${dX.toFixed(1)}" cy="${my.toFixed(1)}" r="${(13*k).toFixed(2)}" fill="#10161f" stroke="#fff" stroke-width="${(1.6*k).toFixed(2)}" opacity=".95"/>`;
-    g+=`<text id="curtGt" x="${dX.toFixed(1)}" y="${(my+4.2*k).toFixed(1)}" fill="#fff" font-size="${(12*k).toFixed(2)}" font-family="JetBrains Mono" text-anchor="middle">⇄</text>`;}
-  g+=`<circle id="cursor" r="${(6*k).toFixed(2)}" fill="var(--gold)" stroke="#0a0d12" stroke-width="${(2*k).toFixed(2)}" style="display:none"/>`;
+function drawMap(){const s=cur.samples;let mn=1e9,mx=-1e9;for(const p of s){mn=Math.min(mn,p.spd);mx=Math.max(mx,p.spd);}
+  let g='';for(let i=1;i<PTS.length;i++){const[x1,y1]=PTS[i-1],[x2,y2]=PTS[i];
+    const col=MAPMODE==='speed'?spdColor(s[i].spd,mn,mx):inputColor(s[i]);
+    g+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${col}" stroke-width="3.2" stroke-linecap="round"/>`;}
+  if(selTurn>=0&&TURNS[selTurn]){const t=TURNS[selTurn];let d='';for(let i=t.start;i<=t.end;i++){d+=(i===t.start?'M':'L')+PTS[i][0].toFixed(1)+' '+PTS[i][1].toFixed(1);}g+=`<path d="${d}" fill="none" stroke="var(--gold)" stroke-width="5" stroke-linecap="round" opacity="0.9"/>`;}
+  else if(VX0>0||VX1<LEN-1e-6){let d='',st=false;for(let i=0;i<PTS.length;i++){if(!inWin(i)){st=false;continue;}d+=(st?'L':'M')+PTS[i][0].toFixed(1)+' '+PTS[i][1].toFixed(1);st=true;}g+=`<path d="${d}" fill="none" stroke="var(--cyan)" stroke-width="5" stroke-linecap="round" opacity="0.85"/>`;}
+  TURNS.forEach((t,i)=>{const[x,y]=PTS[t.peak];g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="11" fill="#0a0d12" stroke="${i===selTurn?'var(--gold)':'#2a3340'}" stroke-width="${i===selTurn?2.5:1.5}"/><text x="${x.toFixed(1)}" y="${(y+4).toFixed(1)}" fill="${i===selTurn?'var(--gold)':'var(--muted)'}" font-size="11" font-family="JetBrains Mono" text-anchor="middle">${i+1}</text>`;});
+  const[sx,sy]=PTS[0];g+=`<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="5" fill="var(--green)"/>`;
+  g+=`<circle id="cursor" r="6" fill="var(--gold)" stroke="#0a0d12" stroke-width="2" style="display:none"/>`;
   $('map').innerHTML=g;}
 
 function xS(i){return (DD[i]-VX0)/((VX1-VX0)||1)*600;}
@@ -979,49 +834,20 @@ function tracePath(f,col,w){let d='',st=false;for(let i=0;i<cur.samples.length;i
 function tracePath2(s,dd,f,col,w,dash){let d='',st=false;for(let i=0;i<s.length;i++){const inw=dd[i]>=VX0-1e-6&&dd[i]<=VX1+1e-6;if(!inw){st=false;continue;}const v=f(i);if(v==null){st=false;continue;}d+=(st?'L':'M')+xSd(dd[i]).toFixed(1)+' '+v.toFixed(1);st=true;}return `<path d="${d}" fill="none" stroke="${col}" stroke-width="${w}"${dash?` stroke-dasharray="${dash}"`:''}/>`;}
 function cross(id,H){return `<line id="${id}" x1="0" y1="0" x2="0" y2="${H}" stroke="var(--gold)" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>`;}
 
-function brakeBands(s,H){ // 煞車>10% 的連續區段鋪淡紅底,一眼看到煞車點
-  let g2='',st=-1;
-  for(let i=0;i<s.length;i++){
-    const on=inWin(i)&&s[i].brk>10;
-    if(on&&st<0)st=i;
-    if((!on||i===s.length-1)&&st>=0){const e=on?i:i-1;
-      const x1=Math.max(0,xS(st)),x2=Math.min(600,xS(e));
-      if(x2-x1>0.5)g2+=`<rect x="${x1.toFixed(1)}" y="0" width="${(x2-x1).toFixed(1)}" height="${H}" fill="var(--red)" opacity="0.07"/>`;
-      st=-1;}}
-  return g2;}
-
-function drawSpeed(){const s=cur.samples,H=150;let mx=-1e9;for(const p of s)mx=Math.max(mx,p.spd);
+function drawSpeed(){const s=cur.samples,H=130;let mx=-1e9;for(const p of s)mx=Math.max(mx,p.spd);
   if(CMP&&ref)for(const p of ref.samples)mx=Math.max(mx,p.spd);
-  const Y=v=>H-8-(v/mx)*(H-22);SC_spd=mx;let g=band(H)+brakeBands(s,H);
-  if(CMP&&ref){
-    // 累積時間差 Δt:中線=0,你較慢往下、你較快往上(用最大絕對值縮放,反向比較也正確)
-    const dv=[];let dmax=0.05;
-    for(let i=0;i<s.length;i++){const rt=interpAt(ref.samples,refDD,DD[i],'t');const d=rt==null?null:(s[i].t-rt);dv.push(d);if(d!=null)dmax=Math.max(dmax,Math.abs(d));}
-    SC_dlt=dmax;const DCOL='#aeb9c6',M=H/2;
-    const Yd=v=>Math.max(6,Math.min(H-4,M+(v/dmax)*(M-12)));
-    // Δt 面積填色:落後(線在中線下)=紅、領先=綠 — MoTeC 慣例
-    const dltArea=(sign,col)=>{let d='',st=false,lx='0';
-      for(let i=0;i<s.length;i++){
-        const ok=inWin(i)&&dv[i]!=null;
-        const v=ok?(sign>0?Math.max(0,dv[i]):Math.min(0,dv[i])):null;
-        if(v==null){if(st){d+='L'+lx+' '+M+'Z';st=false;}continue;}
-        const x=xS(i).toFixed(1),y=Yd(v).toFixed(1);
-        if(!st){d+='M'+x+' '+M;st=true;}
-        d+='L'+x+' '+y;lx=x;}
-      if(st)d+='L'+lx+' '+M+'Z';
-      return d?`<path d="${d}" fill="${col}" opacity="0.22" stroke="none"/>`:'';};
-    g+=dltArea(1,'var(--red)')+dltArea(-1,'var(--green)');
-    g+=`<line x1="0" y1="${M}" x2="600" y2="${M}" stroke="#2a3340" stroke-dasharray="2 4"/><text x="4" y="${M-3}" fill="${DCOL}" font-size="9" font-family="JetBrains Mono">Δt 0 (下慢／上快)</text>`;
-    let dp='',st=false;for(let i=0;i<s.length;i++){if(!inWin(i)||dv[i]==null){st=false;continue;}dp+=(st?'L':'M')+xS(i).toFixed(1)+' '+Yd(dv[i]).toFixed(1);st=true;}
-    g+=`<path d="${dp}" fill="none" stroke="${DCOL}" stroke-width="1.5" opacity=".9"/>`;
-    const last=dv[dv.length-1];if(last!=null)g+=`<text x="596" y="${(Yd(last)+(last>=0?12:-5)).toFixed(1)}" fill="${DCOL}" font-size="10" font-family="JetBrains Mono" text-anchor="end">${last>=0?'+':''}${last.toFixed(2)}s</text>`;
-    g+=tracePath2(ref.samples,refDD,i=>Y(ref.samples[i].spd),REFC,1.8,'5 4');
-    g+=tracePath(i=>Y(s[i].spd),SELF_G,2);
-    g+=cross('crSpd',H)+node('ndDlt',DCOL)+node('ndSpdR',REFC)+node('ndSpdY','var(--green)');
-  }else{
-    g+=tracePath(i=>Y(s[i].spd),'var(--green)',2)+cross('crSpd',H)+node('ndSpdR',REFC)+node('ndSpdY','var(--green)');
-  }
+  const Y=v=>H-8-(v/mx)*(H-22);SC_spd=mx;let g=band(H);
+  if(CMP&&ref)g+=tracePath2(ref.samples,refDD,i=>Y(ref.samples[i].spd),REFC,1.8,'5 4');
+  g+=tracePath(i=>Y(s[i].spd),CMP?SELF_G:'var(--green)',2)+cross('crSpd',H)+node('ndSpdR',REFC)+node('ndSpdY','var(--green)');
   $('spd').innerHTML=g;}
+
+function drawDelta(){const H=110,s=cur.samples;let mxA=0.05;const dv=[];
+  for(let i=0;i<s.length;i++){const rt=ref?interpAt(ref.samples,refDD,DD[i],'t'):null;const d=rt==null?null:(s[i].t-rt);dv.push(d);if(d!=null)mxA=Math.max(mxA,Math.abs(d));}
+  const Y=v=>H/2-(v/mxA)*(H/2-12);SC_dlt=mxA;
+  let g=band(H)+`<line x1="0" y1="${H/2}" x2="600" y2="${H/2}" stroke="#2a3340"/>`,prev=null;
+  for(let i=0;i<s.length;i++){const v=dv[i];if(!inWin(i)||v==null){prev=null;continue;}const x=xS(i),y=Y(v);if(prev){const c=(v+prev.v)/2>0?'var(--red)':'var(--green)';g+=`<line x1="${prev.x.toFixed(1)}" y1="${prev.y.toFixed(1)}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${c}" stroke-width="2"/>`;}prev={x,y,v};}
+  g+=`<text x="4" y="11" fill="var(--red)" font-size="10" font-family="JetBrains Mono">+${mxA.toFixed(2)}s 慢</text><text x="4" y="${H-4}" fill="var(--green)" font-size="10" font-family="JetBrains Mono">−${mxA.toFixed(2)}s 快</text>`+cross('crDlt',H)+node('ndDlt','var(--gold)');
+  $('dlt').innerHTML=g;}
 
 function drawPedal(){const s=cur.samples,H=130;const Y=v=>H-8-(v/100)*(H-22);
   $('pedal').innerHTML=band(H)+tracePath(i=>Y(s[i].brk),'var(--red)',1.6)+tracePath(i=>Y(s[i].thr),'var(--green)',1.6)+cross('crPed',H)+node('ndPedT','var(--green)')+node('ndPedB','var(--red)');}
@@ -1058,7 +884,7 @@ function drawGG(){const range=selTurn>=0&&TURNS[selTurn]?[TURNS[selTurn].start,T
   if(CMP&&ref&&$('ggR'))$('ggR').innerHTML=ggSvg(ref.samples,refRange());}
 
 function updateCross(i){const c=$('cursor');
-  const ids=['crSpd','crPed','crHd','crThr','crBrk','crGear'];
+  const ids=['crSpd','crPed','crHd','crThr','crBrk','crDlt'];
   const setL=(id,x,sh)=>{const e=$(id);if(!e)return;if(!sh){e.style.display='none';return;}e.setAttribute('x1',x);e.setAttribute('x2',x);e.style.display='';};
   if(i<0||!cur){if(c)c.style.display='none';ids.forEach(id=>setL(id,0,0));const gc=$('ggCur');if(gc)gc.style.display='none';
     ['ndSpdY','ndSpdR','ndPedT','ndPedB','ndThrY','ndThrR','ndBrkY','ndBrkR','ndHdY','ndHdR','ndDlt'].forEach(id=>{const e=$(id);if(e)e.style.display='none';});
@@ -1069,7 +895,7 @@ function updateCross(i){const c=$('cursor');
   const gc=$('ggCur');if(gc){if(p.latG!=null){gc.setAttribute('cx',(120+p.latG*30).toFixed(1));gc.setAttribute('cy',(120-(p.lonG||0)*30).toFixed(1));gc.style.display='';}else gc.style.display='none';}
   // 折線圖節點:你=色點、對照=金點(標出該 x 上兩者位置)
   {const xf=+x;
-   const yS=v=>v==null?null:150-8-(v/SC_spd)*(150-22);
+   const yS=v=>v==null?null:130-8-(v/SC_spd)*(130-22);
    const yP=(v,H)=>v==null?null:H-8-(v/100)*(H-22);
    const ySt=v=>v==null?null:150/2-(v/SC_steer)*(150/2-10);
    const yYa=v=>v==null?null:150/2-(v/SC_yaw)*(150/2-10);
@@ -1080,7 +906,7 @@ function updateCross(i){const c=$('cursor');
    setN('ndHdY',ySt(p.steer),iw);
    if(CMP&&ref){const rs=interpAt(ref.samples,refDD,DD[i],'spd'),rT=interpAt(ref.samples,refDD,DD[i],'thr'),rB=interpAt(ref.samples,refDD,DD[i],'brk'),rSt=interpAt(ref.samples,refDD,DD[i],'steer'),rt2=interpAt(ref.samples,refDD,DD[i],'t');
      setN('ndSpdR',yS(rs),iw);setN('ndThrR',yP(rT,110),iw);setN('ndBrkR',yP(rB,110),iw);setN('ndHdR',ySt(rSt),iw);
-     const dd2=rt2==null?null:(p.t-rt2);setN('ndDlt',dd2==null?null:Math.max(6,Math.min(146,75+(dd2/SC_dlt)*63)),iw);}
+     const dd2=rt2==null?null:(p.t-rt2);setN('ndDlt',dd2==null?null:(110/2-(dd2/SC_dlt)*(110/2-12)),iw);}
    else{setN('ndSpdR',null,0);setN('ndThrR',null,0);setN('ndBrkR',null,0);setN('ndHdR',yYa(p.yaw),iw);setN('ndDlt',null,0);}}
   let rd=`<div>時間 <b>${p.t.toFixed(2)}s</b></div><div>速度 <b>${Math.round(p.spd)}</b></div><div>油門 <b>${p.thr}%</b></div><div>煞車 <b>${p.brk}%</b></div>`+(p.latG!=null?`<div>橫向G <b>${p.latG.toFixed(2)}</b></div>`:'')+(p.steer!=null?`<div>方向 <b>${Math.round(p.steer)}°</b></div>`:'');
   if(CMP&&ref){const rs=interpAt(ref.samples,refDD,DD[i],'spd'),rt=interpAt(ref.samples,refDD,DD[i],'t');
@@ -1088,60 +914,21 @@ function updateCross(i){const c=$('cursor');
     if(rt!=null){const dd=p.t-rt;rd+=`<div style="color:var(--gold)">Δt <b style="color:${dd>0?'var(--red)':'var(--green)'}">${fmtD(dd)}s</b></div>`;}}
   $('read').innerHTML=rd;}
 
-function vbOf(e){const r=$('map').getBoundingClientRect();const sx=MVB.w/r.width;
-  return{x:MVB.x+(e.clientX-r.left)*sx,y:MVB.y+(e.clientY-r.top)*sx,sx,r};}
-function findIdx(e){const v=vbOf(e);let bi=-1,bd=1e9;for(let i=0;i<PTS.length;i++){const dx=PTS[i][0]-v.x,dy=PTS[i][1]-v.y,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;bi=i;}}const thr=30*MVB.w/600;return bd<thr*thr?bi:-1;}
-function clampVB(){MVB.w=Math.max(40,Math.min(600,MVB.w));MVB.x=Math.max(0,Math.min(600-MVB.w,MVB.x));MVB.y=Math.max(0,Math.min(600-MVB.w,MVB.y));}
-function zoomAt(fx,fy,f){const vx=MVB.x+fx*MVB.w,vy=MVB.y+fy*MVB.w;MVB.w*=f;clampVB();MVB.x=vx-fx*MVB.w;MVB.y=vy-fy*MVB.w;clampVB();applyVB();schedRedraw();}
-let mapPan=null,mapCurt=false,mapMoved=false,pinch=null;
-const nearCurt=v=>CMP&&ref&&RPTS.length&&Math.abs(v.x-(MVB.x+CURT*MVB.w))<18*MVB.w/600;
-$('map').addEventListener('mousemove',e=>{
-  if(mapCurt){const v=vbOf(e);CURT=Math.max(.04,Math.min(.96,(v.x-MVB.x)/MVB.w));updCurtain();mapMoved=true;return;}
-  if(mapPan){const v=vbOf(e);MVB.x=mapPan.vx-(e.clientX-mapPan.cx)*v.sx;MVB.y=mapPan.vy-(e.clientY-mapPan.cy)*v.sx;clampVB();applyVB();mapMoved=true;return;}
-  const i=findIdx(e);if(i>=0)updateCross(i);});
-$('map').addEventListener('mousedown',e=>{const v=vbOf(e);mapMoved=false;
-  if(nearCurt(v)){mapCurt=true;e.preventDefault();return;}
-  mapPan={cx:e.clientX,cy:e.clientY,vx:MVB.x,vy:MVB.y};e.preventDefault();});
-addEventListener('mouseup',()=>{mapPan=null;mapCurt=false;});
-$('map').addEventListener('mouseleave',()=>{if(!mapPan&&!mapCurt)updateCross(selTurn>=0?TURNS[selTurn].peak:-1);});
-$('map').addEventListener('wheel',e=>{e.preventDefault();const r=$('map').getBoundingClientRect();
-  zoomAt((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height,e.deltaY>0?1.18:1/1.18);},{passive:false});
-$('map').addEventListener('dblclick',e=>{e.preventDefault();resetView();});
-// 觸控:單指=游標/拉簾、雙指=捏合縮放+平移
-$('map').addEventListener('touchstart',e=>{
-  if(e.touches.length>=2){e.preventDefault();const r=$('map').getBoundingClientRect();
-    const[a,b]=[e.touches[0],e.touches[1]];
-    pinch={d:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),mx:(a.clientX+b.clientX)/2,my:(a.clientY+b.clientY)/2,vb:{...MVB},r};return;}
-  const t=e.touches[0],v=vbOf(t);
-  if(nearCurt(v)){e.preventDefault();mapCurt=true;}
-},{passive:false});
-$('map').addEventListener('touchmove',e=>{
-  if(pinch&&e.touches.length>=2){e.preventDefault();const[a,b]=[e.touches[0],e.touches[1]];
-    const d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)||1,mx=(a.clientX+b.clientX)/2,my=(a.clientY+b.clientY)/2;
-    const f=pinch.d/d,w0=pinch.vb.w,sx0=w0/pinch.r.width;
-    const fx=(pinch.mx-pinch.r.left)/pinch.r.width,fy=(pinch.my-pinch.r.top)/pinch.r.height;
-    const vx=pinch.vb.x+fx*w0,vy=pinch.vb.y+fy*w0;
-    MVB.w=Math.max(40,Math.min(600,w0*f));
-    MVB.x=vx-fx*MVB.w-(mx-pinch.mx)*sx0;MVB.y=vy-fy*MVB.w-(my-pinch.my)*sx0;clampVB();applyVB();return;}
-  if(mapCurt&&e.touches.length===1){e.preventDefault();const v=vbOf(e.touches[0]);CURT=Math.max(.04,Math.min(.96,(v.x-MVB.x)/MVB.w));updCurtain();}
-},{passive:false});
-$('map').addEventListener('touchend',e=>{if(pinch&&e.touches.length<2){pinch=null;schedRedraw();}if(e.touches.length===0)mapCurt=false;});
-$('map').addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;playStop();const v=vbOf(e);if(nearCurt(v)||pinch)return;const i=findIdx(e);if(i>=0)updateCross(i);});
-$('map').addEventListener('click',e=>{if(mapMoved){mapMoved=false;return;}const v=vbOf(e);if(nearCurt(v))return;
-  let bi=0,bd=1e9;for(let i=0;i<PTS.length;i++){const dx=PTS[i][0]-v.x,dy=PTS[i][1]-v.y,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;bi=i;}}
-  const ti=TURNS.findIndex(t=>bi>=t.start&&bi<=t.end);$('turnSel').value=ti;selectTurn(ti);});
+function findIdx(e){const r=e.currentTarget.getBoundingClientRect();const mx=(e.clientX-r.left)/r.width*600,my=(e.clientY-r.top)/r.height*600;let bi=-1,bd=1e9;for(let i=0;i<PTS.length;i++){const dx=PTS[i][0]-mx,dy=PTS[i][1]-my,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;bi=i;}}return bd<900?bi:-1;}
+$('map').addEventListener('mousemove',e=>{const i=findIdx(e);if(i>=0)updateCross(i);});
+$('map').addEventListener('mouseleave',()=>updateCross(selTurn>=0?TURNS[selTurn].peak:-1));
+$('map').addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;const i=findIdx(e);if(i>=0)updateCross(i);});
+$('map').addEventListener('click',e=>{const r=e.currentTarget.getBoundingClientRect();const mx=(e.clientX-r.left)/r.width*600,my=(e.clientY-r.top)/r.height*600;let bi=0,bd=1e9;for(let i=0;i<PTS.length;i++){const dx=PTS[i][0]-mx,dy=PTS[i][1]-my,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;bi=i;}}const ti=TURNS.findIndex(t=>bi>=t.start&&bi<=t.end);$('turnSel').value=ti;selectTurn(ti);});
 
 function idxFromX(el,clientX){const r=el.getBoundingClientRect();const fx=Math.max(0,Math.min(1,(clientX-r.left)/r.width));const dvv=VX0+fx*(VX1-VX0);let bi=-1,bd=1e9;for(let i=0;i<DD.length;i++){if(!inWin(i))continue;const d=Math.abs(DD[i]-dvv);if(d<bd){bd=d;bi=i;}}return bi;}
 function distFromX(el,clientX){const r=el.getBoundingClientRect();const fx=Math.max(0,Math.min(1,(clientX-r.left)/r.width));return VX0+fx*(VX1-VX0);}
 
 let ZSEL=false;
 function setZBtn(){const b=$('zselBtn');b.textContent=ZSEL?'🔍 框選中 · 拖出範圍':'🔍 框選縮放';b.style.color=ZSEL?'var(--green)':'var(--cyan)';b.style.borderColor=ZSEL?'var(--green)':'';}
-function zoomTo(a,b){if(b-a<Math.max(8,LEN*0.008))return;playStop();VX0=a;VX1=b;selTurn=-1;$('turnSel').value=-1;drawAll();showTurnStat(-1);updateCross(-1);}
-function zoomReset(){playStop();selTurn=-1;$('turnSel').value=-1;VX0=0;VX1=LEN;drawAll();showTurnStat(-1);updateCross(-1);}
+function zoomTo(a,b){if(b-a<Math.max(8,LEN*0.008))return;VX0=a;VX1=b;selTurn=-1;$('turnSel').value=-1;drawAll();showTurnStat(-1);updateCross(-1);}
+function zoomReset(){selTurn=-1;$('turnSel').value=-1;VX0=0;VX1=LEN;drawAll();showTurnStat(-1);updateCross(-1);}
 $('zselBtn').onclick=()=>{ZSEL=!ZSEL;setZBtn();};
 $('zoomReset').onclick=zoomReset;
-$('playBtn').onclick=playToggle;
-$('playSpd').onclick=()=>{PSI=(PSI+1)%PSPDS.length;$('playSpd').textContent=PSPDS[PSI]+'\u00d7';};
 
 function drawSelRect(el,px0,px1){const r=el.getBoundingClientRect(),W=600,vh=el.viewBox.baseVal.height||130;
   const a=Math.min(px0,px1)/r.width*W,b=Math.max(px0,px1)/r.width*W;
@@ -1151,7 +938,7 @@ function drawSelRect(el,px0,px1){const r=el.getBoundingClientRect(),W=600,vh=el.
 function clearSelRect(){document.querySelectorAll('rect#zoomRect').forEach(n=>n.remove());}
 
 function bindChart(id){const el=$(id);if(!el)return;let sel=null;
-  el.addEventListener('pointerdown',e=>{playStop();try{el.setPointerCapture(e.pointerId);}catch(_){}
+  el.addEventListener('pointerdown',e=>{try{el.setPointerCapture(e.pointerId);}catch(_){}
     if(ZSEL){const r=el.getBoundingClientRect();sel={d0:distFromX(el,e.clientX),px0:e.clientX-r.left,left:r.left};drawSelRect(el,sel.px0,sel.px0);}
     else{const i=idxFromX(el,e.clientX);if(i>=0)updateCross(i);}});
   el.addEventListener('pointermove',e=>{
@@ -1159,7 +946,7 @@ function bindChart(id){const el=$(id);if(!el)return;let sel=null;
     else if(!ZSEL){const i=idxFromX(el,e.clientX);if(i>=0)updateCross(i);}});
   const end=e=>{if(ZSEL&&sel){const d1=distFromX(el,e.clientX);clearSelRect();const a=Math.min(sel.d0,d1),b=Math.max(sel.d0,d1);sel=null;ZSEL=false;setZBtn();zoomTo(a,b);}sel=null;};
   el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);}
-['spd','pedal','hd','thrC','brkC','dlt','gr'].forEach(bindChart);
+['spd','pedal','hd','thrC','brkC','dlt'].forEach(bindChart);
 
 function detectTurns(){TURNS=[];const s=cur.samples;if(!s.some(p=>p.latG!=null))return;
   const TH=0.55,EX=TH*0.5,MINDUR=0.3,MERGE=0.7;let i=0,n=s.length,raw=[];
@@ -1172,44 +959,23 @@ function detectTurns(){TURNS=[];const s=cur.samples;if(!s.some(p=>p.latG!=null))
   TURNS.forEach(t=>t.dir=s[t.peak].latG>0?'右':'左');}
 function fillTurnSel(){$('turnSel').innerHTML='<option value="-1">全圈</option>'+TURNS.map((t,i)=>`<option value="${i}">T${i+1} ${t.dir}</option>`).join('');}
 $('turnSel').onchange=e=>selectTurn(+e.target.value);
-function selectTurn(ti){playStop();selTurn=ti;
+function selectTurn(ti){selTurn=ti;
   if(ti>=0&&TURNS[ti]){const t=TURNS[ti],pad=Math.max(20,(DD[t.end]-DD[t.start])*0.6);VX0=Math.max(0,DD[t.start]-pad);VX1=Math.min(LEN,DD[t.end]+pad);}
   else{VX0=0;VX1=LEN;}
   drawAll();showTurnStat(ti);updateCross(ti>=0&&TURNS[ti]?minSpdIdx(TURNS[ti]):-1);}
 function minSpdIdx(t){let mi=t.start,mv=1e9;for(let i=t.start;i<=t.end;i++)if(cur.samples[i].spd<mv){mv=cur.samples[i].spd;mi=i;}return mi;}
 
-function statOf(s,dd,a,b){
-  let mnS=1e9,mxL=0,mi=a;
-  for(let i=a;i<=b;i++){if(s[i].spd<mnS){mnS=s[i].spd;mi=i;}if(s[i].latG!=null)mxL=Math.max(mxL,Math.abs(s[i].latG));}
-  // 煞車點:從彎前回溯,找第一個煞車踩過 50% 的上升點(單圈距離)
-  const pad=Math.min(150,(dd[b]-dd[a])*1.2+40);
-  let i0=a;while(i0>0&&dd[a]-dd[i0]<pad)i0--;
-  let bi=-1;for(let i=Math.max(1,i0);i<=b;i++){if(s[i].brk>50&&s[i-1].brk<=50){bi=i;break;}}
-  // 回油點:最低速之後第一個油門 >90%
-  let ti2=-1;const lim=Math.min(s.length-1,b+Math.round((b-a)*0.5));
-  for(let i=mi;i<=lim;i++){if(s[i].thr>90){ti2=i;break;}}
-  return{mnS,mxL,sS:s[a].spd,eS:s[b].spd,t0:s[a].t,t1:s[b].t,brakeD:bi>=0?dd[bi]:null,thrD:ti2>=0?dd[ti2]:null};}
-function statHTML(lbl,t,ti,a,c){
-  const dmin=c?c.dmin:null;
-  let h=`<span>${lbl}</span><b>T${ti+1} ${t.dir}彎</b><span>最低速度</span><b>${Math.round(a.mnS)} km/h${dmin!=null?` <span style="color:${dmin<0?'var(--red)':'var(--green)'}">(${dmin>=0?'+':''}${Math.round(dmin)})</span>`:''}</b><span>進彎 → 出彎</span><b>${Math.round(a.sS)} → ${Math.round(a.eS)}</b>`;
-  if(a.brakeD!=null){h+=`<span>煞車點</span><b>${Math.round(a.brakeD)}m`;
-    if(c&&c.dBrake!=null)h+=` <span style="color:var(--gold)">(${c.dBrake>=0?'晚':'早'} ${Math.abs(c.dBrake).toFixed(0)}m)</span>`;h+='</b>';}
-  if(a.thrD!=null){h+=`<span>回油點</span><b>${Math.round(a.thrD)}m`;
-    if(c&&c.dThr!=null)h+=` <span style="color:${c.dThr>0?'var(--red)':'var(--green)'}">(${c.dThr>=0?'晚':'早'} ${Math.abs(c.dThr).toFixed(0)}m)</span>`;h+='</b>';}
-  h+=(a.mxL?`<span>最大橫向G</span><b>${a.mxL.toFixed(2)}</b>`:'')+`<span>區間</span><b>${a.t0.toFixed(1)}–${a.t1.toFixed(1)}s</b>`;
-  return h;}
+function statOf(s,a,b){let mnS=1e9,mxL=0;for(let i=a;i<=b;i++){mnS=Math.min(mnS,s[i].spd);if(s[i].latG!=null)mxL=Math.max(mxL,Math.abs(s[i].latG));}return{mnS,mxL,sS:s[a].spd,eS:s[b].spd,t0:s[a].t,t1:s[b].t};}
+function statHTML(lbl,t,ti,a,dmin){return `<span>${lbl}</span><b>T${ti+1} ${t.dir}彎</b><span>最低速度</span><b>${Math.round(a.mnS)} km/h${dmin!=null?` <span style="color:${dmin<0?'var(--red)':'var(--green)'}">(${dmin>=0?'+':''}${Math.round(dmin)})</span>`:''}</b><span>進彎 → 出彎</span><b>${Math.round(a.sS)} → ${Math.round(a.eS)}</b>`+(a.mxL?`<span>最大橫向G</span><b>${a.mxL.toFixed(2)}</b>`:'')+`<span>區間</span><b>${a.t0.toFixed(1)}–${a.t1.toFixed(1)}s</b>`;}
 function showTurnStat(ti){
   if(ti<0||!TURNS[ti]){$('turnStat').innerHTML='<span>選一個彎角看細節(會同步更新所有圖)</span><span></span>';if($('turnStatR'))$('turnStatR').innerHTML='<span></span><span></span>';return;}
-  const t=TURNS[ti],a=statOf(cur.samples,DD,t.start,t.end);
-  let cmpS=null;
+  const t=TURNS[ti],a=statOf(cur.samples,t.start,t.end);
+  $('turnStat').innerHTML=statHTML(CMP?'你 · 彎角':'彎角',t,ti,a,null);
+  const _cn=coachFor(t);
+  if(_cn)$('turnStat').innerHTML+=`<span style="grid-column:1/-1;margin-top:.5rem;color:var(--gold);font-weight:700">📋 教練註記 ${_cn.turn||''}${_cn.loss?' · 丟 '+_cn.loss.toFixed(2)+'s':''}</span><span style="grid-column:1/-1;color:#e8ecf1;font-weight:400;line-height:1.45">${_cn.note}</span>`;
   if(CMP&&ref&&$('turnStatR')){const r=refRange();
-    if(r){const b=statOf(ref.samples,refDD,r[0],r[1]);
-      cmpS={dmin:a.mnS-b.mnS,
-        dBrake:(a.brakeD!=null&&b.brakeD!=null)?a.brakeD-b.brakeD:null,
-        dThr:(a.thrD!=null&&b.thrD!=null)?a.thrD-b.thrD:null};
-      $('turnStatR').innerHTML=statHTML('對照 · 彎角',t,ti,b,null);}
-    else $('turnStatR').innerHTML='<span>對照</span><b>此距離無對應資料</b>';}
-  $('turnStat').innerHTML=statHTML(CMP?'你 · 彎角':'彎角',t,ti,a,cmpS);}
+    if(r){const b=statOf(ref.samples,r[0],r[1]);$('turnStatR').innerHTML=statHTML('對照 · 彎角',t,ti,b,a.mnS-b.mnS);}
+    else $('turnStatR').innerHTML='<span>對照</span><b>此距離無對應資料</b>';}}
 
 // —— 折線圖手風琴(全尺寸:點標題開合;寬螢幕展開超過地圖高度自動收最上面)——
 let lastOpened=null,drag=null;
@@ -1273,4 +1039,5 @@ const _qp=new URLSearchParams(location.search),_src=_qp.get('src'),_ref=_qp.get(
 function _loadRefUrl(){if(_ref)fetch(_ref).then(r=>{if(!r.ok)throw 0;return r.text();}).then(t=>loadRef(t,_ref)).catch(()=>{});}
 if(_src){fetch(_src).then(r=>{if(!r.ok)throw 0;return r.text();}).then(t=>{loadText(t,_src);_loadRefUrl();}).catch(()=>{$('meta').innerHTML=`<span class="warn">讀不到 ${_src} — 顯示內建範例</span>`;loadText(DEMO_CSV,'範例');_loadRefUrl();});}
 else{loadText(DEMO_CSV,'範例');_loadRefUrl();}
+fetch('./data.json').then(r=>r.ok?r.json():null).then(j=>{if(j&&j.meta&&j.meta.coachNotes){ALLCOACH=j.meta.coachNotes;if(selTurn>=0)showTurnStat(selTurn);}}).catch(()=>{});
 </script></body></html>
