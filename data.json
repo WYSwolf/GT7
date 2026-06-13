@@ -166,7 +166,8 @@
             "date": "2026-06-13",
             "pb": 112.366
           }
-        ]
+        ],
+        "endDate": "2026-06-18"
       }
     },
     "sectorCalibration": {
@@ -263,51 +264,31 @@
   },
   "goals": [
     {
-      "track": "拉古納塞卡",
-      "car": "911 GT3 R (992) '22 · Gr.3",
+      "track": "深林賽道 逆向",
+      "trackKey": "deepforest",
+      "car": "Toyota 86 GRMN '16",
       "priority": "primary",
+      "eventEnd": "2026-06-18",
+      "eventLabel": "Time Trial #580",
+      "baseline": 113.015,
       "items": [
         {
-          "period": "短期 · 1 週",
-          "target": 81.5,
-          "displayTarget": "1:21.500",
-          "desc": "PB 推進到 1:21.645,離 1:21.500 只剩 0.145 秒。理論最佳 ~1:21.18。",
-          "progress": 92
+          "label": "🎯 主要",
+          "target": 112.0,
+          "displayTarget": "Sub 1:52.0",
+          "desc": "擠進全球前 1000(門檻 1:52.002),現在差 0.37s"
         },
         {
-          "period": "中期 · 1 個月",
-          "target": 81.0,
-          "displayTarget": "1:21.000",
-          "desc": "PB 1:21.645,進入 1:21 中段。對比 1:19.502 參考圈,用遙測找 Corkscrew 的差距。",
-          "progress": 55
+          "label": "🚀 進階",
+          "target": 111.5,
+          "displayTarget": "Sub 1:51.5",
+          "desc": "約全球前 ~350、台灣前 10 射程"
         },
         {
-          "period": "長期 · 3 個月",
-          "target": 1.0,
-          "displayTarget": "≤ 1.0s",
-          "desc": "6/3 場次二有效圈一致性 0.272s(9 圈),多場已穩定 <1.0s。目標達成,現在是把這穩定度套到衝 PB 的圈。",
-          "progress": 85
-        }
-      ]
-    },
-    {
-      "track": "沃特金斯峽谷",
-      "car": "BMW M6 GT3",
-      "priority": "secondary",
-      "items": [
-        {
-          "period": "短期 · 1 週",
-          "target": 106.0,
-          "displayTarget": "1:46.000",
-          "desc": "PB 進入 1:46 內。重點在 S2 區段穩定性。",
-          "progress": 60
-        },
-        {
-          "period": "中期 · 1 個月",
-          "target": 105.5,
-          "displayTarget": "1:45.500",
-          "desc": "突破到 1:45 區間。",
-          "progress": 22
+          "label": "🏁 衝刺",
+          "target": 111.17,
+          "displayTarget": "Sub 1:51.17",
+          "desc": "全球前 100 門檻(大挑戰)"
         }
       ]
     }

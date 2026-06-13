@@ -544,26 +544,8 @@
   }
   .data-table tr:hover td { background: var(--bg-elevated); }
   .data-table .best { color: var(--accent); font-weight: 700; }
-  .data-table .sbest { color: var(--purple); font-weight: 700; }   /* 全期最佳 = 紫(F1 計時慣例) */
   .data-table .bad { color: var(--danger); }
   .data-table .invalid { color: var(--text-dim); }
-
-  .kpi-spark { display: block; width: 100%; height: 28px; margin-top: 0.6rem; opacity: 0.9; }
-
-  .track-outline {
-    position: absolute;
-    right: 12px;
-    top: 10px;
-    bottom: 10px;
-    width: 40%;
-    opacity: 0.45;
-    pointer-events: none;
-    z-index: 0;
-  }
-  .track-outline path { fill: none; stroke: var(--line-bright); stroke-width: 3; stroke-linejoin: round; transition: stroke 0.25s; }
-  .track-outline .sf { fill: var(--accent); }
-  .track-card:hover .track-outline path { stroke: var(--accent-dim); }
-  .track-card > *:not(.track-outline) { position: relative; z-index: 1; }
 
   .table-wrap { max-height: 600px; overflow-y: auto; }
 
@@ -842,16 +824,6 @@
       <div class="page-subtitle">全部訓練資料整合視圖</div>
     </div>
 
-    <div class="kpi-grid" id="dashboardKPIs"></div>
-
-    <div class="panel" id="eventResultsPanel">
-      <div class="panel-header">
-        <div class="panel-title">🏁 線上事件成績</div>
-        <div class="panel-meta">推估名次 · dg-edge</div>
-      </div>
-      <div class="panel-body" id="eventResultsBody"></div>
-    </div>
-
     <div class="grid-2">
       <div class="panel">
         <div class="panel-header">
@@ -874,7 +846,7 @@
     <div class="panel" id="pbProgressionPanel">
       <div class="panel-header">
         <div class="panel-title">PB 進步軌跡</div>
-        <div class="panel-meta">每場最佳圈速 · 越低越好</div>
+        <div class="panel-meta">每場最佳 vs 世界紀錄差距% · 越低越好</div>
       </div>
       <div class="panel-body"><div class="chart-wrap"><canvas id="pbProgressionChart"></canvas></div></div>
     </div>
@@ -903,7 +875,7 @@
     <div class="page-header">
       <div class="breadcrumb">SYSTEM <span class="sep">/</span> <span class="current">目標管理</span></div>
       <h1 class="page-title">TRAINING <span class="accent">GOALS</span></h1>
-      <div class="page-subtitle">短期、中期、長期目標追蹤</div>
+      <div class="page-subtitle">線上活動截止前的目標 · 依目前 PB 自動追蹤達成</div>
     </div>
     <div id="goalsContainer"></div>
   </div>
@@ -1068,46 +1040,6 @@ function getConsistencyGrade(c) {
   return { label: '需加強', color: 'var(--danger)' };
 }
 const SESSION_COLORS = { A: '#5b9bd5', B: '#ed7d31', C: '#70ad47', D: '#ffc000', E: '#9f70d8' };
-
-// ===== 視覺工具:KPI sparkline 與賽道輪廓 =====
-function sparkLine(vals, color, h = 28) {
-  const v = vals.filter(x => x != null && !isNaN(x));
-  if (v.length < 2) return '';
-  const mn = Math.min(...v), mx = Math.max(...v), sp = (mx - mn) || 1, W = 100;
-  const pts = v.map((x, i) => [i / (v.length - 1) * W, h - 3 - ((x - mn) / sp) * (h - 6)]);
-  const d = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('');
-  const last = pts[pts.length - 1];
-  return `<svg class="kpi-spark" viewBox="0 0 ${W} ${h}" preserveAspectRatio="none">
-    <path d="${d}" fill="none" stroke="${color}" stroke-width="1.6" opacity="0.85"/>
-    <circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="2.4" fill="${color}"/></svg>`;
-}
-function sparkBars(vals, color, h = 28) {
-  const v = vals.filter(x => x != null && !isNaN(x));
-  if (v.length < 2) return '';
-  const mx = Math.max(...v) || 1, W = 100, gap = 1.5, bw = Math.max(1, W / v.length - gap);
-  const bars = v.map((x, i) => {
-    const bh = Math.max(1.5, x / mx * (h - 4));
-    return `<rect x="${(i * (W / v.length)).toFixed(1)}" y="${(h - bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="${color}" opacity="${i === v.length - 1 ? 0.95 : 0.45}"/>`;
-  }).join('');
-  return `<svg class="kpi-spark" viewBox="0 0 ${W} ${h}" preserveAspectRatio="none">${bars}</svg>`;
-}
-
-// 賽道輪廓:由實際遙測 CSV 的 x/z 座標降採樣而來(正規化 0..1),非手繪示意圖
-const TRACK_OUTLINES = {
-  deepforest: [[0.682,0.998],[0.648,0.998],[0.616,0.998],[0.581,0.998],[0.549,0.999],[0.513,1.0],[0.477,1.0],[0.44,1.0],[0.405,0.998],[0.369,0.991],[0.333,0.978],[0.3,0.96],[0.27,0.936],[0.245,0.909],[0.221,0.88],[0.199,0.848],[0.18,0.817],[0.162,0.784],[0.142,0.755],[0.12,0.733],[0.095,0.716],[0.065,0.702],[0.041,0.695],[0.022,0.689],[0.009,0.683],[0.001,0.674],[0.001,0.664],[0.007,0.657],[0.017,0.652],[0.03,0.65],[0.046,0.65],[0.064,0.652],[0.083,0.653],[0.107,0.655],[0.131,0.657],[0.156,0.658],[0.182,0.66],[0.209,0.661],[0.237,0.661],[0.266,0.662],[0.297,0.663],[0.328,0.664],[0.362,0.664],[0.395,0.664],[0.428,0.663],[0.46,0.661],[0.495,0.659],[0.529,0.654],[0.564,0.65],[0.6,0.647],[0.637,0.646],[0.675,0.648],[0.715,0.655],[0.754,0.661],[0.792,0.664],[0.824,0.665],[0.849,0.666],[0.87,0.666],[0.886,0.67],[0.898,0.679],[0.905,0.691],[0.906,0.707],[0.903,0.723],[0.898,0.742],[0.89,0.763],[0.877,0.784],[0.862,0.801],[0.842,0.814],[0.82,0.819],[0.798,0.819],[0.774,0.814],[0.75,0.809],[0.724,0.806],[0.698,0.8],[0.671,0.789],[0.648,0.773],[0.632,0.758],[0.618,0.746],[0.605,0.742],[0.591,0.743],[0.576,0.75],[0.565,0.763],[0.558,0.779],[0.556,0.798],[0.557,0.82],[0.56,0.842],[0.565,0.86],[0.575,0.873],[0.589,0.88],[0.605,0.881],[0.624,0.878],[0.644,0.879],[0.663,0.886],[0.682,0.897],[0.702,0.911],[0.725,0.92],[0.75,0.923],[0.776,0.92],[0.801,0.912],[0.827,0.906],[0.856,0.903],[0.888,0.904],[0.919,0.908],[0.947,0.912],[0.97,0.919],[0.987,0.929],[0.997,0.942],[1.0,0.956],[0.997,0.971],[0.988,0.983],[0.973,0.992],[0.956,0.997],[0.936,0.999],[0.915,0.999],[0.892,0.999],[0.868,0.999],[0.843,0.998],[0.816,0.998],[0.789,0.998],[0.76,0.998],[0.731,0.998],[0.698,0.998],[0.683,0.998]],
-  laguna: [[0.892,0.752],[0.912,0.72],[0.929,0.684],[0.946,0.648],[0.963,0.609],[0.979,0.569],[0.991,0.529],[0.997,0.485],[1,0.441],[1,0.398],[0.999,0.365],[0.995,0.338],[0.988,0.318],[0.977,0.304],[0.962,0.296],[0.947,0.296],[0.933,0.302],[0.922,0.314],[0.915,0.332],[0.914,0.353],[0.918,0.375],[0.923,0.398],[0.929,0.427],[0.934,0.455],[0.936,0.486],[0.934,0.515],[0.93,0.536],[0.919,0.554],[0.905,0.566],[0.888,0.575],[0.868,0.579],[0.845,0.58],[0.821,0.574],[0.797,0.568],[0.767,0.561],[0.736,0.554],[0.705,0.546],[0.678,0.536],[0.656,0.521],[0.64,0.501],[0.629,0.476],[0.622,0.448],[0.619,0.417],[0.619,0.383],[0.62,0.349],[0.624,0.313],[0.631,0.276],[0.641,0.239],[0.652,0.201],[0.663,0.162],[0.674,0.123],[0.682,0.091],[0.684,0.064],[0.68,0.043],[0.67,0.024],[0.654,0.012],[0.632,0.003],[0.608,0],[0.581,0.001],[0.551,0.005],[0.522,0.01],[0.488,0.016],[0.456,0.022],[0.42,0.027],[0.383,0.032],[0.346,0.039],[0.311,0.046],[0.28,0.058],[0.255,0.079],[0.238,0.103],[0.227,0.132],[0.219,0.164],[0.216,0.199],[0.214,0.234],[0.213,0.27],[0.212,0.308],[0.211,0.346],[0.211,0.383],[0.209,0.422],[0.205,0.46],[0.201,0.497],[0.197,0.528],[0.195,0.551],[0.196,0.569],[0.202,0.579],[0.211,0.585],[0.222,0.588],[0.235,0.594],[0.242,0.608],[0.246,0.626],[0.247,0.65],[0.244,0.675],[0.241,0.703],[0.244,0.731],[0.252,0.757],[0.268,0.78],[0.291,0.796],[0.318,0.805],[0.373,0.805],[0.422,0.786],[0.456,0.769],[0.487,0.761],[0.511,0.757],[0.535,0.759],[0.557,0.766],[0.575,0.782],[0.588,0.804],[0.6,0.828],[0.611,0.855],[0.624,0.885],[0.638,0.915],[0.652,0.945],[0.664,0.969],[0.674,0.986],[0.685,0.996],[0.699,1],[0.713,0.997],[0.725,0.988],[0.738,0.974],[0.751,0.957],[0.767,0.937],[0.782,0.915],[0.799,0.891],[0.816,0.865],[0.835,0.839],[0.854,0.811],[0.873,0.781],[0.888,0.757]]
-};
-function outlineSVG(trackKey) {
-  const o = TRACK_OUTLINES[trackKey];
-  if (!o) return '';
-  const d = o.map((p, i) => (i ? 'L' : 'M') + (p[0] * 100).toFixed(1) + ' ' + (p[1] * 100).toFixed(1)).join('') + 'Z';
-  return `<svg class="track-outline" viewBox="-5 -5 110 110" preserveAspectRatio="xMidYMid meet">
-    <path d="${d}"/><circle class="sf" cx="${(o[0][0] * 100).toFixed(1)}" cy="${(o[0][1] * 100).toFixed(1)}" r="3"/></svg>`;
-}
-// 依時間順序排序 session(日期 → 場次字母)
-function chronoSessions(list) {
-  return [...list].sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.session || '').localeCompare(b.session || ''));
-}
 
 //=====================================
 // AUTO FETCH DATA
@@ -1277,7 +1209,6 @@ function estimatePlacement(pb, lb) {
   A.push([m.platinum, plat]);
   if (lb.top100 != null) A.push([lb.top100, 100 / total * 100]);
   if (lb.top1000 != null) A.push([lb.top1000, 1000 / total * 100]);
-  if (lb.top10000 != null) A.push([lb.top10000, 10000 / total * 100]);
   A.push([m.gold, gold]); A.push([m.silver, sil]); A.push([m.bronze, bro]);
   A.push([m.bronze * 1.3, 100]);
   A.sort((a, b) => a[0] - b[0]);
@@ -1448,47 +1379,51 @@ function buildDashboard() {
 
   let refKPI = '';
   const dashRef = getCarReference(carSlug(overallPB.car)) || (DATA.meta && DATA.meta.reference) || null;
-  const pbCarKey = carSlug(overallPB.car);
-  const pbCarSessions = chronoSessions(DATA.sessions.filter(s => carSlug(s.car) === pbCarKey));
   if (dashRef) {
     const ref = dashRef;
     const gapPct = (overallPB.time - ref.time) / ref.time * 100;
     const gapSec = overallPB.time - ref.time;
-    const gapTrend = pbCarSessions.map(s => (s.best - ref.time) / ref.time * 100);
     refKPI = `
     <div class="kpi" style="--kpi-color: var(--danger);">
       <div class="kpi-label">與${ref.label}差距</div>
       <div class="kpi-value">+${gapPct.toFixed(2)}<span style="font-size:1rem;color:var(--text-secondary);">%</span></div>
       <div class="kpi-meta">參考 ${ref.displayTime} · 落後 ${gapSec.toFixed(3)}s</div>
-      ${sparkLine(gapTrend, '#ff4757')}
     </div>`;
   }
-  const allChrono = chronoSessions(DATA.sessions);
-  document.getElementById('dashboardKPIs').innerHTML = `
+  const _kpiEl = document.getElementById('dashboardKPIs'); if (_kpiEl) _kpiEl.innerHTML = `
     <div class="kpi" style="--kpi-color: var(--accent);">
       <div class="kpi-label">總訓練圈數</div>
       <div class="kpi-value">${totalLaps}</div>
       <div class="kpi-meta">${trackList.map(g => `${g.track.substring(0,3)} ${g.totalLaps}`).join(' · ')}</div>
-      ${sparkBars(allChrono.map(s => s.totalLaps), '#00ff88')}
     </div>
     <div class="kpi" style="--kpi-color: var(--gold);">
       <div class="kpi-label">最快圈速</div>
       <div class="kpi-value">${fmtTime(overallPB.time)}</div>
       <div class="kpi-meta">${overallPB.track}</div>
-      ${sparkLine(pbCarSessions.map(s => s.best), '#ffd43b')}
     </div>
     ${refKPI}
     <div class="kpi" style="--kpi-color: var(--purple);">
       <div class="kpi-label">最佳一致性</div>
       <div class="kpi-value">${bestConsistency.toFixed(2)}<span style="font-size:1rem;color:var(--text-secondary);">s</span></div>
       <div class="kpi-meta">${bestConsistencySession?.track || ''} ${bestConsistencySession?.session ? 'Session ' + bestConsistencySession.session : ''}</div>
-      ${sparkLine(allChrono.map(s => s.avg - s.best), '#c266ff')}
     </div>
   `;
 
-  document.getElementById('dashboardTrackList').innerHTML = trackList.map(g => `
+  const _lbs = (DATA.meta && DATA.meta.leaderboards) || {};
+  document.getElementById('dashboardTrackList').innerHTML = trackList.map(g => {
+    const lbKey = Object.keys(_lbs).find(k => k.split('__')[0] === g.key);
+    const lb = lbKey ? _lbs[lbKey] : null;
+    const st = lb ? eventStatus(lb) : { ended: false };
+    const place = lb ? getPlacement(lb, st, g.pb) : null;
+    const medal = lb ? ((st.ended && lb.final && lb.final.medal) ? medalLabel(lb.final.medal) : medalOf(g.pb, lb)) : null;
+    const evRow = lb ? `
+      <div style="display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;margin-top:.7rem;padding-top:.6rem;border-top:1px solid #1a2028;font-size:.74rem;">
+        <span style="color:${st.ended ? 'var(--text-secondary)' : 'var(--accent)'};font-weight:600;">${st.ended ? '■ 已結束' : '● 進行中'}${lb.endDate ? ' · ' + (st.ended ? '結束 ' : '截止 ') + lb.endDate : ''}</span>
+        ${medal ? `<span style="color:${medal.c};font-weight:600;">${medal.n}</span>` : ''}
+        ${place ? `<span style="margin-left:auto;font-family:'Bebas Neue',sans-serif;color:#fff;font-size:1.1rem;line-height:1;">${place.kind === 'actual' ? '#' : '≈#'}${place.rank.toLocaleString()}</span><span style="color:#5b6675;font-size:.7rem;">前 ${place.pct}%</span>` : ''}
+      </div>` : '';
+    return `
     <div class="track-card" onclick="navigateTo('track-${g.key}')">
-      ${outlineSVG(g.key)}
       <div class="track-card-name">${g.track}</div>
       <div class="track-card-meta">${g.trackEn} ${g.route ? '· ' + g.route : ''} · ${g.car}</div>
       <div class="track-stats-row">
@@ -1496,8 +1431,9 @@ function buildDashboard() {
         <div><div class="track-stat-label">OPT</div><div class="track-stat-value" style="color: var(--purple);">${fmtTime(g.opt)}</div></div>
         <div><div class="track-stat-label">圈數</div><div class="track-stat-value">${g.totalLaps}</div></div>
       </div>
-    </div>
-  `).join('');
+      ${evRow}
+    </div>`;
+  }).join('');
 
   const sortedSessions = [...DATA.sessions].sort((a, b) => b.date.localeCompare(a.date));
   const latestWithInsights = sortedSessions.find(s => s.insights && s.insights.length > 0);
@@ -1555,7 +1491,9 @@ function buildPBProgression() {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
       return (a.session || '').localeCompare(b.session || '');
     });
-    const pts = sorted.map(s => s.best);
+    const wr = (getCarReference(g.carKey) || {}).time;
+    if (!wr) return;
+    const pts = sorted.map(s => +(((s.best - wr) / wr) * 100).toFixed(3));
     const labels = sorted.map(s => {
       const d = s.date ? s.date.slice(5).replace('-', '/') : '';
       return d + (s.session ? ' ' + s.session : '');
@@ -1588,11 +1526,8 @@ function buildPBProgression() {
             label: ctx => {
               const ds = ctx.dataset;
               const s = ds._sorted ? ds._sorted[ctx.dataIndex] : null;
-              let line = `${ds.label}: ${fmtTime(ctx.parsed.y)}${s && s.sessionLabel ? ' (' + s.sessionLabel + ')' : ''}`;
-              if (DATA.meta && DATA.meta.reference) {
-                const pct = (ctx.parsed.y - DATA.meta.reference.time) / DATA.meta.reference.time * 100;
-                line += ` · 與參考 +${pct.toFixed(2)}%`;
-              }
+              let line = `${ds.label}: +${ctx.parsed.y.toFixed(2)}% vs WR`;
+              if (s) line += ` · ${fmtTime(s.best)}${s.sessionLabel ? ' (' + s.sessionLabel + ')' : ''}`;
               return line;
             }
           }
@@ -1600,7 +1535,7 @@ function buildPBProgression() {
       },
       scales: {
         x: { grid: { display: false }, ticks: { color: '#8b96a8', font: { size: 10 } } },
-        y: { grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => fmtTime(v) } }
+        y: { grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => '+' + v.toFixed(1) + '%' }, title: { display: true, text: '與 WR 差距 %（越低越接近世界紀錄）', color: '#8b96a8', font: { size: 11 } } }
       }
     }
   });
@@ -1615,7 +1550,6 @@ function buildTracks() {
       const lb = getLeaderboard(g.key);
       return `
       <div class="track-card" onclick="navigateTo('track-${g.key}')">
-        ${outlineSVG(g.key)}
         <div style="margin-bottom:.5rem;"><span class="badge" style="background:${m.color};color:#0a0d12;font-weight:700;">${m.icon} ${m.short}</span></div>
         <div class="track-card-name">${g.track}</div>
         <div class="track-card-meta">${g.trackEn} ${g.route ? '· ' + g.route : ''} · ${g.car}</div>
@@ -1843,7 +1777,7 @@ function renderCarSection(g) {
       <div class="panel-body"><div class="chart-wrap tall"><canvas id="stackChart-${g.key}"></canvas></div></div>
     </div>
     <div class="panel">
-      <div class="panel-header"><div class="panel-title">逐圈詳細數據</div><div class="panel-meta">${g.totalLaps} LAPS · <span style="color:var(--purple);font-weight:700;">■ 全期最佳</span> <span style="color:var(--accent);font-weight:700;">■ 該場最佳</span></div></div>
+      <div class="panel-header"><div class="panel-title">逐圈詳細數據</div><div class="panel-meta">${g.totalLaps} LAPS</div></div>
       <div class="panel-body" style="padding: 0;">
         <div class="table-wrap">
           <table class="data-table">
@@ -2064,46 +1998,32 @@ function renderCarCharts(g) {
   });
 
   const body = document.getElementById('tableBody-' + g.key);
-  // F1 計時慣例:紫 = 全期最佳分段(sbest)、綠 = 該場 session 最佳(best)
-  const sessBest = {};
-  g.sessions.forEach(s => {
-    sessBest[s.session || '_'] = {
-      s1: Math.min(...s.laps.map(l => l.s1)),
-      s2: Math.min(...s.laps.map(l => l.s2)),
-      s3: Math.min(...s.laps.map(l => l.s3)),
-      s4: Math.min(...s.laps.map(l => l.s4 || 0)),
-      total: Math.min(...s.laps.filter(l => !l.invalid).map(l => l.total))
-    };
-  });
-  const secCls = (val, allBest, sb) => val === allBest ? 'sbest' : (val === sb ? 'best' : '');
   if (g.sectorCount === 4) {
     body.innerHTML = allLaps.map(l => {
-      const sb = sessBest[l.session || '_'] || {};
       const isPB = l.total === g.pb;
       const noteClass = l.note.includes('⚠') ? 'bad' : (l.note.includes('★') ? 'best' : '');
       return `<tr>
         <td>${l.lap}</td>
-        <td class="${secCls(l.s1, g.sectorBest.s1, sb.s1)}">${l.s1.toFixed(3)}</td>
-        <td class="${secCls(l.s2, g.sectorBest.s2, sb.s2)}">${l.s2.toFixed(3)}</td>
-        <td class="${secCls(l.s3, g.sectorBest.s3, sb.s3)}">${l.s3.toFixed(3)}</td>
-        <td class="${secCls(l.s4 || 0, g.sectorBest.s4, sb.s4)}">${(l.s4 || 0).toFixed(3)}</td>
-        <td class="${isPB ? 'sbest' : (l.total === sb.total ? 'best' : (l.invalid ? 'invalid' : ''))}">${fmtTime(l.total)}${l.invalid ? '*' : ''}</td>
+        <td class="${l.s1 === g.sectorBest.s1 ? 'best' : ''}">${l.s1.toFixed(3)}</td>
+        <td class="${l.s2 === g.sectorBest.s2 ? 'best' : ''}">${l.s2.toFixed(3)}</td>
+        <td class="${l.s3 === g.sectorBest.s3 ? 'best' : ''}">${l.s3.toFixed(3)}</td>
+        <td class="${l.s4 === g.sectorBest.s4 ? 'best' : ''}">${(l.s4 || 0).toFixed(3)}</td>
+        <td class="${isPB ? 'best' : (l.invalid ? 'invalid' : '')}">${fmtTime(l.total)}${l.invalid ? '*' : ''}</td>
         <td class="${noteClass}">${l.note}</td>
       </tr>`;
     }).join('');
   } else {
     body.innerHTML = allLaps.map(l => {
-      const sb = sessBest[l.session || '_'] || {};
       const isPB = l.total === g.pb;
       const noteClass = l.note.includes('⚠') ? 'bad' : (l.note.includes('★') ? 'best' : '');
       const sessionColor = l.session ? SESSION_COLORS[l.session] : 'var(--text-secondary)';
       return `<tr>
         <td>${l.session ? `<span class="badge" style="color:${sessionColor};border-color:${sessionColor};">${l.session}</span>` : ''}</td>
         <td>${l.lap}</td>
-        <td class="${secCls(l.s1, g.sectorBest.s1, sb.s1)}">${l.s1.toFixed(3)}</td>
-        <td class="${secCls(l.s2, g.sectorBest.s2, sb.s2)}">${l.s2.toFixed(3)}</td>
-        <td class="${secCls(l.s3, g.sectorBest.s3, sb.s3)}">${l.s3.toFixed(3)}</td>
-        <td class="${isPB ? 'sbest' : (l.total === sb.total ? 'best' : (l.invalid ? 'invalid' : ''))}">${fmtTime(l.total)}${l.invalid ? '*' : ''}</td>
+        <td class="${l.s1 === g.sectorBest.s1 ? 'best' : ''}">${l.s1.toFixed(3)}</td>
+        <td class="${l.s2 === g.sectorBest.s2 ? 'best' : ''}">${l.s2.toFixed(3)}</td>
+        <td class="${l.s3 === g.sectorBest.s3 ? 'best' : ''}">${l.s3.toFixed(3)}</td>
+        <td class="${isPB ? 'best' : (l.invalid ? 'invalid' : '')}">${fmtTime(l.total)}${l.invalid ? '*' : ''}</td>
         <td class="${noteClass}">${l.note}</td>
       </tr>`;
     }).join('');
@@ -2111,28 +2031,49 @@ function renderCarCharts(g) {
 }
 
 function buildGoals() {
+  const cont = document.getElementById('goalsContainer');
   if (!DATA.goals || DATA.goals.length === 0) {
-    document.getElementById('goalsContainer').innerHTML = '<div class="panel"><div class="panel-body" style="color: var(--text-dim); text-align: center;">尚未設定目標</div></div>';
+    cont.innerHTML = '<div class="panel"><div class="panel-body" style="color: var(--text-dim); text-align: center;">尚未設定目標</div></div>';
     return;
   }
-  const goalsHTML = DATA.goals.map(goalGroup => `
+  const groups = getTrackGroups();
+  const today = (DATA.meta && DATA.meta.lastUpdated) || new Date().toISOString().slice(0, 10);
+  const daysLeft = end => end ? Math.ceil((new Date(end + 'T23:59:59') - new Date(today + 'T00:00:00')) / 86400000) : null;
+  const goalsHTML = DATA.goals.map(gg => {
+    const cur = (groups[gg.trackKey] || {}).pb;
+    const base = gg.baseline != null ? gg.baseline : cur;
+    const dl = daysLeft(gg.eventEnd);
+    const done = gg.items.filter(it => cur != null && cur <= it.target).length;
+    const rows = gg.items.map(it => {
+      const achieved = cur != null && cur <= it.target;
+      const remain = cur != null ? cur - it.target : null;
+      let prog = achieved ? 100 : ((base != null && base > it.target && cur != null) ? Math.max(0, Math.min(100, (base - cur) / (base - it.target) * 100)) : 0);
+      return `
+          <div class="goal-row">
+            <div class="goal-period">${achieved ? '✓ ' : '○ '}${it.label}</div>
+            <div class="goal-target"${achieved ? ' style="color:var(--accent);"' : ''}>${it.displayTarget}</div>
+            <div class="goal-desc">${it.desc}${achieved ? ' <span style="color:var(--accent);">· 已達成</span>' : (remain != null ? ` <span style="color:var(--gold);">· 還差 ${remain.toFixed(3)}s</span>` : '')}</div>
+            <div class="goal-progress"><div class="goal-bar" style="width: ${prog.toFixed(0)}%;${achieved ? 'background:var(--accent);' : ''}"></div></div>
+          </div>`;
+    }).join('');
+    const dlBadge = gg.eventEnd ? (dl != null && dl >= 0
+      ? `<span style="color:${dl <= 3 ? 'var(--danger)' : 'var(--gold)'};">⏳ 距 ${gg.eventEnd} 截止剩 ${dl} 天</span>`
+      : `<span style="color:var(--text-secondary);">■ 活動已結束（${gg.eventEnd}）</span>`) : '';
+    return `
     <div class="panel">
       <div class="panel-header">
-        <div class="panel-title">${goalGroup.track}</div>
-        <div class="panel-meta">${goalGroup.car}${goalGroup.priority === 'primary' ? ' · 主要追蹤' : ' · 次要追蹤'}</div>
+        <div class="panel-title">${gg.track}</div>
+        <div class="panel-meta">${gg.car} · 達成 ${done}/${gg.items.length}</div>
       </div>
       <div class="panel-body">
-        ${goalGroup.items.map(g => `
-          <div class="goal-row">
-            <div class="goal-period">${g.period}</div>
-            <div class="goal-target">${g.displayTarget}</div>
-            <div class="goal-desc">${g.desc}</div>
-            <div class="goal-progress"><div class="goal-bar" style="width: ${g.progress}%;"></div></div>
-          </div>
-        `).join('')}
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;margin-bottom:.9rem;font-size:.82rem;">
+          <span style="color:var(--text-secondary);">目前 PB <b style="color:var(--accent);font-family:'JetBrains Mono',monospace;">${cur != null ? fmtTime(cur) : '—'}</b></span>
+          ${dlBadge}
+        </div>
+        ${rows}
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
   let actionHTML = '';
   if (DATA.actionItems && DATA.actionItems.length > 0) {
     actionHTML = `
@@ -2144,7 +2085,7 @@ function buildGoals() {
       </div>
     `;
   }
-  document.getElementById('goalsContainer').innerHTML = goalsHTML + actionHTML;
+  cont.innerHTML = goalsHTML + actionHTML;
 }
 
 function buildHistory() {
