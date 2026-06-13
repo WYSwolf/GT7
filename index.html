@@ -1416,6 +1416,8 @@ function buildDashboard() {
     const st = lb ? eventStatus(lb) : { ended: false };
     const place = lb ? getPlacement(lb, st, g.pb) : null;
     const medal = lb ? ((st.ended && lb.final && lb.final.medal) ? medalLabel(lb.final.medal) : medalOf(g.pb, lb)) : null;
+    const _wr = (getCarReference(g.carKey || carSlug(g.car)) || {}).time;
+    const _gap = _wr ? ((g.pb - _wr) / _wr * 100) : null;
     const evRow = lb ? `
       <div style="display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;margin-top:.7rem;padding-top:.6rem;border-top:1px solid #1a2028;font-size:.74rem;">
         <span style="color:${st.ended ? 'var(--text-secondary)' : 'var(--accent)'};font-weight:600;">${st.ended ? '■ 已結束' : '● 進行中'}${lb.endDate ? ' · ' + (st.ended ? '結束 ' : '截止 ') + lb.endDate : ''}</span>
@@ -1427,7 +1429,7 @@ function buildDashboard() {
       <div class="track-card-name">${g.track}</div>
       <div class="track-card-meta">${g.trackEn} ${g.route ? '· ' + g.route : ''} · ${g.car}</div>
       <div class="track-stats-row">
-        <div><div class="track-stat-label">PB</div><div class="track-stat-value" style="color: var(--accent);">${fmtTime(g.pb)}</div></div>
+        <div><div class="track-stat-label">PB</div><div class="track-stat-value" style="color: var(--accent);">${fmtTime(g.pb)}</div>${_gap != null ? `<div style="font-size:.66rem;color:var(--gold);font-family:'JetBrains Mono',monospace;margin-top:.15rem;">+${_gap.toFixed(2)}% vs WR</div>` : ''}</div>
         <div><div class="track-stat-label">OPT</div><div class="track-stat-value" style="color: var(--purple);">${fmtTime(g.opt)}</div></div>
         <div><div class="track-stat-label">圈數</div><div class="track-stat-value">${g.totalLaps}</div></div>
       </div>
