@@ -832,13 +832,7 @@
       <div class="panel-body" style="display: flex; flex-direction: column; gap: 1rem;" id="dashboardTrackList"></div>
     </div>
 
-    <div class="panel" id="pbProgressionPanel">
-      <div class="panel-header">
-        <div class="panel-title">PB 進步軌跡</div>
-        <div class="panel-meta">每場最佳 vs 世界紀錄差距% · 越低越好</div>
-      </div>
-      <div class="panel-body"><div class="chart-wrap"><canvas id="pbProgressionChart"></canvas></div></div>
-    </div>
+
 
     <div class="panel">
       <div class="panel-header">
@@ -1446,7 +1440,6 @@ function buildDashboard() {
   }
 
   buildConsistencyChart();
-  buildPBProgression();
 }
 
 function buildConsistencyChart() {
