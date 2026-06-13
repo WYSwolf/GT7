@@ -1489,7 +1489,7 @@ function buildPBProgression() {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
       return (a.session || '').localeCompare(b.session || '');
     });
-    const wr = (getCarReference(g.carKey) || {}).time;
+    const wr = (getCarReference(g.carKey || carSlug(g.car)) || {}).time;
     if (!wr) return;
     const pts = sorted.map(s => +(((s.best - wr) / wr) * 100).toFixed(3));
     const labels = sorted.map(s => {
@@ -1680,7 +1680,7 @@ function renderCarSection(g) {
   const allValidLaps = g.sessions.flatMap(s => s.laps.filter(l => !l.invalid));
   const avgConsistency = (allValidLaps.reduce((sum, l) => sum + l.total, 0) / allValidLaps.length) - g.pb;
   const consGrade = getConsistencyGrade(avgConsistency);
-  const ref = getCarReference(g.carKey);
+  const ref = getCarReference(g.carKey || carSlug(g.car));
 
   const gapKPI = ref ? `
     <div class="kpi" style="--kpi-color: var(--danger);">
@@ -2095,7 +2095,7 @@ function buildHistory() {
   let allLabels = [];
   let ci = 0;
   Object.values(groups).forEach(g => {
-    const wr = (getCarReference(g.carKey) || {}).time;
+    const wr = (getCarReference(g.carKey || carSlug(g.car)) || {}).time;
     if (!wr) { ci++; return; }
     const sorted = [...g.sessions].sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
