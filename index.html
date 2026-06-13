@@ -824,23 +824,12 @@
       <div class="page-subtitle">全部訓練資料整合視圖</div>
     </div>
 
-    <div class="grid-2">
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">賽道選擇</div>
-          <div class="panel-meta">點擊進入詳細頁</div>
-        </div>
-        <div class="panel-body" style="display: flex; flex-direction: column; gap: 1rem;" id="dashboardTrackList"></div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">賽道選擇</div>
+        <div class="panel-meta">點擊進入詳細頁</div>
       </div>
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">一致性對比</div>
-          <div class="panel-meta">越低越穩定</div>
-        </div>
-        <div class="panel-body">
-          <div class="chart-wrap"><canvas id="consistencyOverviewChart"></canvas></div>
-        </div>
-      </div>
+      <div class="panel-body" style="display: flex; flex-direction: column; gap: 1rem;" id="dashboardTrackList"></div>
     </div>
 
     <div class="panel" id="pbProgressionPanel">
@@ -884,14 +873,21 @@
     <div class="page-header">
       <div class="breadcrumb">SYSTEM <span class="sep">/</span> <span class="current">歷史紀錄</span></div>
       <h1 class="page-title">TRAINING <span class="accent">HISTORY</span></h1>
-      <div class="page-subtitle">時間軸 · 所有訓練 session</div>
+      <div class="page-subtitle">各場次最佳 vs 世界紀錄差距% · 一致性</div>
     </div>
     <div class="panel">
       <div class="panel-header">
-        <div class="panel-title">訓練時間軸</div>
-        <div class="panel-meta">由新到舊</div>
+        <div class="panel-title">各場次 vs 世界紀錄</div>
+        <div class="panel-meta">每場最佳差距% · 越低越好</div>
       </div>
-      <div class="panel-body" style="padding: 0 1.5rem;" id="historyTimeline"></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="historyGapChart"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">一致性對比</div>
+        <div class="panel-meta">越低越穩定</div>
+      </div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="consistencyOverviewChart"></canvas></div></div>
     </div>
   </div>
 
@@ -2091,24 +2087,57 @@ function buildGoals() {
 }
 
 function buildHistory() {
-  const sorted = [...DATA.sessions].sort((a, b) => {
-    if (a.date !== b.date) return b.date.localeCompare(a.date);
-    return (b.session || '').localeCompare(a.session || '');
+  const canvas = document.getElementById('historyGapChart');
+  if (!canvas) return;
+  const groups = getTrackGroups();
+  const trackColors = ['#00ff88', '#4dabf7', '#ed7d31', '#c266ff', '#ffd43b'];
+  const datasets = [];
+  let allLabels = [];
+  let ci = 0;
+  Object.values(groups).forEach(g => {
+    const wr = (getCarReference(g.carKey) || {}).time;
+    if (!wr) { ci++; return; }
+    const sorted = [...g.sessions].sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return (a.session || '').localeCompare(b.session || '');
+    });
+    const pts = sorted.map(s => +(((s.best - wr) / wr) * 100).toFixed(3));
+    const labels = sorted.map(s => (s.date ? s.date.slice(5).replace('-', '/') : '') + (s.session ? ' ' + s.session : ''));
+    if (labels.length > allLabels.length) allLabels = labels;
+    datasets.push({
+      label: g.track, data: pts,
+      borderColor: trackColors[ci % trackColors.length],
+      backgroundColor: trackColors[ci % trackColors.length],
+      tension: 0.2, pointRadius: 4, pointHoverRadius: 8, borderWidth: 2, _sorted: sorted
+    });
+    ci++;
   });
-  document.getElementById('historyTimeline').innerHTML = sorted.map(s => {
-    const trackKey = s.trackKey;
-    const sessionDesc = s.session ? `Session ${s.session}${s.sessionLabel ? ' · ' + s.sessionLabel : ''}` : '';
-    return `
-      <div class="timeline-item" onclick="navigateTo('track-${trackKey}')">
-        <div class="timeline-date">${s.date}</div>
-        <div class="timeline-content">
-          <div class="timeline-track">${s.track}${sessionDesc ? ' · ' + sessionDesc : ''}</div>
-          <div class="timeline-meta">${s.car} · ${s.totalLaps} 圈</div>
-        </div>
-        <div class="timeline-pb">${fmtTime(s.best)}</div>
-      </div>
-    `;
-  }).join('');
+  new Chart(canvas, {
+    type: 'line',
+    data: { labels: allLabels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: datasets.length > 1, labels: { color: '#e8ecf1', usePointStyle: true } },
+        tooltip: {
+          backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1,
+          callbacks: {
+            label: ctx => {
+              const ds = ctx.dataset;
+              const s = ds._sorted ? ds._sorted[ctx.dataIndex] : null;
+              let line = `${ds.label}: +${ctx.parsed.y.toFixed(2)}% vs WR`;
+              if (s) line += ` · ${fmtTime(s.best)}${s.sessionLabel ? ' (' + s.sessionLabel + ')' : ''}`;
+              return line;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#8b96a8', font: { size: 10 } } },
+        y: { grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => '+' + v.toFixed(1) + '%' }, title: { display: true, text: '與 WR 差距 %（越低越接近世界紀錄）', color: '#8b96a8', font: { size: 11 } } }
+      }
+    }
+  });
 }
 
 // ===== F1 start reaction game =====
