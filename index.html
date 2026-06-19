@@ -2030,11 +2030,15 @@ function buildGoals() {
   const groups = getTrackGroups();
   const today = (DATA.meta && DATA.meta.lastUpdated) || new Date().toISOString().slice(0, 10);
   const daysLeft = end => end ? Math.ceil((new Date(end + 'T23:59:59') - new Date(today + 'T00:00:00')) / 86400000) : null;
-  const goalsHTML = DATA.goals.map(gg => {
+  const isEnded = gg => gg.eventEnd && daysLeft(gg.eventEnd) < 0;
+  const doneOf = gg => { const c = (groups[gg.trackKey] || {}).pb; return gg.items.filter(it => c != null && c <= it.target).length; };
+
+  // 進行中:完整卡片
+  const liveHTML = DATA.goals.filter(gg => !isEnded(gg)).map(gg => {
     const cur = (groups[gg.trackKey] || {}).pb;
     const base = gg.baseline != null ? gg.baseline : cur;
     const dl = daysLeft(gg.eventEnd);
-    const done = gg.items.filter(it => cur != null && cur <= it.target).length;
+    const done = doneOf(gg);
     const rows = gg.items.map(it => {
       const achieved = cur != null && cur <= it.target;
       const remain = cur != null ? cur - it.target : null;
@@ -2047,9 +2051,7 @@ function buildGoals() {
             <div class="goal-progress"><div class="goal-bar" style="width: ${prog.toFixed(0)}%;${achieved ? 'background:var(--accent);' : ''}"></div></div>
           </div>`;
     }).join('');
-    const dlBadge = gg.eventEnd ? (dl != null && dl >= 0
-      ? `<span style="color:${dl <= 3 ? 'var(--danger)' : 'var(--gold)'};">⏳ 距 ${gg.eventEnd} 截止剩 ${dl} 天</span>`
-      : `<span style="color:${done >= gg.items.length ? 'var(--accent)' : 'var(--danger)'};">■ 活動已結束（${gg.eventEnd}）· 最終 ${done}/${gg.items.length} 達成</span>`) : '';
+    const dlBadge = gg.eventEnd ? `<span style="color:${dl <= 3 ? 'var(--danger)' : 'var(--gold)'};">⏳ 距 ${gg.eventEnd} 截止剩 ${dl} 天</span>` : '';
     return `
     <div class="panel">
       <div class="panel-header">
@@ -2065,6 +2067,38 @@ function buildGoals() {
       </div>
     </div>`;
   }).join('');
+
+  // 已結束:收疊成表格(避免多賽道塞滿頁面)
+  const ended = DATA.goals.filter(isEnded);
+  let endedHTML = '';
+  if (ended.length) {
+    const trows = ended.map(gg => {
+      const cur = (groups[gg.trackKey] || {}).pb;
+      const done = doneOf(gg);
+      const col = done >= gg.items.length ? 'var(--accent)' : (done > 0 ? 'var(--gold)' : 'var(--danger)');
+      return `<tr style="border-top:1px solid var(--line);">
+          <td style="padding:.5rem .6rem;">${gg.track}</td>
+          <td style="padding:.5rem .6rem;color:var(--text-secondary);font-size:.8rem;">${gg.car}</td>
+          <td style="padding:.5rem .6rem;color:var(--text-dim);font-size:.78rem;white-space:nowrap;">${gg.eventEnd}</td>
+          <td style="padding:.5rem .6rem;text-align:right;color:${col};font-weight:600;white-space:nowrap;">${done}/${gg.items.length}${cur != null ? ' · ' + fmtTime(cur) : ''}</td>
+        </tr>`;
+    }).join('');
+    endedHTML = `
+    <div class="panel">
+      <details>
+        <summary style="cursor:pointer;padding:.5rem 0;color:var(--text-secondary);font-weight:600;">已結束目標 (${ended.length})</summary>
+        <table style="width:100%;border-collapse:collapse;margin-top:.6rem;font-size:.86rem;">
+          <thead><tr style="color:var(--text-dim);font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;">
+            <th style="text-align:left;padding:.3rem .6rem;">賽道</th>
+            <th style="text-align:left;padding:.3rem .6rem;">車</th>
+            <th style="text-align:left;padding:.3rem .6rem;">結束</th>
+            <th style="text-align:right;padding:.3rem .6rem;">達成 · PB</th>
+          </tr></thead>
+          <tbody>${trows}</tbody>
+        </table>
+      </details>
+    </div>`;
+  }
   let actionHTML = '';
   if (DATA.actionItems && DATA.actionItems.length > 0) {
     actionHTML = `
@@ -2076,7 +2110,7 @@ function buildGoals() {
       </div>
     `;
   }
-  cont.innerHTML = goalsHTML + actionHTML;
+  cont.innerHTML = liveHTML + endedHTML + actionHTML;
 }
 
 function buildHistory() {
