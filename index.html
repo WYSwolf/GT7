@@ -2049,7 +2049,7 @@ function buildGoals() {
     }).join('');
     const dlBadge = gg.eventEnd ? (dl != null && dl >= 0
       ? `<span style="color:${dl <= 3 ? 'var(--danger)' : 'var(--gold)'};">⏳ 距 ${gg.eventEnd} 截止剩 ${dl} 天</span>`
-      : `<span style="color:var(--text-secondary);">■ 活動已結束（${gg.eventEnd}）</span>`) : '';
+      : `<span style="color:${done >= gg.items.length ? 'var(--accent)' : 'var(--danger)'};">■ 活動已結束（${gg.eventEnd}）· 最終 ${done}/${gg.items.length} 達成</span>`) : '';
     return `
     <div class="panel">
       <div class="panel-header">

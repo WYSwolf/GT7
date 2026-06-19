@@ -288,10 +288,39 @@
   },
   "goals": [
     {
+      "track": "紅牛環",
+      "trackKey": "redbullring",
+      "car": "Ford GT '17",
+      "priority": "primary",
+      "eventEnd": "2026-07-02",
+      "eventLabel": "Time Trial #594",
+      "baseline": 93.269,
+      "items": [
+        {
+          "label": "🎯 主要",
+          "target": 92.898,
+          "displayTarget": "Sub 1:32.9",
+          "desc": "擠進全球前 10000(門檻 1:32.898),現在差 0.37s"
+        },
+        {
+          "label": "🚀 進階",
+          "target": 92.145,
+          "displayTarget": "Sub 1:32.1",
+          "desc": "全球前 1000(門檻 1:32.145)"
+        },
+        {
+          "label": "🏁 衝刺",
+          "target": 91.66,
+          "displayTarget": "Sub 1:31.7",
+          "desc": "Platinum 門檻(1:31.660,WR 推估 1:31.204)"
+        }
+      ]
+    },
+    {
       "track": "深林賽道 逆向",
       "trackKey": "deepforest",
       "car": "Toyota 86 GRMN '16",
-      "priority": "primary",
+      "priority": "concluded",
       "eventEnd": "2026-06-18",
       "eventLabel": "Time Trial #580",
       "baseline": 113.015,
@@ -300,7 +329,7 @@
           "label": "🎯 主要",
           "target": 112.0,
           "displayTarget": "Sub 1:52.0",
-          "desc": "擠進全球前 1000(門檻 1:52.002),現在差 0.37s"
+          "desc": "擠進全球前 1000(門檻 1:52.002)"
         },
         {
           "label": "🚀 進階",
