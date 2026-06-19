@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.8",
-    "lastUpdated": "2026-06-13",
+    "lastUpdated": "2026-06-19",
     "driver": "User",
     "schema": "GT7 Telemetry Training Data",
     "reference": {
@@ -25,6 +25,12 @@
         "note": "event #580 Deep Forest 逆向 WR;6/13 擷取 ghost 重播",
         "csv": "telemetry/wr-toyota86grmn16.csv",
         "event": 580
+      },
+      "fordgt17": {
+        "time": 91.204,
+        "label": "WR(推估)",
+        "displayTime": "1:31.204",
+        "note": "由 dg-edge #594 Platinum/1.005 推估,非實測 ghost"
       }
     },
     "guides": {
@@ -168,6 +174,24 @@
           }
         ],
         "endDate": "2026-06-18"
+      },
+      "redbullring__fordgt17": {
+        "mode": "time-trial",
+        "eventUrl": "https://www.dg-edge.com/events/time-trials/594",
+        "eventLabel": "Time Trial · Red Bull Ring · Ford GT '17 · SM",
+        "source": "dg-edge.com",
+        "asOf": "2026-06-19",
+        "totalPlayers": 37958,
+        "wr": 91.204,
+        "top1000": 92.145,
+        "top10000": 92.898,
+        "medals": {
+          "platinum": 91.66,
+          "gold": 93.94,
+          "silver": 95.764,
+          "bronze": 100.324
+        },
+        "endDate": "2026-07-02"
       }
     },
     "sectorCalibration": {
@@ -4501,31 +4525,648 @@
           "note": ""
         }
       ],
+      "insights": []
+    },
+    {
+      "date": "2026-06-16",
+      "track": "深林賽道",
+      "trackKey": "deepforest",
+      "trackEn": "DEEP FOREST RACEWAY",
+      "route": "逆向",
+      "car": "Toyota 86 GRMN '16",
+      "carSlug": "toyota86grmn16",
+      "carClass": "道路",
+      "tire": "CM",
+      "sectorsCount": 3,
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/580",
+      "eventLabel": "Time Trial · Deep Forest 逆向 (#580)",
+      "csv": "telemetry/gt7-2026-06-16.csv",
+      "sectorSource": "gate(座標閘門法)",
+      "session": "A",
+      "id": "2026-06-16-deepforest-A",
+      "totalLaps": 6,
+      "sessionLabel": "6/16 場次一",
+      "best": 112.517,
+      "avg": 113.245,
+      "worst": 114.291,
+      "opt": 112.36,
+      "sectorBest": {
+        "s1": 41.953,
+        "s2": 36.562,
+        "s3": 33.845
+      },
+      "topSpeed": 208,
+      "notes": "6 圈,1 圈失誤。閘門法分段。",
+      "pbRl": 3,
+      "laps": [
+        {
+          "lap": 1,
+          "s1": 42.11,
+          "s2": 36.562,
+          "s3": 33.845,
+          "total": 112.517,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 2,
+          "s1": 41.953,
+          "s2": 36.938,
+          "s3": 33.913,
+          "total": 112.804,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 3,
+          "s1": 42.484,
+          "s2": 36.75,
+          "s3": 34.068,
+          "total": 113.302,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 4,
+          "s1": 42.875,
+          "s2": 37.094,
+          "s3": 34.322,
+          "total": 114.291,
+          "invalid": true,
+          "note": "失誤圈"
+        },
+        {
+          "lap": 5,
+          "s1": 42.25,
+          "s2": 36.812,
+          "s3": 34.282,
+          "total": 113.344,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 6,
+          "s1": 42.469,
+          "s2": 36.672,
+          "s3": 34.069,
+          "total": 113.21,
+          "invalid": false,
+          "note": ""
+        }
+      ],
+      "insights": []
+    },
+    {
+      "date": "2026-06-16",
+      "track": "深林賽道",
+      "trackKey": "deepforest",
+      "trackEn": "DEEP FOREST RACEWAY",
+      "route": "逆向",
+      "car": "Toyota 86 GRMN '16",
+      "carSlug": "toyota86grmn16",
+      "carClass": "道路",
+      "tire": "CM",
+      "sectorsCount": 3,
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/580",
+      "eventLabel": "Time Trial · Deep Forest 逆向 (#580)",
+      "csv": "telemetry/gt7-2026-06-16.csv",
+      "sectorSource": "gate(座標閘門法)",
+      "session": "B",
+      "id": "2026-06-16-deepforest-B",
+      "totalLaps": 7,
+      "sessionLabel": "6/16 場次二",
+      "best": 112.606,
+      "avg": 113.025,
+      "worst": 113.499,
+      "opt": 112.166,
+      "sectorBest": {
+        "s1": 41.969,
+        "s2": 36.453,
+        "s3": 33.744
+      },
+      "topSpeed": 208,
+      "notes": "7 圈,0 圈失誤。閘門法分段。",
+      "pbRl": 9,
+      "laps": [
+        {
+          "lap": 1,
+          "s1": 42.406,
+          "s2": 36.453,
+          "s3": 33.747,
+          "total": 112.606,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 2,
+          "s1": 42.765,
+          "s2": 36.641,
+          "s3": 34.093,
+          "total": 113.499,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 3,
+          "s1": 42.078,
+          "s2": 36.594,
+          "s3": 34.107,
+          "total": 112.779,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 4,
+          "s1": 41.969,
+          "s2": 37.0,
+          "s3": 33.744,
+          "total": 112.713,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 5,
+          "s1": 42.5,
+          "s2": 36.625,
+          "s3": 34.259,
+          "total": 113.384,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 6,
+          "s1": 42.376,
+          "s2": 36.781,
+          "s3": 34.021,
+          "total": 113.178,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 7,
+          "s1": 42.234,
+          "s2": 36.797,
+          "s3": 33.984,
+          "total": 113.015,
+          "invalid": false,
+          "note": ""
+        }
+      ],
+      "insights": []
+    },
+    {
+      "date": "2026-06-17",
+      "track": "深林賽道",
+      "trackKey": "deepforest",
+      "trackEn": "DEEP FOREST RACEWAY",
+      "route": "逆向",
+      "car": "Toyota 86 GRMN '16",
+      "carSlug": "toyota86grmn16",
+      "carClass": "道路",
+      "tire": "CM",
+      "sectorsCount": 3,
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/580",
+      "eventLabel": "Time Trial · Deep Forest 逆向 (#580)",
+      "csv": "telemetry/gt7-2026-06-17.csv",
+      "sectorSource": "gate(座標閘門法)",
+      "session": "A",
+      "id": "2026-06-17-deepforest-A",
+      "totalLaps": 5,
+      "sessionLabel": "6/17 場次一",
+      "best": 112.585,
+      "avg": 113.816,
+      "worst": 115.906,
+      "opt": 112.585,
+      "sectorBest": {
+        "s1": 42.125,
+        "s2": 36.437,
+        "s3": 34.023
+      },
+      "topSpeed": 208,
+      "notes": "5 圈,1 圈失誤。閘門法分段。",
+      "pbRl": 8,
+      "laps": [
+        {
+          "lap": 1,
+          "s1": 42.391,
+          "s2": 37.391,
+          "s3": 34.257,
+          "total": 114.039,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 2,
+          "s1": 42.282,
+          "s2": 37.14,
+          "s3": 34.094,
+          "total": 113.516,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 3,
+          "s1": 42.125,
+          "s2": 36.437,
+          "s3": 34.023,
+          "total": 112.585,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 4,
+          "s1": 42.36,
+          "s2": 36.594,
+          "s3": 34.079,
+          "total": 113.033,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 5,
+          "s1": 43.109,
+          "s2": 37.312,
+          "s3": 35.485,
+          "total": 115.906,
+          "invalid": true,
+          "note": "失誤圈"
+        }
+      ],
+      "insights": []
+    },
+    {
+      "date": "2026-06-17",
+      "track": "深林賽道",
+      "trackKey": "deepforest",
+      "trackEn": "DEEP FOREST RACEWAY",
+      "route": "逆向",
+      "car": "Toyota 86 GRMN '16",
+      "carSlug": "toyota86grmn16",
+      "carClass": "道路",
+      "tire": "CM",
+      "sectorsCount": 3,
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/580",
+      "eventLabel": "Time Trial · Deep Forest 逆向 (#580)",
+      "csv": "telemetry/gt7-2026-06-17.csv",
+      "sectorSource": "gate(座標閘門法)",
+      "session": "B",
+      "id": "2026-06-17-deepforest-B",
+      "totalLaps": 7,
+      "sessionLabel": "6/17 場次二",
+      "best": 112.647,
+      "avg": 114.605,
+      "worst": 123.622,
+      "opt": 112.442,
+      "sectorBest": {
+        "s1": 42.156,
+        "s2": 36.656,
+        "s3": 33.63
+      },
+      "topSpeed": 208,
+      "notes": "7 圈,1 圈失誤。閘門法分段。",
+      "pbRl": 16,
+      "laps": [
+        {
+          "lap": 1,
+          "s1": 42.391,
+          "s2": 36.765,
+          "s3": 33.943,
+          "total": 113.099,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 2,
+          "s1": 42.156,
+          "s2": 36.703,
+          "s3": 33.874,
+          "total": 112.733,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 3,
+          "s1": 42.624,
+          "s2": 36.813,
+          "s3": 33.63,
+          "total": 113.067,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 4,
+          "s1": 42.391,
+          "s2": 36.89,
+          "s3": 34.407,
+          "total": 113.688,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 5,
+          "s1": 42.375,
+          "s2": 41.234,
+          "s3": 40.013,
+          "total": 123.622,
+          "invalid": true,
+          "note": "失誤圈"
+        },
+        {
+          "lap": 6,
+          "s1": 42.25,
+          "s2": 36.656,
+          "s3": 33.741,
+          "total": 112.647,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 7,
+          "s1": 42.437,
+          "s2": 36.891,
+          "s3": 34.054,
+          "total": 113.382,
+          "invalid": false,
+          "note": ""
+        }
+      ],
+      "insights": []
+    },
+    {
+      "date": "2026-06-18",
+      "track": "深林賽道",
+      "trackKey": "deepforest",
+      "trackEn": "DEEP FOREST RACEWAY",
+      "route": "逆向",
+      "car": "Toyota 86 GRMN '16",
+      "carSlug": "toyota86grmn16",
+      "carClass": "道路",
+      "tire": "CM",
+      "sectorsCount": 3,
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/580",
+      "eventLabel": "Time Trial · Deep Forest 逆向 (#580)",
+      "csv": "telemetry/gt7-2026-06-18.csv",
+      "sectorSource": "gate(單圈重置;分段為近似,opt 取最佳圈)",
+      "session": "A",
+      "id": "2026-06-18-deepforest-A",
+      "totalLaps": 12,
+      "sessionLabel": "6/18 單圈衝刺(活動最後一天)",
+      "best": 112.599,
+      "avg": 113.195,
+      "worst": 113.895,
+      "opt": 112.599,
+      "sectorBest": {
+        "s1": 42.141,
+        "s2": 36.484,
+        "s3": 33.974
+      },
+      "topSpeed": 208,
+      "notes": "12 趟單圈計時嘗試(非連續 stint,每趟重置)。活動最後一天。單圈重置使閘門分段不可靠,僅最佳圈 rl8 命中乾淨。",
+      "pbRl": 8,
+      "laps": [
+        {
+          "lap": 1,
+          "s1": 41.267,
+          "s2": 36.016,
+          "s3": 36.346,
+          "total": 113.629,
+          "invalid": false,
+          "note": "單圈"
+        },
+        {
+          "lap": 2,
+          "s1": 40.562,
+          "s2": 37.688,
+          "s3": 35.002,
+          "total": 113.252,
+          "invalid": false,
+          "note": "單圈"
+        },
+        {
+          "lap": 3,
+          "s1": 42.375,
+          "s2": 35.906,
+          "s3": 34.436,
+          "total": 112.717,
+          "invalid": false,
+          "note": "單圈"
+        },
+        {
+          "lap": 4,
+          "s1": 42.25,
+          "s2": 36.579,
+          "s3": 35.066,
+          "total": 113.895,
+          "invalid": false,
+          "note": "單圈"
+        },
+        {
+          "lap": 5,
+          "s1": 42.438,
+          "s2": 37.016,
+          "s3": 34.041,
+          "total": 113.495,
+          "invalid": false,
+          "note": "單圈"
+        },
+        {
+          "lap": 6,
+          "s1": 42.172,
+          "s2": 36.75,
+          "s3": 34.214,
+          "total": 113.136,
+          "invalid": false,
+          "note": "單圈"
+        },
+        {
+          "lap": 7,
+          "s1": 42.234,
+          "s2": 36.109,
+          "s3": 35.54,
+          "total": 113.883,
+          "invalid": false,
+          "note": "單圈"
+        },
+        {
+          "lap": 8,
+          "s1": 42.141,
+          "s2": 36.484,
+          "s3": 33.974,
+          "total": 112.599,
+          "invalid": false,
+          "note": "單圈"
+        },
+        {
+          "lap": 9,
+          "s1": 41.578,
+          "s2": 36.766,
+          "s3": 34.832,
+          "total": 113.176,
+          "invalid": false,
+          "note": "單圈"
+        },
+        {
+          "lap": 10,
+          "s1": 42.031,
+          "s2": 36.141,
+          "s3": 34.584,
+          "total": 112.756,
+          "invalid": false,
+          "note": "單圈"
+        },
+        {
+          "lap": 11,
+          "s1": 41.922,
+          "s2": 36.64,
+          "s3": 34.353,
+          "total": 112.915,
+          "invalid": false,
+          "note": "單圈"
+        },
+        {
+          "lap": 12,
+          "s1": 42.266,
+          "s2": 36.547,
+          "s3": 34.072,
+          "total": 112.885,
+          "invalid": false,
+          "note": "單圈"
+        }
+      ],
+      "insights": []
+    },
+    {
+      "date": "2026-06-19",
+      "track": "紅牛環",
+      "trackKey": "redbullring",
+      "trackEn": "RED BULL RING",
+      "route": "",
+      "car": "Ford GT '17",
+      "carSlug": "fordgt17",
+      "carClass": "道路",
+      "tire": "SM",
+      "sectorsCount": 3,
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/594",
+      "eventLabel": "Time Trial · Red Bull Ring (#594)",
+      "csv": "telemetry/gt7-2026-06-19.csv",
+      "sectorSource": "未校正(等距三分暫代,待官方分段截圖)",
+      "session": "A",
+      "id": "2026-06-19-redbullring-A",
+      "totalLaps": 9,
+      "sessionLabel": "6/19 場次一(新賽道盲跑)",
+      "best": 93.269,
+      "avg": 97.016,
+      "worst": 104.222,
+      "opt": 93.164,
+      "sectorBest": {
+        "s1": 29.313,
+        "s2": 32.671,
+        "s3": 31.18
+      },
+      "topSpeed": 260,
+      "notes": "9 圈,3 圈失誤。新賽道盲跑首日。20Hz 擷取。分段未校正(等距三分暫代)。",
+      "pbRl": 5,
+      "laps": [
+        {
+          "lap": 1,
+          "s1": 29.422,
+          "s2": 32.766,
+          "s3": 31.534,
+          "total": 93.722,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 2,
+          "s1": 29.797,
+          "s2": 33.234,
+          "s3": 31.738,
+          "total": 94.769,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 3,
+          "s1": 29.484,
+          "s2": 33.062,
+          "s3": 31.291,
+          "total": 93.837,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 4,
+          "s1": 29.313,
+          "s2": 32.671,
+          "s3": 31.285,
+          "total": 93.269,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 5,
+          "s1": 29.563,
+          "s2": 32.609,
+          "s3": 42.05,
+          "total": 104.222,
+          "invalid": true,
+          "note": "失誤"
+        },
+        {
+          "lap": 6,
+          "s1": 29.36,
+          "s2": 32.671,
+          "s3": 38.88,
+          "total": 100.911,
+          "invalid": true,
+          "note": "失誤"
+        },
+        {
+          "lap": 7,
+          "s1": 29.641,
+          "s2": 33.078,
+          "s3": 31.514,
+          "total": 94.233,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 8,
+          "s1": 29.969,
+          "s2": 33.203,
+          "s3": 31.18,
+          "total": 94.352,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 9,
+          "s1": 29.765,
+          "s2": 33.313,
+          "s3": 40.755,
+          "total": 103.833,
+          "invalid": true,
+          "note": "失誤"
+        }
+      ],
       "insights": [
         {
-          "type": "danger",
-          "title": "vs WR 總差 +2.13s:三段都丟、S2 略大",
-          "desc": "閘門法對齊 WR 1:50.238 → S1 +0.58 / S2 +0.81 / S3 +0.64(用你各段最佳)。和 Laguna 不同,這條差距較分散。"
+          "title": "新賽道盲跑首日就 Gold",
+          "desc": "Red Bull Ring / Ford GT '17 首日,最快 1:33.269,已過 Gold 門檻(1:33.940)。但在前 10000 外(門檻 1:32.898),屬正常起步。"
         },
         {
-          "type": "warn",
-          "title": "T9(S3 慢彎)+0.42 最大,T8(S2)+0.32 次之",
-          "desc": "兩個慢彎吃掉近 0.75s。關鍵不是開油『點』(你跟 WR 幾乎一樣),而是 WR 出彎一次拉滿 100%、你有收放漸進。練『確定就一次開滿』。"
+          "title": "離前 1000 差 1.12s",
+          "desc": "前1000 = 1:32.145、WR 推估 1:31.204。你 +2.07s(+2.26%)。新賽道第一天有這個位置不錯,空間還很大。"
         },
         {
-          "type": "info",
-          "title": "T8 又是出彎問題",
-          "desc": "你 apex 反而比 WR 快 2km/h 卻丟 0.32s —— 跟 Laguna T2 同病:apex 太早、出彎線吃掉。晚 apex、車正了再全油門。"
-        },
-        {
-          "type": "info",
-          "title": "高速彎 T4/T5 你不輸甚至更快",
-          "desc": "快彎(48–51%)你跟 WR 平手/略快。差距全在慢彎的出彎,不是極速或快彎。"
-        },
-        {
-          "type": "info",
-          "title": "名次 #1927 全球 · 台灣 #13",
-          "desc": "實測(非估計):Global #1927 / 103,157(top 1.9%)、台灣 #13。差 WR +2.128s(+1.93%)。"
+          "title": "接下來:校正分段 + 改 60Hz",
+          "desc": "① 給我一張官方分段截圖,我把 Red Bull Ring 的閘門校正建起來(現在分段是等距暫代);② 下次擷取設 --hz 60,遙測才看得到煞車/油門細節。"
         }
       ]
     }
