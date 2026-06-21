@@ -1,4 +1,4 @@
-Process George's (PSN b95208010 / [TUE] WYS) daily GT7 PS5 telemetry into his training-tracker website (repo WYSwolf/GT7 → wyswolf.github.io/GT7). USE THIS SKILL whenever George uploads a raw capture CSV (filename like gt7_YYYY-MM-DD.csv or gt7_session_*.csv with columns run_lap,carcode,lap_time,t,spd,thr,brk,gear,x,z,...), or says anything like "處理今天的訓練紀錄", "今天的 GT7 資料", "幫我建檔", "process today's laps", "update data.json", "新的一天的圈速". It segments laps into sessions, computes sector times via stored coordinate-gate calibration, detects invalid laps, updates data.json + a slim per-day CSV, validates, and delivers via present_files for George to upload to GitHub manually. Do NOT use for per-corner coaching analysis (that is a separate ad-hoc task on the full raw file), and do NOT touch this skill's data with any work connector (Slack/Atlassian/M365 are out of scope and must be ignored here).
+Process George's (PSN b95208010 / [TUE] WYS) daily GT7 PS5 telemetry into his training-tracker website (repo WYSwolf/GT7 → wyswolf.github.io/GT7). USE THIS SKILL whenever George uploads a raw capture CSV (filename like gt7_YYYY-MM-DD.csv or gt7_session_*.csv with columns run_lap,carcode,lap_time,t,spd,thr,brk,gear,x,z,...), or says anything like "處理今天的訓練紀錄", "今天的 GT7 資料", "幫我建檔", "process today's laps", "update data.json", "新的一天的圈速". It segments laps into sessions, computes sector times via stored coordinate-gate calibration, detects invalid laps, updates data.json + a slim per-day CSV, validates, and delivers via present_files for George to upload to GitHub manually. ALSO use this skill when George provides a WR reference — either a WR time to record, or a WR ghost lap CSV to ingest for per-corner coaching (see "WR reference handling"). Do NOT use for ad-hoc per-corner coaching analysis on his own full raw file, and do NOT touch this skill's data with any work connector (Slack/Atlassian/M365 are out of scope and must be ignored here).
 
 ## GT7 Telemetry Daily Processing
 
@@ -75,6 +75,35 @@ Write `telemetry/gt7-YYYY-MM-DD.csv` containing only each session's PB lap (`pbR
 * Reporting rank: dg-edge thresholds drift — re-fetch before quoting; real rank/percentile needs George's dg-edge profile screenshot (profile page blocks Claude's fetcher). Watch the "top 100" + leading-zero `01:xx.xxx` misread (don't confuse with "top 1000").
 * Coaching analysis (trail-brake, per-corner, throttle): a separate task on the full raw file, not this routine. Gear changes show on the throttle trace as spikes (upshift → dip to 0; downshift while braking → blip up for rev-match) — not hardware faults.
 
+### WR reference handling (when George gives a WR)
+
+A WR comes in two forms — the process differs.
+
+#### Form A — WR time only (a number)
+
+Source: dg-edge global #1, official, or derived from George's profile gap.
+
+1. Write it into `meta.references.<carSlug>` = `{ time (seconds), displayTime, label, note(source) }`.
+2. Every "vs WR %" on the site is computed live from this reference — updating this one field updates all track cards / gap charts. Done. (Example: `fordgt17` = 91.007, from George's 1:32.801 being +1.794s behind global #1.)
+
+#### Form B — WR ghost lap (a full telemetry CSV) — the valuable one
+
+Enables per-corner coaching (like Deep Forest). Steps:
+
+1. Read & validate: carcode / lap distance / top speed match the combo; it's one clean fast lap; record Hz; sanity-check its lap time against the known WR.
+2. Compute WR sectors with the SAME stored gates (e.g. Red Bull `G1/G2`) so George's sectors and the WR's sectors are gate-consistent and directly comparable.
+3. Store the ghost: `telemetry/wr-<carSlug>.csv` (just that one lap, native Hz, `#` header with track/car); point `meta.references.<carSlug>` at it (time + ghost path + note).
+4. Per-corner compare → `meta.coachNotes.<trackKey>`: align George's best lap vs the WR by distance (not time); per corner compute deltas (entry speed, apex/min speed, brake point, throttle pick-up, line); find where he loses time; write corner-keyed notes (keyed by lap fraction). These surface in `telemetry.html` as 📋教練註記 when a turn is selected.
+5. Comparison lap: the WR ghost becomes the `?ref=` lap in `telemetry.html` (delta-T curtain, side-by-side).
+6. Validate + `present_files` (`data.json` + `wr-<carSlug>.csv`); George uploads.
+
+**Honesty caveat (must apply):** GT7 replay/ghost brake & throttle channels are known to be distorted (reconstructed pedal signals are unreliable).
+
+* Trust the ghost's line, speed, sector times → use for "where time is lost, apex-speed gap, brake-point gap".
+* Discount the ghost's absolute brake/throttle values → any coachNote based on them is flagged low-confidence; never treat the ghost's brake curve as gospel.
+
+Getting a Red Bull WR ghost: capture with `gt7_capture.py --replay` while watching the WR ghost/replay (note: `--replay` is still under validation precisely because of the brake distortion above). Existing ghost on file: `telemetry/wr-toyota86grmn16.csv` (Deep Forest). Red Bull currently has the WR time (91.007) but no ghost yet.
+
 ### Reference data (current; update as encountered)
 
 #### CSV columns
@@ -142,3 +171,8 @@ python3 -c "import re;t=open('index.html').read();b=re.findall(r'<script(?![^>]*
 # slim CSV has no blank lines
 grep -c '^$' telemetry/gt7-YYYY-MM-DD.csv   # expect 0
 ```
+
+### Output locations
+
+* Working: `/home/claude` or `/mnt/user-data/outputs`. Final deliverables in `/mnt/user-data/outputs`, then `present_files`.
+* `data.json` → repo root. Slim CSV → `telemetry/`.
