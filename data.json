@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.8",
-    "lastUpdated": "2026-06-20",
+    "lastUpdated": "2026-06-21",
     "driver": "User",
     "schema": "GT7 Telemetry Training Data",
     "reference": {
@@ -5624,20 +5624,7 @@
           "note": ""
         }
       ],
-      "insights": [
-        {
-          "title": "破 PB + 達成主要目標!",
-          "desc": "6/20 最快 1:32.891,破昨日 PB 1:33.269(快 0.378s),且 ≤ 主要目標 1:32.898 → 擠進全球前 10000。新賽道第二天就達標。"
-        },
-        {
-          "title": "很穩,不是運氣",
-          "desc": "今天 4 場跑了很多圈,大量落在 1:32.9–1:33.6,92字頭出現多次(rl20 92.902、rl15 92.966、rl38 92.891)。一致性夠,代表是真實水準。"
-        },
-        {
-          "title": "分段已校正 · 下一個進階目標",
-          "desc": "用你給的官方截圖建好閘門校正(S1±0.024s)。跨場最佳分段 S1 22.265/S2 41.0/S3 29.336 → 理論 92.601。進階目標 Sub 1:32.1(前1000)還差 0.75s;下次 --hz 60 + 抓一條 WR ghost,就能做逐彎對比。"
-        }
-      ]
+      "insights": []
     },
     {
       "date": "2026-06-20",
@@ -6060,18 +6047,558 @@
           "note": ""
         }
       ],
+      "insights": []
+    },
+    {
+      "date": "2026-06-21",
+      "track": "紅牛環",
+      "trackKey": "redbullring",
+      "trackEn": "RED BULL RING",
+      "route": "",
+      "car": "Ford GT '17",
+      "carSlug": "fordgt17",
+      "carClass": "道路",
+      "tire": "SM",
+      "sectorsCount": 3,
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/594",
+      "eventLabel": "Time Trial · Red Bull Ring (#594)",
+      "csv": "telemetry/gt7-2026-06-21.csv",
+      "sectorSource": "gate(座標閘門法)",
+      "session": "A",
+      "id": "2026-06-21-redbullring-A",
+      "totalLaps": 5,
+      "sessionLabel": "6/21 場次一",
+      "best": 93.343,
+      "avg": 93.81,
+      "worst": 94.307,
+      "opt": 93.203,
+      "sectorBest": {
+        "s1": 22.422,
+        "s2": 41.047,
+        "s3": 29.734
+      },
+      "topSpeed": 260,
+      "notes": "5 圈,0 失誤。60Hz。閘門法分段。",
+      "pbRl": 6,
+      "laps": [
+        {
+          "lap": 1,
+          "s1": 22.641,
+          "s2": 41.219,
+          "s3": 29.734,
+          "total": 93.594,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 2,
+          "s1": 22.438,
+          "s2": 41.047,
+          "s3": 29.858,
+          "total": 93.343,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 3,
+          "s1": 22.468,
+          "s2": 41.188,
+          "s3": 30.085,
+          "total": 93.741,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 4,
+          "s1": 22.422,
+          "s2": 41.547,
+          "s3": 30.095,
+          "total": 94.064,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 5,
+          "s1": 22.703,
+          "s2": 41.765,
+          "s3": 29.839,
+          "total": 94.307,
+          "invalid": false,
+          "note": ""
+        }
+      ],
+      "insights": []
+    },
+    {
+      "date": "2026-06-21",
+      "track": "紅牛環",
+      "trackKey": "redbullring",
+      "trackEn": "RED BULL RING",
+      "route": "",
+      "car": "Ford GT '17",
+      "carSlug": "fordgt17",
+      "carClass": "道路",
+      "tire": "SM",
+      "sectorsCount": 3,
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/594",
+      "eventLabel": "Time Trial · Red Bull Ring (#594)",
+      "csv": "telemetry/gt7-2026-06-21.csv",
+      "sectorSource": "gate(座標閘門法)",
+      "session": "B",
+      "id": "2026-06-21-redbullring-B",
+      "totalLaps": 6,
+      "sessionLabel": "6/21 場次二",
+      "best": 93.056,
+      "avg": 93.502,
+      "worst": 94.004,
+      "opt": 92.837,
+      "sectorBest": {
+        "s1": 22.234,
+        "s2": 41.0,
+        "s3": 29.603
+      },
+      "topSpeed": 261,
+      "notes": "6 圈,0 失誤。60Hz。閘門法分段。",
+      "pbRl": 15,
+      "laps": [
+        {
+          "lap": 1,
+          "s1": 22.234,
+          "s2": 41.25,
+          "s3": 29.715,
+          "total": 93.199,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 2,
+          "s1": 22.438,
+          "s2": 41.578,
+          "s3": 29.988,
+          "total": 94.004,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 3,
+          "s1": 22.297,
+          "s2": 41.313,
+          "s3": 29.878,
+          "total": 93.488,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 4,
+          "s1": 22.437,
+          "s2": 41.453,
+          "s3": 29.705,
+          "total": 93.595,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 5,
+          "s1": 22.297,
+          "s2": 41.156,
+          "s3": 29.603,
+          "total": 93.056,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 6,
+          "s1": 22.437,
+          "s2": 41.0,
+          "s3": 30.233,
+          "total": 93.67,
+          "invalid": false,
+          "note": ""
+        }
+      ],
+      "insights": []
+    },
+    {
+      "date": "2026-06-21",
+      "track": "紅牛環",
+      "trackKey": "redbullring",
+      "trackEn": "RED BULL RING",
+      "route": "",
+      "car": "Ford GT '17",
+      "carSlug": "fordgt17",
+      "carClass": "道路",
+      "tire": "SM",
+      "sectorsCount": 3,
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/594",
+      "eventLabel": "Time Trial · Red Bull Ring (#594)",
+      "csv": "telemetry/gt7-2026-06-21.csv",
+      "sectorSource": "gate(座標閘門法)",
+      "session": "C",
+      "id": "2026-06-21-redbullring-C",
+      "totalLaps": 20,
+      "sessionLabel": "6/21 場次三",
+      "best": 92.882,
+      "avg": 94.398,
+      "worst": 105.204,
+      "opt": 92.523,
+      "sectorBest": {
+        "s1": 22.234,
+        "s2": 40.922,
+        "s3": 29.367
+      },
+      "topSpeed": 261,
+      "notes": "20 圈,5 失誤。60Hz。閘門法分段。",
+      "pbRl": 33,
+      "laps": [
+        {
+          "lap": 1,
+          "s1": 22.469,
+          "s2": 41.016,
+          "s3": 29.746,
+          "total": 93.231,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 2,
+          "s1": 22.375,
+          "s2": 41.016,
+          "s3": 29.502,
+          "total": 92.893,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 3,
+          "s1": 22.343,
+          "s2": 41.172,
+          "s3": 29.682,
+          "total": 93.197,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 4,
+          "s1": 22.578,
+          "s2": 41.391,
+          "s3": 29.596,
+          "total": 93.565,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 5,
+          "s1": 22.313,
+          "s2": 41.14,
+          "s3": 30.036,
+          "total": 93.489,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 6,
+          "s1": 22.453,
+          "s2": 41.359,
+          "s3": 29.777,
+          "total": 93.589,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 7,
+          "s1": 22.344,
+          "s2": 41.484,
+          "s3": 29.598,
+          "total": 93.426,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 8,
+          "s1": 22.375,
+          "s2": 43.0,
+          "s3": 30.097,
+          "total": 95.472,
+          "invalid": true,
+          "note": "失誤"
+        },
+        {
+          "lap": 9,
+          "s1": 22.344,
+          "s2": 41.188,
+          "s3": 29.781,
+          "total": 93.313,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 10,
+          "s1": 22.531,
+          "s2": 42.157,
+          "s3": 30.195,
+          "total": 94.883,
+          "invalid": true,
+          "note": "失誤"
+        },
+        {
+          "lap": 11,
+          "s1": 22.687,
+          "s2": 42.094,
+          "s3": 29.942,
+          "total": 94.723,
+          "invalid": true,
+          "note": "失誤"
+        },
+        {
+          "lap": 12,
+          "s1": 22.437,
+          "s2": 40.922,
+          "s3": 30.1,
+          "total": 93.459,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 13,
+          "s1": 22.437,
+          "s2": 41.078,
+          "s3": 29.367,
+          "total": 92.882,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 14,
+          "s1": 22.313,
+          "s2": 53.125,
+          "s3": 29.766,
+          "total": 105.204,
+          "invalid": true,
+          "note": "失誤"
+        },
+        {
+          "lap": 15,
+          "s1": 22.437,
+          "s2": 41.438,
+          "s3": 29.684,
+          "total": 93.559,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 16,
+          "s1": 22.485,
+          "s2": 41.203,
+          "s3": 30.089,
+          "total": 93.777,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 17,
+          "s1": 22.328,
+          "s2": 43.86,
+          "s3": 30.412,
+          "total": 96.6,
+          "invalid": true,
+          "note": "失誤"
+        },
+        {
+          "lap": 18,
+          "s1": 22.484,
+          "s2": 41.032,
+          "s3": 29.809,
+          "total": 93.325,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 19,
+          "s1": 22.234,
+          "s2": 41.141,
+          "s3": 30.027,
+          "total": 93.402,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 20,
+          "s1": 22.594,
+          "s2": 41.453,
+          "s3": 29.925,
+          "total": 93.972,
+          "invalid": false,
+          "note": ""
+        }
+      ],
+      "insights": []
+    },
+    {
+      "date": "2026-06-21",
+      "track": "紅牛環",
+      "trackKey": "redbullring",
+      "trackEn": "RED BULL RING",
+      "route": "",
+      "car": "Ford GT '17",
+      "carSlug": "fordgt17",
+      "carClass": "道路",
+      "tire": "SM",
+      "sectorsCount": 3,
+      "mode": "time-trial",
+      "eventUrl": "https://www.dg-edge.com/events/time-trials/594",
+      "eventLabel": "Time Trial · Red Bull Ring (#594)",
+      "csv": "telemetry/gt7-2026-06-21.csv",
+      "sectorSource": "gate(座標閘門法)",
+      "session": "D",
+      "id": "2026-06-21-redbullring-D",
+      "totalLaps": 13,
+      "sessionLabel": "6/21 場次四",
+      "best": 92.801,
+      "avg": 93.527,
+      "worst": 95.616,
+      "opt": 92.563,
+      "sectorBest": {
+        "s1": 22.328,
+        "s2": 40.828,
+        "s3": 29.407
+      },
+      "topSpeed": 261,
+      "notes": "13 圈,1 失誤。60Hz。閘門法分段。",
+      "pbRl": 50,
+      "laps": [
+        {
+          "lap": 1,
+          "s1": 22.328,
+          "s2": 41.531,
+          "s3": 29.724,
+          "total": 93.583,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 2,
+          "s1": 22.454,
+          "s2": 41.218,
+          "s3": 29.618,
+          "total": 93.29,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 3,
+          "s1": 22.344,
+          "s2": 41.125,
+          "s3": 29.579,
+          "total": 93.048,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 4,
+          "s1": 22.531,
+          "s2": 41.016,
+          "s3": 30.033,
+          "total": 93.58,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 5,
+          "s1": 22.391,
+          "s2": 41.781,
+          "s3": 29.671,
+          "total": 93.843,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 6,
+          "s1": 22.484,
+          "s2": 41.188,
+          "s3": 29.811,
+          "total": 93.483,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 7,
+          "s1": 22.594,
+          "s2": 41.046,
+          "s3": 29.521,
+          "total": 93.161,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 8,
+          "s1": 22.406,
+          "s2": 41.0,
+          "s3": 29.91,
+          "total": 93.316,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 9,
+          "s1": 22.469,
+          "s2": 41.14,
+          "s3": 29.436,
+          "total": 93.045,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 10,
+          "s1": 22.454,
+          "s2": 40.828,
+          "s3": 29.519,
+          "total": 92.801,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 11,
+          "s1": 22.515,
+          "s2": 43.078,
+          "s3": 30.023,
+          "total": 95.616,
+          "invalid": true,
+          "note": "失誤"
+        },
+        {
+          "lap": 12,
+          "s1": 22.438,
+          "s2": 41.234,
+          "s3": 29.71,
+          "total": 93.382,
+          "invalid": false,
+          "note": ""
+        },
+        {
+          "lap": 13,
+          "s1": 22.328,
+          "s2": 41.969,
+          "s3": 29.407,
+          "total": 93.704,
+          "invalid": false,
+          "note": ""
+        }
+      ],
       "insights": [
         {
-          "title": "破 PB + 主要目標達成 ✓",
-          "desc": "新 PB 1:32.891(D 場 rl38),壓過全球前 10000 門檻 1:32.898 只差 0.007s —— 剛好壓線進前 10000,主要目標達成。"
+          "title": "連兩天破 PB",
+          "desc": "新 PB 1:32.801(D 場 rl50),比昨天 1:32.891 再快 0.090s。維持全球前 10000;距前 1000(1:32.145)還差 0.66s。"
         },
         {
-          "title": "第二天就快 0.38s",
-          "desc": "紅牛環 6/19→6/20:1:33.269→1:32.891。今天多場 best 都在 92.9–93.0(B 92.966 / C 92.902 / D 92.891),學得很快、也穩。"
+          "title": "超穩定的一天",
+          "desc": "今天 50+ 圈,C 場 20 圈、D 場 13 圈的長 stint,大量落在 92.8–93.6。一致性持續是你的強項。"
         },
         {
-          "title": "分段已校正 · 下一個進階目標",
-          "desc": "用你給的官方截圖建好閘門校正(S1±0.024s)。跨場最佳分段 S1 22.265/S2 41.0/S3 29.336 → 理論 92.601。進階目標 Sub 1:32.1(前1000)還差 0.75s;下次 --hz 60 + 抓一條 WR ghost,就能做逐彎對比。"
+          "title": "油門跳動已驗證:多為 20Hz 假象",
+          "desc": "改 60Hz 後,穩油門區 95% 貼 100、逐格抖動 0.12、非換檔跳動 0/圈 —— 今天訊號是所有天最乾淨。先前的跳動主要是 20Hz 取樣+換檔切油門。建議仍用 G HUB 靜態測一次,排除間歇性接觸問題。"
         }
       ]
     }
