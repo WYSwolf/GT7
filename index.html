@@ -871,17 +871,10 @@
     </div>
     <div class="panel">
       <div class="panel-header">
-        <div class="panel-title">各場次 vs 世界紀錄</div>
-        <div class="panel-meta">每場最佳差距% · 越低越好</div>
+        <div class="panel-title">各場次 vs 世界紀錄 · 一致性</div>
+        <div class="panel-meta">實線：與 WR 差距%（左軸）· 虛線：一致性秒差（右軸）· 越低越好</div>
       </div>
       <div class="panel-body"><div class="chart-wrap"><canvas id="historyGapChart"></canvas></div></div>
-    </div>
-    <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">一致性對比</div>
-        <div class="panel-meta">越低越穩定</div>
-      </div>
-      <div class="panel-body"><div class="chart-wrap"><canvas id="consistencyOverviewChart"></canvas></div></div>
     </div>
   </div>
 
@@ -1439,36 +1432,8 @@ function buildDashboard() {
     `).join('');
   }
 
-  buildConsistencyChart();
 }
 
-function buildConsistencyChart() {
-  const labels = [], data = [], colors = [];
-  DATA.sessions.forEach(s => {
-    labels.push(s.session ? `${s.track.substring(0,3)} ${s.session}` : s.track);
-    data.push(s.avg - s.best);
-    colors.push(s.session ? SESSION_COLORS[s.session] : '#4dabf7');
-  });
-
-  new Chart(document.getElementById('consistencyOverviewChart'), {
-    type: 'bar',
-    data: { labels, datasets: [{ data, backgroundColor: colors, borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1 }] },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1,
-          callbacks: { label: ctx => `一致性: ${ctx.parsed.y.toFixed(2)}s` }
-        }
-      },
-      scales: {
-        x: { grid: { display: false }, ticks: { color: '#8b96a8', font: { size: 10 } } },
-        y: { grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8' }, title: { display: true, text: '秒 (越低越好)', color: '#5a6577' } }
-      }
-    }
-  });
-}
 
 function buildPBProgression() {
   const groups = getTrackGroups();
@@ -2128,14 +2093,25 @@ function buildHistory() {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
       return (a.session || '').localeCompare(b.session || '');
     });
-    const pts = sorted.map(s => +(((s.best - wr) / wr) * 100).toFixed(3));
+    const gapPts = sorted.map(s => +(((s.best - wr) / wr) * 100).toFixed(3));
+    const consPts = sorted.map(s => +(s.avg - s.best).toFixed(3));
     const labels = sorted.map(s => (s.date ? s.date.slice(5).replace('-', '/') : '') + (s.session ? ' ' + s.session : ''));
     if (labels.length > allLabels.length) allLabels = labels;
+    const col = trackColors[ci % trackColors.length];
+    // WR gap — solid line, left Y
     datasets.push({
-      label: g.track, data: pts,
-      borderColor: trackColors[ci % trackColors.length],
-      backgroundColor: trackColors[ci % trackColors.length],
-      tension: 0.2, pointRadius: 4, pointHoverRadius: 8, borderWidth: 2, _sorted: sorted
+      label: g.track + ' vs WR', data: gapPts,
+      borderColor: col, backgroundColor: col,
+      tension: 0.2, pointRadius: 4, pointHoverRadius: 8, borderWidth: 2,
+      yAxisID: 'y', _sorted: sorted, _type: 'gap'
+    });
+    // Consistency — dashed line, right Y
+    datasets.push({
+      label: g.track + ' 一致性', data: consPts,
+      borderColor: col, backgroundColor: col,
+      borderDash: [5, 4], tension: 0.2, pointRadius: 3, pointHoverRadius: 7,
+      borderWidth: 1.5, pointStyle: 'rectRot',
+      yAxisID: 'y2', _sorted: sorted, _type: 'cons'
     });
     ci++;
   });
@@ -2145,13 +2121,16 @@ function buildHistory() {
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { display: datasets.length > 1, labels: { color: '#e8ecf1', usePointStyle: true } },
+        legend: { display: true, labels: { color: '#e8ecf1', usePointStyle: true, filter: item => !item.text.includes('一致性') || datasets.filter(d => d._type === 'gap').length <= 1 } },
         tooltip: {
           backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1,
           callbacks: {
             label: ctx => {
               const ds = ctx.dataset;
               const s = ds._sorted ? ds._sorted[ctx.dataIndex] : null;
+              if (ds._type === 'cons') {
+                return `${ds.label}: ${ctx.parsed.y.toFixed(2)}s`;
+              }
               let line = `${ds.label}: +${ctx.parsed.y.toFixed(2)}% vs WR`;
               if (s) line += ` · ${fmtTime(s.best)}${s.sessionLabel ? ' (' + s.sessionLabel + ')' : ''}`;
               return line;
@@ -2161,7 +2140,18 @@ function buildHistory() {
       },
       scales: {
         x: { grid: { display: false }, ticks: { color: '#8b96a8', font: { size: 10 } } },
-        y: { grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => '+' + v.toFixed(1) + '%' }, title: { display: true, text: '與 WR 差距 %（越低越接近世界紀錄）', color: '#8b96a8', font: { size: 11 } } }
+        y: {
+          position: 'left',
+          grid: { color: 'rgba(42,51,64,0.5)' },
+          ticks: { color: '#8b96a8', callback: v => '+' + v.toFixed(1) + '%' },
+          title: { display: true, text: 'vs WR %', color: '#8b96a8', font: { size: 11 } }
+        },
+        y2: {
+          position: 'right',
+          grid: { drawOnChartArea: false },
+          ticks: { color: '#5a6577', callback: v => v.toFixed(2) + 's' },
+          title: { display: true, text: '一致性 (s)', color: '#5a6577', font: { size: 11 } }
+        }
       }
     }
   });
