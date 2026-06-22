@@ -258,13 +258,25 @@ def main():
             print(json.dumps(raw, ensure_ascii=False, indent=2)[:2000])
         return
 
-    if not KNOWN_BOARDS:
-        print("⚠ KNOWN_BOARDS 尚未填入 board_id。請先跑 --discover 取得 board_id，")
-        print("  然後在腳本頂端的 KNOWN_BOARDS 字典填入對應關係，再重新執行。")
+    # 從 data.json 補充 boardId（優先使用 KNOWN_BOARDS，data.json 作為備援）
+    boards: dict[str, int] = {}
+    try:
+        with open(args.data, encoding="utf-8") as f:
+            _d = json.load(f)
+        for k, v in _d.get("meta", {}).get("leaderboards", {}).items():
+            if v.get("boardId"):
+                boards[k] = int(v["boardId"])
+    except Exception:
+        pass
+    boards.update(KNOWN_BOARDS)  # KNOWN_BOARDS 覆蓋 data.json
+
+    if not boards:
+        print("⚠ 找不到 board_id。請先跑 --discover，")
+        print("  然後在 data.json meta.leaderboards.<key>.boardId 填入對應的 board_id。")
         return
 
     updates = []
-    for key, board_id in KNOWN_BOARDS.items():
+    for key, board_id in boards.items():
         print(f"📊 抓取 {key} (board_id={board_id})…")
         try:
             rank_data = get_ranking_around_player(token, user_no, board_id)
