@@ -140,10 +140,10 @@
    "deepforest__toyota86grmn16": {
     "event": 580,
     "eventUrl": "https://www.dg-edge.com/events/time-trials/580",
-    "asOf": "2026-06-13",
-    "totalPlayers": 103157,
-    "top100": 111.17,
-    "top1000": 112.002,
+    "asOf": "2026-06-18",
+    "totalPlayers": 157534,
+    "top100": 111.075,
+    "top1000": 111.887,
     "medals": {
      "platinum": 110.79,
      "gold": 113.546,
@@ -152,9 +152,9 @@
     },
     "medalPct": {
      "platinum": 0.02,
-     "gold": 10.63,
-     "silver": 29.03,
-     "bronze": 58.2
+     "gold": 11.76,
+     "silver": 30.25,
+     "bronze": 55.64
     },
     "playerRank": {
      "rank": 1927,
@@ -173,7 +173,8 @@
       "pb": 112.366
      }
     ],
-    "endDate": "2026-06-18"
+    "endDate": "2026-06-18",
+    "wr": 110.238
    },
    "redbullring__fordgt17": {
     "mode": "time-trial",
@@ -378,21 +379,21 @@
    "items": [
     {
      "label": "🎯 主要",
-     "target": 112.0,
-     "displayTarget": "Sub 1:52.0",
-     "desc": "擠進全球前 1000(門檻 1:52.002)"
+     "target": 113.545,
+     "displayTarget": "1:53.545",
+     "desc": "世界第一 +3%(門檻 1:53.545,WR 1:50.238)"
     },
     {
      "label": "🚀 進階",
-     "target": 111.5,
-     "displayTarget": "Sub 1:51.5",
-     "desc": "約全球前 ~350、台灣前 10 射程"
+     "target": 112.443,
+     "displayTarget": "1:52.443",
+     "desc": "世界第一 +2%(門檻 1:52.443,WR 1:50.238)"
     },
     {
      "label": "🏁 衝刺",
-     "target": 111.17,
-     "displayTarget": "Sub 1:51.17",
-     "desc": "全球前 100 門檻(大挑戰)"
+     "target": 111.34,
+     "displayTarget": "1:51.340",
+     "desc": "世界第一 +1%(門檻 1:51.340,WR 1:50.238)"
     }
    ]
   }
