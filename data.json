@@ -316,6 +316,25 @@
      "note": "開油『點』跟 WR 幾乎一樣,但 WR 一次拉到 100%、你出彎有收放/漸進(油門圖綠線中段掉下來)→ 練『確定就一次開滿、別猶豫收油』。丟 0.42s。"
     }
    ]
+  },
+  "goalPolicy": {
+   "basis": "wr",
+   "metric": "percent-behind",
+   "tiers": [
+    {
+     "label": "🎯 主要",
+     "offsetPct": 3
+    },
+    {
+     "label": "🚀 進階",
+     "offsetPct": 2
+    },
+    {
+     "label": "🏁 衝刺",
+     "offsetPct": 1
+    }
+   ],
+   "note": "目標門檻 = WR × (1 + offsetPct/100)。WR(meta.references.<carSlug>.time)更新時,各賽道 goals 重算 —— George 接受球門隨世界紀錄移動(約定 2026-06-25)。"
   }
  },
  "goals": [
@@ -330,21 +349,21 @@
    "items": [
     {
      "label": "🎯 主要",
-     "target": 92.898,
-     "displayTarget": "Sub 1:32.9",
-     "desc": "擠進全球前 10000(門檻 1:32.898)—— 已達成 ✅(PB 1:32.670)"
+     "target": 93.648,
+     "displayTarget": "1:33.648",
+     "desc": "世界第一 +3%(門檻 1:33.648,WR 1:30.920)"
     },
     {
      "label": "🚀 進階",
-     "target": 92.145,
-     "displayTarget": "Sub 1:32.1",
-     "desc": "全球前 1000(門檻 1:32.145)"
+     "target": 92.738,
+     "displayTarget": "1:32.738",
+     "desc": "世界第一 +2%(門檻 1:32.738,WR 1:30.920)"
     },
     {
      "label": "🏁 衝刺",
-     "target": 91.66,
-     "displayTarget": "Sub 1:31.7",
-     "desc": "Platinum 門檻(1:31.660,WR 1:31.007)"
+     "target": 91.829,
+     "displayTarget": "1:31.829",
+     "desc": "世界第一 +1%(門檻 1:31.829,WR 1:30.920)"
     }
    ]
   },

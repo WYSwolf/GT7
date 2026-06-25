@@ -35,3 +35,4 @@ telemetry/          # CSV 遙測原始資料，從 GT7 匯出
 - 無伺服器端，所有資料處理在瀏覽器完成
 - `data.json` 需手動更新以新增訓練記錄
 - CSV 檔案命名慣例：`gt7-YYYY-MM-DD.csv`
+- 目標設定慣例：各賽道目標一律以世界第一（WR）為基準 —— 🎯 主要 = WR +3%、🚀 進階 = WR +2%、🏁 衝刺 = WR +1%（規則存於 `meta.goalPolicy`）。更新 `meta.references.<carSlug>` 的 WR 後，需依此重算該賽道 `goals`；球門隨 WR 紀錄移動是預期行為，不要改成更寬鬆或個人化的門檻。
