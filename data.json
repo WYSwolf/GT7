@@ -330,21 +330,21 @@
    "items": [
     {
      "label": "🎯 主要",
-     "target": 92.583,
-     "displayTarget": "Sub 1:32.6",
-     "desc": "擠進全球前 1000(門檻 1:32.583),現在差 0.087s"
+     "target": 92.898,
+     "displayTarget": "Sub 1:32.9",
+     "desc": "擠進全球前 10000(門檻 1:32.898)—— 已達成 ✅(PB 1:32.670)"
     },
     {
      "label": "🚀 進階",
-     "target": 91.894,
-     "displayTarget": "Sub 1:31.9",
-     "desc": "全球前 100(門檻 1:31.894),現在差 0.776s"
+     "target": 92.145,
+     "displayTarget": "Sub 1:32.1",
+     "desc": "全球前 1000(門檻 1:32.145)"
     },
     {
      "label": "🏁 衝刺",
-     "target": 91.375,
-     "displayTarget": "Sub 1:31.4",
-     "desc": "Platinum 門檻(1:31.375,top 0.01%;WR 1:30.920)"
+     "target": 91.66,
+     "displayTarget": "Sub 1:31.7",
+     "desc": "Platinum 門檻(1:31.660,WR 1:31.007)"
     }
    ]
   },
