@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>車手檔案 · WYS — GT7</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&family=Bebas+Neue&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-base:#0a0d12; --bg-panel:#131820; --bg-elevated:#1a2029; --bg-input:#0f141b;
+    --line:#2a3340; --line-bright:#3d4856;
+    --text-primary:#e8ecf1; --text-secondary:#8b96a8; --text-dim:#5a6577;
+    --accent:#00ff88; --accent-dim:#00b85e; --warn:#ff8c42; --danger:#ff4757;
+    --info:#4dabf7; --purple:#c266ff; --gold:#ffd43b;
+    --plat:#7fdfff; --silver:#c8d2de; --bronze:#cd7f32;
+    --shadow-glow:0 0 24px rgba(0,255,136,.15);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg-base); color:var(--text-primary);
+    font-family:'Noto Sans TC','JetBrains Mono',sans-serif;
+    -webkit-font-smoothing:antialiased; line-height:1.5; padding-bottom:48px;
+  }
+  .wrap{max-width:880px;margin:0 auto;padding:16px}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .proto-tag{
+    display:inline-block;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--warn);border:1px solid var(--warn);border-radius:4px;padding:2px 8px;margin-bottom:14px;
+  }
+
+  /* ---- hero ---- */
+  .hero{
+    position:relative;overflow:hidden;border-radius:16px;border:1px solid var(--line);
+    background:linear-gradient(135deg,#15202c 0%,#0d1219 60%);padding:24px 22px;margin-bottom:18px;
+  }
+  .hero::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;
+    background:radial-gradient(circle,rgba(0,255,136,.18),transparent 70%);pointer-events:none}
+  .hero-top{display:flex;align-items:center;gap:18px}
+  .avatar{
+    width:76px;height:76px;border-radius:50%;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--accent-dim),#0a4d33);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Bebas Neue',sans-serif;font-size:2.2rem;color:#06140d;
+    border:2px solid var(--accent);box-shadow:var(--shadow-glow);
+  }
+  .hero-name{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;line-height:.95;letter-spacing:.02em}
+  .hero-sub{color:var(--text-secondary);font-size:.85rem;margin-top:4px}
+  .hero-sub .flag{margin-right:6px}
+  .hero-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:22px}
+  .hstat{background:var(--bg-input);border:1px solid var(--line);border-radius:10px;padding:12px 10px;text-align:center}
+  .hstat .v{font-family:'Bebas Neue',sans-serif;font-size:1.9rem;color:var(--accent);line-height:1}
+  .hstat .l{font-size:.68rem;color:var(--text-dim);margin-top:5px;letter-spacing:.05em}
+
+  /* ---- section ---- */
+  .sec-title{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.04em;
+    margin:24px 4px 12px;display:flex;align-items:center;gap:10px}
+  .sec-title .bar{width:4px;height:20px;background:var(--accent);border-radius:2px}
+
+  /* ---- combo card ---- */
+  .cards{display:grid;grid-template-columns:1fr;gap:14px}
+  .card{background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;padding:16px 16px 14px;
+    position:relative;transition:border-color .2s,transform .2s}
+  .card:hover{border-color:var(--line-bright);transform:translateY(-2px)}
+  .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .card-track{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:.02em;line-height:1}
+  .card-car{color:var(--text-secondary);font-size:.8rem;margin-top:3px}
+  .medal{font-size:.68rem;font-weight:700;letter-spacing:.06em;padding:4px 9px;border-radius:20px;
+    text-transform:uppercase;white-space:nowrap;border:1px solid}
+  .m-platinum{color:var(--plat);border-color:var(--plat);background:rgba(127,223,255,.08)}
+  .m-gold{color:var(--gold);border-color:var(--gold);background:rgba(255,212,59,.08)}
+  .m-silver{color:var(--silver);border-color:var(--silver);background:rgba(200,210,222,.08)}
+  .m-bronze{color:var(--bronze);border-color:var(--bronze);background:rgba(205,127,50,.10)}
+  .m-none{color:var(--text-dim);border-color:var(--line-bright)}
+
+  .pb-row{display:flex;align-items:baseline;gap:12px;margin:14px 0 4px}
+  .pb-time{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:2.1rem;color:var(--text-primary);letter-spacing:-.01em}
+  .pb-gap{font-size:.9rem;color:var(--warn);font-weight:700}
+  .pb-gap.ok{color:var(--accent)}
+  .pb-label{font-size:.7rem;color:var(--text-dim);letter-spacing:.08em}
+
+  .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+  .metric{background:var(--bg-input);border:1px solid var(--line);border-radius:8px;padding:8px 6px;text-align:center}
+  .metric .v{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1rem}
+  .metric .l{font-size:.62rem;color:var(--text-dim);margin-top:3px;letter-spacing:.04em}
+  .metric .v.accent{color:var(--accent)}
+  .metric .v.info{color:var(--info)}
+
+  /* progress to next tier */
+  .tier{margin-top:13px}
+  .tier-head{display:flex;justify-content:space-between;font-size:.7rem;color:var(--text-secondary);margin-bottom:5px}
+  .tier-head b{color:var(--text-primary)}
+  .tier-bar{height:7px;border-radius:4px;background:var(--bg-input);overflow:hidden;border:1px solid var(--line)}
+  .tier-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent-dim),var(--accent))}
+  .tier-done{color:var(--accent);font-size:.7rem;margin-top:5px}
+
+  /* sparkline */
+  .spark{margin-top:13px;display:flex;align-items:center;gap:10px}
+  .spark svg{flex:0 0 auto}
+  .spark .cap{font-size:.66rem;color:var(--text-dim)}
+
+  .foot{margin-top:26px;text-align:center;color:var(--text-dim);font-size:.72rem;line-height:1.7}
+  .loading{text-align:center;color:var(--text-secondary);padding:50px 0}
+  a{color:var(--info)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="proto-tag">Prototype · 車手檔案</span>
+  <div id="app"><div class="loading">載入中…</div></div>
+  <div class="foot" id="foot"></div>
+</div>
+
+<script>
+const PSN = "b95208010", CLUB = "[TUE]", DRIVER = "WYS", COUNTRY = "TW", FLAG = "🇹🇼";
+
+function fmt(sec){ if(sec==null) return "—"; const m=Math.floor(sec/60); const s=(sec-60*m); return m+":"+s.toFixed(3).padStart(6,"0"); }
+function medalOf(pb, med){
+  if(!med||pb==null) return {key:"none",label:"未上榜"};
+  if(pb<=med.platinum) return {key:"platinum",label:"Platinum"};
+  if(pb<=med.gold)     return {key:"gold",label:"Gold"};
+  if(pb<=med.silver)   return {key:"silver",label:"Silver"};
+  if(pb<=med.bronze)   return {key:"bronze",label:"Bronze"};
+  return {key:"none",label:"無獎牌"};
+}
+function sparkline(vals,w,h){
+  if(vals.length<2) return "";
+  const mn=Math.min(...vals), mx=Math.max(...vals), rng=(mx-mn)||1;
+  const pts=vals.map((v,i)=>{
+    const x=(i/(vals.length-1))*(w-4)+2;
+    const y=h-2-((v-mn)/rng)*(h-4);   // lower time = higher on chart
+    return x.toFixed(1)+","+y.toFixed(1);
+  });
+  const last=pts[pts.length-1].split(",");
+  return `<svg width="${w}" height="${h}"><polyline points="${pts.join(" ")}" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linejoin="round"/><circle cx="${last[0]}" cy="${last[1]}" r="2.6" fill="var(--accent)"/></svg>`;
+}
+
+fetch("../data.json").then(r=>r.json()).then(D=>{
+  const meta=D.meta||{}, refs=meta.references||{}, lbs=meta.leaderboards||{};
+  // group sessions by track (one car per track); carSlug is patchy on old sessions
+  const combos={};
+  D.sessions.forEach(s=>{
+    const k=s.trackKey;
+    const c=(combos[k]=combos[k]||{trackKey:k,track:s.track,trackEn:s.trackEn,car:s.car,carSlug:s.carSlug,
+      eventUrl:s.eventUrl,sessions:[]});
+    if(!c.carSlug && s.carSlug) c.carSlug=s.carSlug;
+    if(!c.car && s.car) c.car=s.car;
+    if(!c.trackEn && s.trackEn) c.trackEn=s.trackEn;
+    c.sessions.push(s);
+  });
+  // resolve carSlug + leaderboard key from leaderboards when sessions lack it
+  Object.values(combos).forEach(c=>{
+    if(!c.carSlug){
+      const lk=Object.keys(lbs).find(k=>k.startsWith(c.trackKey+"__"));
+      if(lk) c.carSlug=lk.split("__")[1];
+    }
+    c.key=c.trackKey+"__"+c.carSlug;
+  });
+  const list=Object.values(combos).map(c=>{
+    c.sessions.sort((a,b)=> a.date<b.date?-1:1);
+    const pb=Math.min(...c.sessions.map(s=>s.best));
+    const top=Math.max(...c.sessions.map(s=>s.topSpeed||0));
+    const lastDate=c.sessions[c.sessions.length-1].date;
+    const totalLaps=c.sessions.reduce((a,s)=>a+(s.totalLaps||0),0);
+    const opt=Math.min(...c.sessions.map(s=>s.opt||9e9));
+    const wr=(refs[c.carSlug]||{}).time;
+    const lb=lbs[c.key]||{};
+    const med=lb.medals;
+    const rank=(lb.playerRank||{}).rank;
+    const total=lb.totalPlayers;
+    const gapPct = wr ? (pb/wr-1)*100 : null;
+    // PB progression (best per session, by date)
+    const prog=c.sessions.map(s=>s.best);
+    // goal tier from D.goals
+    const goal=(D.goals||[]).find(g=>g.trackKey===c.trackKey);
+    return {...c,pb,top,lastDate,totalLaps,opt,wr,med,rank,total,gapPct,prog,goal,
+            medal:medalOf(pb,med)};
+  });
+  // sort: best percentile first, then most recent
+  list.sort((a,b)=>{
+    const pa=a.rank&&a.total?a.rank/a.total:9, pb=b.rank&&b.total?b.rank/b.total:9;
+    if(pa!==pb) return pa-pb; return a.lastDate<b.lastDate?1:-1;
+  });
+
+  // headline stats
+  const ranked=list.filter(c=>c.rank&&c.total);
+  const bestPctC = ranked.length?ranked.reduce((m,c)=>(c.rank/c.total)<(m.rank/m.total)?c:m):null;
+  const bestRank = ranked.length?Math.min(...ranked.map(c=>c.rank)):null;
+  const totalLapsAll=list.reduce((a,c)=>a+c.totalLaps,0);
+
+  let html=`
+  <div class="hero">
+    <div class="hero-top">
+      <div class="avatar">${DRIVER[0]}</div>
+      <div>
+        <div class="hero-name">${CLUB} ${DRIVER}</div>
+        <div class="hero-sub mono"><span class="flag">${FLAG}</span>${COUNTRY} · PSN ${PSN}</div>
+        <div class="hero-sub">GT7 計時挑戰 · 個人車手檔案</div>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat"><div class="v">${list.length}</div><div class="l">追蹤組合</div></div>
+      <div class="hstat"><div class="v">${bestRank?("#"+bestRank.toLocaleString()):"—"}</div><div class="l">最佳全球名次</div></div>
+      <div class="hstat"><div class="v">${bestPctC?("前"+(bestPctC.rank/bestPctC.total*100).toFixed(1)+"%"):"—"}</div><div class="l">最佳百分位</div></div>
+      <div class="hstat"><div class="v">${totalLapsAll}</div><div class="l">總圈數</div></div>
+    </div>
+  </div>
+  <div class="sec-title"><span class="bar"></span>賽道組合 · ${list.length}</div>
+  <div class="cards">`;
+
+  list.forEach(c=>{
+    const pct = c.rank&&c.total ? (c.rank/c.total*100) : null;
+    const gapTxt = c.gapPct!=null ? (c.gapPct<=1?'<span class="pb-gap ok">':'<span class="pb-gap">')+"+"+c.gapPct.toFixed(2)+"% vs WR</span>" : "";
+    // next unreached goal tier
+    let tierHtml="";
+    if(c.goal){
+      const items=[...c.goal.items].sort((a,b)=>b.target-a.target); // easy->hard
+      const next=items.find(it=>c.pb>it.target);
+      if(next){
+        const base=c.goal.baseline||c.pb;
+        const prog=Math.max(0,Math.min(100,(base-c.pb)/(base-next.target)*100));
+        tierHtml=`<div class="tier"><div class="tier-head"><span>下一階 ${next.label} <b>${next.displayTarget}</b></span><span>還差 ${(c.pb-next.target).toFixed(3)}s</span></div>
+          <div class="tier-bar"><div class="tier-fill" style="width:${prog.toFixed(0)}%"></div></div></div>`;
+      } else {
+        tierHtml=`<div class="tier-done">✓ 已達成全部 +3/+2/+1% 目標</div>`;
+      }
+    }
+    const sp=sparkline(c.prog,84,26);
+    html+=`
+    <div class="card">
+      <div class="card-head">
+        <div><div class="card-track">${c.trackEn||c.track}</div><div class="card-car">${c.track} · ${c.car}</div></div>
+        <div class="medal m-${c.medal.key}">${c.medal.label}</div>
+      </div>
+      <div class="pb-row">
+        <div class="pb-time mono">${fmt(c.pb)}</div>${gapTxt}
+      </div>
+      <div class="pb-label">個人最佳 · WR ${c.wr?fmt(c.wr):"—"}</div>
+      <div class="metrics">
+        <div class="metric"><div class="v ${c.rank?'accent':''}">${c.rank?("#"+c.rank.toLocaleString()):"未排名"}</div><div class="l">全球名次</div></div>
+        <div class="metric"><div class="v">${pct!=null?("前 "+pct.toFixed(2)+"%"):"—"}</div><div class="l">百分位</div></div>
+        <div class="metric"><div class="v info">${c.top||"—"}</div><div class="l">極速 km/h</div></div>
+      </div>
+      ${tierHtml}
+      ${sp?`<div class="spark">${sp}<span class="cap">PB 走勢 · ${c.sessions.length} 場 · 理論最佳 ${fmt(c.opt)}</span></div>`:""}
+    </div>`;
+  });
+  html+=`</div>`;
+  document.getElementById("app").innerHTML=html;
+  document.getElementById("foot").innerHTML=
+    `資料來源:本站 data.json(最後更新 ${meta.lastUpdated||"—"})· 名次/百分位為 dg-edge 截圖實測值<br>原型參考 51gt3 車手頁版面 · 待 George 提供截圖後微調`;
+}).catch(e=>{
+  document.getElementById("app").innerHTML='<div class="loading">讀取 data.json 失敗:'+e+'</div>';
+});
+</script>
+</body>
+</html>
