@@ -92,11 +92,13 @@ PS5 ──UDP──> gt7_capture.py ──(收工自動上傳)──> telemetry/
 - **自動上傳**:`gt7_capture.py` 收工(Ctrl+C)後,若環境有 `GT7_GITHUB_TOKEN`(或 `GITHUB_TOKEN`),
   會用 GitHub API 把**整份原始 CSV(不篩選)**上傳到 `telemetry/` → `main`。`--no-push` 可關閉。
   同日多次跑會合併成同一檔;若本機檔被刪/換機,會另存時間後綴避免覆蓋。
-- **收工順手更新名次**:若同時設了 `GT7_JSESSIONID`(或 `GT7_GT_TOKEN`),收工會再
-  import `gt7_rank.py`,自動抓 WR/門檻/你的名次並**推回 GitHub 的 `data.json`**
-  (從遠端取最新版再改,不會蓋掉 Claude 的編輯)。`--no-rank` 關閉。
-  也可單獨跑:`python gt7_rank.py --jsessionid <值> --dry`(驗證)/ `--push`(寫回 repo)。
-  認證流程與 board_id 見 `gt7_rank.py` 檔頭。**須在自家網路跑**(Sony / dg-edge 會擋機房 IP)。
+- **收工順手更新名次**:收工會 import `gt7_rank.py`,自動抓 WR/門檻/你的名次並
+  **推回 GitHub 的 `data.json`**(從遠端取最新版再改,不會蓋掉 Claude 的編輯)。`--no-rank` 關閉。
+  - **認證(自動續期)**:預設**自動從瀏覽器讀 JSESSIONID**(`pip install browser-cookie3`,
+    保持登入 gran-turismo.com 即可,不必手動換)。可用 `GT7_BROWSER` 指定瀏覽器;
+    也可改設 `GT7_JSESSIONID` / `GT7_GT_TOKEN` 手動給。
+  - 單獨跑:`python gt7_rank.py --browser --dry`(驗證)/ `--browser --push`(寫回 repo)。
+    認證細節與 board_id 見 `gt7_rank.py` 檔頭。**須在自家網路跑**(Sony / dg-edge 會擋機房 IP)。
 - **精簡 CSV**:`telemetry/gt7-YYYY-MM-DD.csv` 只存當天各場次的 PB 圈(原生 Hz、無空行),
   檔名對應 `data.json` 各 session 的 `csv` 欄位,供 `telemetry.html` 檢視。
 

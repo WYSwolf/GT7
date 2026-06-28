@@ -10,16 +10,20 @@ GT7 Rank Fetcher  ·  WYS / GT7 Training Tracker
 
 必須在「你自己的電腦」跑（家用 IP）——Sony / gran-turismo 會擋資料中心 IP。
 
-認證二選一：
-  A) 直接給 Bearer（最快，先用這個驗證）：
-       1. 瀏覽器登入 gran-turismo.com，開你參加的活動頁
-       2. F12 → Network → 任一個打向 web-api.gt7.game.gran-turismo.com 的請求
-          → Request Headers 複製 Authorization: 後面那串（不含 "Bearer "）
-       3. python gt7_rank.py --bearer <貼上> --dry
-  B) 用 JSESSIONID（較持久，能自動換 Bearer）：
-       1. F12 → Application → Cookies → www.gran-turismo.com → 複製 JSESSIONID 值
-       2. python gt7_rank.py --jsessionid <貼上> --dry
-     （或設環境變數 GT7_GT_TOKEN / GT7_JSESSIONID）
+認證三選一：
+  A) --browser：自動從瀏覽器讀 JSESSIONID（推薦，等於自動續期，免手動複製）
+       1. pip install browser-cookie3
+       2. 用平常的瀏覽器登入 https://www.gran-turismo.com（保持登入即可）
+       3. python gt7_rank.py --browser --dry          # 不帶值=掃所有瀏覽器
+          或 --browser chrome / edge / firefox / brave …（或設 GT7_BROWSER）
+       只要瀏覽器還登入著，每次跑都抓到當前有效的 cookie，不必再手動換。
+  B) --jsessionid：手動貼一次（會過期，幾天～兩週要重貼）
+       F12 → Application → Cookies → www.gran-turismo.com → 複製 JSESSIONID 值
+       python gt7_rank.py --jsessionid <貼上> --dry
+  C) --bearer：直接給短效 Bearer（驗證用，~1 小時就過期）
+       F12 → Network → 任一打向 web-api.gt7.game.gran-turismo.com 的請求
+       → Request Headers 複製 Authorization: 後面那串（不含 "Bearer "）
+     （也可設環境變數 GT7_GT_TOKEN / GT7_JSESSIONID / GT7_BROWSER）
 
 board_id：寫在 data.json 的 meta.leaderboards.<key>.boardId
   （目前 redbullring__fordgt17 = p_rt_1014277_001）
@@ -54,6 +58,37 @@ except ImportError:
 WEB_API = "https://web-api.gt7.game.gran-turismo.com"
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36")
+
+
+def jsessionid_from_browser(browser="auto"):
+    """自動從本機瀏覽器讀 gran-turismo.com 的 JSESSIONID（免手動複製，等於自動續期）。
+    只要瀏覽器還登入著 gran-turismo.com，就抓得到當前有效的 cookie。
+    browser: auto / chrome / edge / firefox / brave / chromium / opera / vivaldi。"""
+    try:
+        import browser_cookie3 as bc3
+    except ImportError:
+        raise RuntimeError("自動讀瀏覽器 cookie 需要 browser-cookie3：pip install browser-cookie3")
+    dom = "gran-turismo.com"
+    try:
+        if browser and browser != "auto":
+            fn = getattr(bc3, browser, None)
+            if fn is None:
+                raise RuntimeError(f"不支援的瀏覽器 {browser}（可用 auto/chrome/edge/firefox/brave/...）。")
+            cj = fn(domain_name=dom)
+        else:
+            cj = bc3.load(domain_name=dom)   # 掃所有已安裝瀏覽器
+    except RuntimeError:
+        raise
+    except Exception as e:
+        raise RuntimeError(f"讀瀏覽器 cookie 失敗（{browser}）：{e}")
+    # 取最新的 JSESSIONID（cookie jar 可能有多筆，挑 gran-turismo 網域的）
+    cand = [c for c in cj if c.name == "JSESSIONID" and "gran-turismo" in (c.domain or "")]
+    if not cand:
+        raise RuntimeError("瀏覽器裡找不到 gran-turismo.com 的 JSESSIONID —— "
+                           "先用該瀏覽器登入 https://www.gran-turismo.com 再跑。")
+    # 有 expires 的挑最大（最新）；否則取第一筆
+    cand.sort(key=lambda c: c.expires or 0, reverse=True)
+    return cand[0].value
 
 
 def get_token_info(jsessionid: str, locale: str = "tw") -> dict:
@@ -172,12 +207,16 @@ def recompute_goals(d: dict, track_key: str, wr: float):
         g["items"] = items
 
 
-def resolve_token(bearer=None, jsessionid=None, locale="tw", verbose=True):
-    """回傳 (token, my_id)。優先用 bearer；否則用 jsessionid 換。"""
+def resolve_token(bearer=None, jsessionid=None, locale="tw", browser=None, verbose=True):
+    """回傳 (token, my_id)。優先序：bearer → jsessionid → 從瀏覽器自動讀 JSESSIONID（browser）。"""
     token, my_id = bearer, None
     if not token:
+        if not jsessionid and browser:
+            if verbose: print(f"🍪 從瀏覽器自動讀 JSESSIONID（{browser}）…")
+            jsessionid = jsessionid_from_browser(browser)
+            if verbose: print("  ✓ 已從瀏覽器取得 JSESSIONID")
         if not jsessionid:
-            raise RuntimeError("請給 --bearer 或 --jsessionid（或設環境變數）。用法見檔頭。")
+            raise RuntimeError("請給 --bearer / --jsessionid，或用 --browser 自動讀瀏覽器 cookie。用法見檔頭。")
         if verbose: print("🔑 用 JSESSIONID 換 Bearer…")
         info = get_token_info(jsessionid, locale)
         token = info["access_token"]
@@ -284,13 +323,13 @@ def gh_put(repo, path, branch, gh_token, d, sha, message):
     return r.json().get("content", {}).get("html_url", "")
 
 
-def run(*, bearer=None, jsessionid=None, locale="tw", max_pages=60,
+def run(*, bearer=None, jsessionid=None, browser=None, locale="tw", max_pages=60,
         push=False, repo="WYSwolf/GT7", branch="main", gh_path="data.json",
         gh_token=None, data_path="data.json", dry=False, verbose=True):
     """抓榜並更新 data.json。push=True → 從 GitHub 抓最新、改、推回（不碰本機、不會蓋掉他人改動）；
-    否則讀寫本機 data.json。dry=True 只顯示不寫。"""
+    否則讀寫本機 data.json。dry=True 只顯示不寫。browser → 自動從瀏覽器讀 JSESSIONID。"""
     today = datetime.now().strftime("%Y-%m-%d")   # 用本機日期（=玩家當天）
-    token, my_id = resolve_token(bearer, jsessionid, locale, verbose)
+    token, my_id = resolve_token(bearer, jsessionid, locale, browser, verbose)
 
     sha = None
     if push:
@@ -323,6 +362,9 @@ def main():
     ap = argparse.ArgumentParser(description="GT7 Rank Fetcher (web-api)")
     ap.add_argument("--bearer", default=os.environ.get("GT7_GT_TOKEN"), help="web-api Bearer token（或設 GT7_GT_TOKEN）")
     ap.add_argument("--jsessionid", default=os.environ.get("GT7_JSESSIONID"), help="gran-turismo.com JSESSIONID（或設 GT7_JSESSIONID）")
+    ap.add_argument("--browser", nargs="?", const="auto", default=os.environ.get("GT7_BROWSER"),
+                    help="自動從瀏覽器讀 JSESSIONID（免手動複製＝自動續期）。不帶值=auto；"
+                         "可指定 chrome/edge/firefox/brave/...（或設 GT7_BROWSER）")
     ap.add_argument("--locale", default="tw")
     ap.add_argument("--data", default="data.json", help="本機 data.json 路徑（不加 --push 時用）")
     ap.add_argument("--dry", action="store_true", help="只顯示、不寫入")
@@ -336,7 +378,7 @@ def main():
                     help="GitHub token（或設 GT7_GITHUB_TOKEN / GITHUB_TOKEN）")
     args = ap.parse_args()
     try:
-        run(bearer=args.bearer, jsessionid=args.jsessionid, locale=args.locale,
+        run(bearer=args.bearer, jsessionid=args.jsessionid, browser=args.browser, locale=args.locale,
             max_pages=args.max_pages, push=args.push, repo=args.repo, branch=args.branch,
             gh_path=args.gh_path, gh_token=args.gh_token, data_path=args.data, dry=args.dry)
     except (RuntimeError, FileNotFoundError) as e:

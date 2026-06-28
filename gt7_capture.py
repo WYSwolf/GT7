@@ -771,14 +771,13 @@ def _github_upload(path, repo, branch, dest_dir, note='', local_is_fresh=False):
 
 def _rank_update(repo, branch):
     """收工後順手更新世界排名 / WR / 你的名次 → 推回 GitHub 的 data.json。
-    需要:① GT7 認證(GT7_JSESSIONID 或 GT7_GT_TOKEN)② GitHub token ③ 同目錄 gt7_rank.py + requests。
-    任何一項缺就略過,不影響已上傳的 CSV。"""
+    認證優先序:GT7_GT_TOKEN → GT7_JSESSIONID → 自動讀瀏覽器 cookie(免續期)。
+    另需 GitHub token + 同目錄 gt7_rank.py(及 requests)。缺就略過,不影響已上傳的 CSV。"""
     js = os.environ.get('GT7_JSESSIONID')
     bearer = os.environ.get('GT7_GT_TOKEN')
     gh = os.environ.get('GT7_GITHUB_TOKEN') or os.environ.get('GITHUB_TOKEN')
-    if not (js or bearer):
-        print('  ⓘ 未設定 GT7_JSESSIONID / GT7_GT_TOKEN,略過名次更新(只上傳了 CSV)。')
-        return
+    # 沒手動給 token 時,自動從瀏覽器讀 JSESSIONID(免手動續期);GT7_BROWSER 可指定瀏覽器
+    browser = None if (js or bearer) else os.environ.get('GT7_BROWSER', 'auto')
     if not gh:
         print('  ⓘ 未設定 GitHub token,略過名次更新。')
         return
@@ -790,7 +789,8 @@ def _rank_update(repo, branch):
         return
     try:
         print('🏁 收工順手更新世界排名 / WR / 你的名次…')
-        gt7_rank.run(jsessionid=js, bearer=bearer, push=True, repo=repo, branch=branch, gh_token=gh)
+        gt7_rank.run(jsessionid=js, bearer=bearer, browser=browser,
+                     push=True, repo=repo, branch=branch, gh_token=gh)
     except Exception as e:
         print(f'  ✗ 名次更新失敗(CSV 已上傳,不受影響):{e}')
 
