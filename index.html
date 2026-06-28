@@ -2016,7 +2016,7 @@ function renderCarCharts(g) {
   // 各分段穩定性:每日、每段(中位 − 最佳),越低越穩
   const stDates = [...new Set(validLapsD.map(l => l.date))].sort();
   const secKeys = g.sectorCount === 4 ? ['s1', 's2', 's3', 's4'] : ['s1', 's2', 's3'];
-  const secColors = { s1: '#4dabf7', s2: '#ff8c42', s3: '#00ff88', s4: '#c266ff' };
+  const secColors = { s1: '#4dabf7', s2: '#ff4757', s3: '#ffd43b', s4: '#00ff88' };   // 對齊圓餅圖 BY SECTOR
   const stDatasets = secKeys.map(k => ({
     label: k.toUpperCase(),
     data: stDates.map(d => {
