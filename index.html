@@ -1800,7 +1800,7 @@ function renderCarSection(g) {
       <div class="panel-body"><div class="chart-wrap"><canvas id="sectorLineChart-${g.key}"></canvas></div></div>
     </div>
     <div class="panel">
-      <div class="panel-header"><div class="panel-title">圈速穩定分布</div><div class="panel-meta">每圈一點 · 平均線 + ±1σ 穩定帶(全圈計算) · 最新日綠 / 舊日藍且越舊越淡</div></div>
+      <div class="panel-header"><div class="panel-title">速度 × 分段均衡 象限</div><div class="panel-meta">每圈一點 · X=速度vs平均(σ,左=快) Y=分段間落差(σ,低=均衡) · 最新日綠/舊日藍漸層</div></div>
       <div class="panel-body"><div class="chart-wrap"><canvas id="quadChart-${g.key}"></canvas></div></div>
     </div>
     <div class="panel">
@@ -1836,23 +1836,32 @@ function selectSectorLine(chart, di) {
   });
   chart.update();
 }
-// Lap stability distribution: one point per lap (X = lap order, Y = lap time),
-// with the mean line and ±1σ band from all valid laps. Colour by day: latest green,
-// older days blue gradient and more transparent the older they are.
-function drawLapStability(canvasId, sessions) {
+// Sector-balance quadrant — one point per lap.
+// X = lap pace vs mean (σ; left = faster). Y = spread of per-sector z-scores
+// (σ; low = all sectors equally fast/slow, high = uneven — one sector carries it).
+function drawSectorBalance(canvasId, sessions, sectorCount) {
   const el = document.getElementById(canvasId);
   if (!el) return;
-  const byDate = {};
-  sessions.forEach(s => { (byDate[s.date] = byDate[s.date] || []).push(...s.laps); });
-  const dates = Object.keys(byDate).sort(), D = dates.length;
-  if (!D) return;
-  let idx = 0; const pts = [], vt = [];
-  dates.forEach(d => { byDate[d].forEach(l => { idx++; if (!l.invalid) { pts.push({ x: idx, y: l.total, date: d }); vt.push(l.total); } }); });
-  if (vt.length < 2) return;
-  const mean = vt.reduce((a, b) => a + b, 0) / vt.length;
-  const sd = Math.sqrt(vt.reduce((a, b) => a + (b - mean) * (b - mean), 0) / vt.length);
+  const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
+  const std = a => { const m = avg(a); return Math.sqrt(avg(a.map(v => (v - m) * (v - m)))); };
+  const all = [];
+  sessions.forEach(s => s.laps.filter(l => !l.invalid).forEach(l => all.push({ ...l, date: s.date })));
+  if (all.length < 3) return;
+  const keys = sectorCount === 4 ? ['s1', 's2', 's3', 's4'] : ['s1', 's2', 's3'];
+  const meanT = avg(all.map(l => l.total)), sdT = std(all.map(l => l.total)) || 1e-9;
+  const ms = {}, ss = {};
+  keys.forEach(k => { const v = all.map(l => l[k]).filter(x => x != null); ms[k] = avg(v); ss[k] = std(v) || 1e-9; });
+  const dates = [...new Set(all.map(l => l.date))].sort(), D = dates.length;
   const mixc = (a, b, t) => { const A = hxArr(a), B = hxArr(b); return `rgb(${Math.round(A[0]+(B[0]-A[0])*t)},${Math.round(A[1]+(B[1]-A[1])*t)},${Math.round(A[2]+(B[2]-A[2])*t)})`; };
   const colorFor = date => { const di = dates.indexOf(date); if (di === D - 1) return '#00ff88'; const t = D <= 2 ? 1 : di / (D - 2), a = 0.2 + 0.7 * (D < 2 ? 1 : di / (D - 1)); return scaleA(mixc('#1d3a4d', '#4dabf7', t), a); };
+  const pts = all.map(l => {
+    const zs = keys.map(k => (l[k] - ms[k]) / ss[k]);
+    let wi = 0; zs.forEach((z, i) => { if (z > zs[wi]) wi = i; });   // most-positive z = slowest sector
+    return { x: +((l.total - meanT) / sdT).toFixed(3), y: +std(zs).toFixed(3), date: l.date, _l: l, worst: keys[wi].toUpperCase() };
+  });
+  const myMed = _median(pts.map(p => p.y));
+  const counts = [0, 0, 0, 0];   // (x<0 fast, y<med balanced) → 0 全段快, +1 全段慢, +2 不均
+  pts.forEach(p => { const slow = p.x >= 0, uneven = p.y >= myMed; counts[(uneven ? 2 : 0) + (slow ? 1 : 0)]++; });
   new Chart(el, {
     type: 'scatter',
     data: { datasets: [{ data: pts, parsing: false, pointBackgroundColor: pts.map(p => colorFor(p.date)), pointBorderWidth: 0, pointRadius: pts.map(p => dates.indexOf(p.date) === D - 1 ? 4.5 : 2.5), pointHoverRadius: 7 }] },
@@ -1860,26 +1869,27 @@ function drawLapStability(canvasId, sessions) {
       responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: { backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1, callbacks: { label: ctx => { const p = ctx.raw, dz = (p.y - mean) / sd; return [`${p.date} · 第 ${p.x} 圈`, `圈速 ${fmtTime(p.y)}`, `距平均 ${p.y - mean >= 0 ? '+' : ''}${(p.y - mean).toFixed(3)}s (${dz.toFixed(1)}σ)`]; } } }
+        tooltip: { backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1, callbacks: { label: ctx => { const p = ctx.raw; return [`${p.date} · ${fmtTime(p._l.total)}`, `速度 ${p.x >= 0 ? '+' : ''}${p.x.toFixed(2)}σ（${p.x < 0 ? '快' : '慢'}於平均）`, `分段落差 ${p.y.toFixed(2)}σ${p.y >= myMed ? ' · 最弱 ' + p.worst : ''}`]; } } }
       },
       scales: {
-        x: { type: 'linear', title: { display: true, text: '累計圈序', color: '#8b96a8', font: { size: 10 } }, grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', font: { size: 10 } } },
-        y: { title: { display: true, text: '圈速  ↓（越下越快）', color: '#8b96a8', font: { size: 10 } }, grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => fmtTime(v) } }
+        x: { type: 'linear', title: { display: true, text: '該圈速度 vs 平均（σ;越左越快）', color: '#8b96a8', font: { size: 10 } }, grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => v.toFixed(1) + 'σ' } },
+        y: { title: { display: true, text: '分段間落差（σ;越低越均衡）', color: '#8b96a8', font: { size: 10 } }, grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => v.toFixed(1) + 'σ' }, beginAtZero: true }
       }
     },
     plugins: [{
       afterDraw: chart => {
         const { ctx, chartArea, scales } = chart; if (!chartArea) return;
-        const yM = scales.y.getPixelForValue(mean), yHi = scales.y.getPixelForValue(mean + sd), yLo = scales.y.getPixelForValue(mean - sd);
+        const px = scales.x.getPixelForValue(0), py = scales.y.getPixelForValue(myMed);
         ctx.save();
-        ctx.fillStyle = 'rgba(77,171,247,0.08)'; ctx.fillRect(chartArea.left, Math.min(yHi, yLo), chartArea.right - chartArea.left, Math.abs(yLo - yHi));
-        ctx.setLineDash([6, 4]); ctx.strokeStyle = 'rgba(232,236,241,0.55)'; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(chartArea.left, yM); ctx.lineTo(chartArea.right, yM); ctx.stroke();
-        ctx.setLineDash([2, 3]); ctx.strokeStyle = 'rgba(77,171,247,0.5)';
-        [yHi, yLo].forEach(y => { ctx.beginPath(); ctx.moveTo(chartArea.left, y); ctx.lineTo(chartArea.right, y); ctx.stroke(); });
-        ctx.setLineDash([]); ctx.font = "10px 'JetBrains Mono'"; ctx.textAlign = 'left';
-        ctx.fillStyle = 'rgba(232,236,241,0.7)'; ctx.fillText(`平均 ${fmtTime(mean)}`, chartArea.left + 6, yM - 4);
-        ctx.fillStyle = 'rgba(77,171,247,0.85)'; ctx.fillText(`±1σ ${sd.toFixed(3)}s（穩定範圍）`, chartArea.left + 6, yHi - 4);
+        ctx.setLineDash([5, 4]); ctx.strokeStyle = 'rgba(232,236,241,0.35)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(px, chartArea.top); ctx.lineTo(px, chartArea.bottom); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(chartArea.left, py); ctx.lineTo(chartArea.right, py); ctx.stroke();
+        ctx.setLineDash([]); ctx.font = "11px 'Noto Sans TC'"; ctx.fillStyle = 'rgba(139,150,168,0.75)';
+        const L = chartArea.left + 6, R = chartArea.right - 6, T = chartArea.top + 14, B = chartArea.bottom - 6;
+        ctx.textAlign = 'left'; ctx.fillText(`全段都快 ${counts[0]}`, L, B);
+        ctx.fillText(`靠單段快 ${counts[2]}`, L, T);
+        ctx.textAlign = 'right'; ctx.fillText(`全段偏慢 ${counts[1]}`, R, B);
+        ctx.fillText(`單段拖累 ${counts[3]}`, R, T);
         ctx.restore();
       }
     }]
@@ -2178,7 +2188,7 @@ function renderCarCharts(g) {
 
   drawSectorTrajectory('sectorStabChart-' + g.key, g.sessions, g.sectorCount);
   drawSectorLine('sectorLineChart-' + g.key, g.sessions, g.sectorCount);
-  drawLapStability('quadChart-' + g.key, g.sessions);
+  drawSectorBalance('quadChart-' + g.key, g.sessions, g.sectorCount);
 
   const valid = allLaps.filter(l => !l.invalid);
   let losses = { s1: 0, s2: 0, s3: 0, s4: 0 };
