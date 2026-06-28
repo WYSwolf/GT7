@@ -92,15 +92,35 @@ PS5 ──UDP──> gt7_capture.py ──(收工自動上傳)──> telemetry/
 - **自動上傳**:`gt7_capture.py` 收工(Ctrl+C)後,若環境有 `GT7_GITHUB_TOKEN`(或 `GITHUB_TOKEN`),
   會用 GitHub API 把**整份原始 CSV(不篩選)**上傳到 `telemetry/` → `main`。`--no-push` 可關閉。
   同日多次跑會合併成同一檔;若本機檔被刪/換機,會另存時間後綴避免覆蓋。
-- **收工順手更新名次**:收工會 import `gt7_rank.py`,自動抓 WR/門檻/你的名次並
-  **推回 GitHub 的 `data.json`**(從遠端取最新版再改,不會蓋掉 Claude 的編輯)。`--no-rank` 關閉。
+- **收工順手更新名次**:收工會 import `gt7_rank.py`,自動更新 leaderboards / WR / 門檻 / 你的名次並
+  **推回 GitHub 的 `data.json`**(`push=True`,從遠端取最新版再改,不會蓋掉 Claude 的編輯)。`--no-rank` 關閉。
+  - **全自動定位**:缺 `eventUrl` 會打 dg-edge player API,用「你的成績(timeMS)/賽道/車」比對自動補;
+    缺 `boardId` 會從 dg-edge 事件頁解出;對不出唯一就記 `eventUrlCandidates`、不亂猜(等對話確認)。
+  - **名次來源**:WR/門檻一律用 GT 官方榜;你的名次優先 GT 榜,**活動結束/榜只回前段抓不到你時,
+    改用 dg-edge `globalPosition`**(標 `source:"dg-edge"`,百分位分母仍用 dg-edge 母體)。
   - **認證(自動續期)**:預設**自動從瀏覽器讀 JSESSIONID**(`pip install browser-cookie3`,
     保持登入 gran-turismo.com 即可,不必手動換)。可用 `GT7_BROWSER` 指定瀏覽器;
     也可改設 `GT7_JSESSIONID` / `GT7_GT_TOKEN` 手動給。
-  - 單獨跑:`python gt7_rank.py --browser --dry`(驗證)/ `--browser --push`(寫回 repo)。
-    認證細節與 board_id 見 `gt7_rank.py` 檔頭。**須在自家網路跑**(Sony / dg-edge 會擋機房 IP)。
+  - 單獨跑:`python gt7_rank.py --browser --dry`(驗證)/ `--browser --push`(寫回 repo);
+    `--my-events` 列出你 dg-edge 上所有場次。認證細節見 `gt7_rank.py` 檔頭。
+    **須在自家網路跑**(Sony / dg-edge 會擋機房 IP)。
+    ⚠ 手動跑**不帶 `--push` 會寫本機 data.json**,且 `locate_data` 會就近抓 cwd 的 `data.json`——
+    別在 `telemetry/` 留多餘副本,要寫本機請從 repo 根目錄跑或用 `--data`。收工自動流程用 `push=True`,不受此影響。
 - **精簡 CSV**:`telemetry/gt7-YYYY-MM-DD.csv` 只存當天各場次的 PB 圈(原生 Hz、無空行),
   檔名對應 `data.json` 各 session 的 `csv` 欄位,供 `telemetry.html` 檢視。
+
+### 分工:rank 腳本(自動) vs Claude(處理遙測)
+
+兩條更新管道**互相獨立、各管一塊**:
+
+| 管道 | 觸發 | 負責的欄位 |
+|---|---|---|
+| **`gt7_rank.py`(自動)** | 收工 / 手動 `--push` | `leaderboards`(boardId · eventUrl · wr · top100 · top1000 · playerRank · totalPlayers)、`references.<car>.time`、`goals[].items`(依 goalPolicy 重算)、`meta.lastUpdated` |
+| **Claude(處理 capture CSV)** | George 上傳 `gt7_*.csv` | `sessions[]`(best/avg/worst/opt/sectorBest/topSpeed/laps[])、`insights`、`actionItems`、slim CSV、**新賽道的 leaderboard 條目+goal**、確認 `eventUrlCandidates`、`coachNotes`/`sectorCalibration`/goal 的 `eventEnd`·`priority` |
+
+- **只想刷新排名/WR/門檻** → 收工自動跑就完整,**不用找 Claude**。
+- **跑了新的一天** → 把 CSV 給 Claude 做 `sessions` 那層分析;WR/名次那塊由 rank 腳本負責。
+- rank 腳本**只更新已存在的 leaderboard key**:全新賽道要 Claude 先建條目,之後它才能自動補 boardId/eventUrl/名次。
 
 ---
 
