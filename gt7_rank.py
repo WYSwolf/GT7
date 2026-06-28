@@ -37,7 +37,7 @@ except ImportError:
 
 # ── PSN OAuth 常數（公開於多個社群 PSN API 專案）──
 _PSN_CLIENT_ID     = "09515159-7237-4370-9b40-3806e67c0891"
-_PSN_CLIENT_SECRET = "uciz0uxjSzmFsM2IlfOwXp3EvGA7bWiDKMpM4C78iGs="
+_PSN_CLIENT_SECRET = "ucPjka5tntB2KqsP"
 _PSN_REDIRECT_URI  = "com.scee.psxandroid.scecompcall://redirect"
 _PSN_SCOPE         = "psn:mobile.v2.core psn:clientapp"
 
