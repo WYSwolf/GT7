@@ -1066,9 +1066,9 @@ function hexA(hex, a) {
 // Build chart datasets ranked by each line's latest node date so the chart stays
 // readable as lines accumulate: the most recent few lines get vivid, distinct
 // colors; older lines collapse into one neutral family and fade out by age.
-const FADE_VIVID = ['#00ff88', '#4dabf7', '#ed7d31'];   // newest → older of the highlighted set
+const FADE_VIVID = ['#00ff88', '#ed7d31', '#4dabf7'];   // newest → older: 螢光綠 → 橘 → 藍
 const FADE_MUTED = '#7a8699';                            // everything older: one neutral colour
-function makeFadedLines(plot, minA = 0.22) {
+function makeFadedLines(plot, minA = 0.15) {
   const byNew = [...plot].sort((a, b) => b.last.localeCompare(a.last));   // newest first
   const n = byNew.length;
   byNew.forEach((p, i) => {
