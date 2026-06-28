@@ -122,7 +122,7 @@ fetch('../data.json').then(r => r.json()).then(D => {
       data: { datasets: [
         { // gradient trajectory (densified)
           data: dense, showLine: true, borderWidth: 2.5, tension: 0,
-          borderCapStyle: 'round', borderJoinStyle: 'round',
+          borderCapStyle: 'butt', borderJoinStyle: 'round',
           segment: { borderColor: ctx => dcol[ctx.p1DataIndex] || 'rgba(88,101,119,1)' },
           pointRadius: 0, pointHoverRadius: 0
         },

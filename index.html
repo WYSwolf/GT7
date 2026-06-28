@@ -901,30 +901,9 @@
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">一致性對比</div>
-        <div class="panel-meta">avg − best · 越低越穩定</div>
+        <div class="panel-meta">當日中位 − 當日最佳 · 越低越穩定</div>
       </div>
       <div class="panel-body"><div class="chart-wrap"><canvas id="consistencyOverviewChart"></canvas></div></div>
-    </div>
-    <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">一致性帶</div>
-        <div class="panel-meta">中位 − 最速 · 越低代表「平常圈」越逼近 PB</div>
-      </div>
-      <div class="panel-body"><div class="chart-wrap"><canvas id="bandChart"></canvas></div></div>
-    </div>
-    <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">無效圈比例</div>
-        <div class="panel-meta">失誤稅 · 越低越好(MAD 離群判定)</div>
-      </div>
-      <div class="panel-body"><div class="chart-wrap"><canvas id="invalidChart"></canvas></div></div>
-    </div>
-    <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">近 PB 密度</div>
-        <div class="panel-meta">當場 best+0.5s 內的有效圈 % · 越高越可複製</div>
-      </div>
-      <div class="panel-body"><div class="chart-wrap"><canvas id="densityChart"></canvas></div></div>
     </div>
   </div>
 
@@ -1162,7 +1141,6 @@ function initApp() {
   buildGoals();
   buildHistory();
   buildConsistencyChart();
-  buildAdvancedMetrics();
   buildGames();
   buildFooter();
   bindNav();
@@ -1804,6 +1782,10 @@ function renderCarSection(g) {
       <div class="panel-header"><div class="panel-title">圈速追蹤</div><div class="panel-meta">預設排除大失誤圈 · 雙指縮放 Y <button onclick="resetChartZoom('lapChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .5rem;border-radius:6px;border:1px solid #2a3340;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:.7rem;font-family:inherit;">⟲ 重置</button></div></div>
       <div class="panel-body"><div class="chart-wrap tall"><canvas id="lapChart-${g.key}"></canvas></div></div>
     </div>
+    ${ref ? `<div class="panel">
+      <div class="panel-header"><div class="panel-title">每日進步軌跡</div><div class="panel-meta">距 WR % × 當日中位−最佳 · 綠進步 / 橘退步</div></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="trajChart-${g.key}"></canvas></div></div>
+    </div>` : ''}
     <div class="grid-2">
       <div class="panel"><div class="panel-header"><div class="panel-title">圈速分布</div><div class="panel-meta">DISTRIBUTION</div></div><div class="panel-body"><div class="chart-wrap"><canvas id="distChart-${g.key}"></canvas></div></div></div>
       <div class="panel"><div class="panel-header"><div class="panel-title">時間損失來源</div><div class="panel-meta">BY SECTOR</div></div><div class="panel-body"><div class="chart-wrap"><canvas id="pieChart-${g.key}"></canvas></div></div></div>
@@ -1827,7 +1809,62 @@ function renderCarSection(g) {
   `;
 }
 
+// Per-day progress trajectory for a track-car (used on each track detail page).
+function drawTrajectory(canvasId, sessions, wr) {
+  const el = document.getElementById(canvasId);
+  if (!el || !wr) return;
+  const PROG = [0,255,136], MID = [88,101,119], REG = [255,140,66], WHITE = '#e8ecf1';
+  const mix = (a,b,t) => `${Math.round(a[0]+(b[0]-a[0])*t)},${Math.round(a[1]+(b[1]-a[1])*t)},${Math.round(a[2]+(b[2]-a[2])*t)}`;
+  const blend = (c1,c2,t) => { const A=c1.split(',').map(Number),B=c2.split(',').map(Number); return mix(A,B,t); };
+  const byDate = {};
+  sessions.forEach(s => { (byDate[s.date] = byDate[s.date] || []).push(...s.laps.filter(l => !l.invalid).map(l => l.total)); });
+  const dates = Object.keys(byDate).sort();
+  const pts = dates.map(d => { const v = byDate[d]; const best = Math.min(...v); return { date: d, x: +(((best-wr)/wr)*100).toFixed(3), y: +(_median(v)-best).toFixed(3), best, n: v.length }; });
+  const n = pts.length;
+  const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+  const xmn = Math.min(...xs), xmx = Math.max(...xs), ymn = Math.min(...ys), ymx = Math.max(...ys);
+  const nx = v => xmx > xmn ? (v-xmn)/(xmx-xmn) : 0, ny = v => ymx > ymn ? (v-ymn)/(ymx-ymn) : 0;
+  const prog = pts.map((p,i) => i === 0 ? 0 : (nx(pts[i-1].x)+ny(pts[i-1].y)) - (nx(p.x)+ny(p.y)));
+  const maxAbs = Math.max(...prog.map(Math.abs), 1e-9);
+  const cl = v => Math.max(-1, Math.min(1, v));
+  const nodeRGB = prog.map((d,i) => i === 0 ? mix(MID,MID,0) : (d >= 0 ? mix(MID,PROG,cl(d/maxAbs)) : mix(MID,REG,cl(-d/maxAbs))));
+  const nodeA = pts.map((_,i) => n < 2 ? 1 : 0.12 + 0.88*Math.pow(i/(n-1),1.4));
+  const at = (a,i) => a[Math.max(0,Math.min(a.length-1,i))];
+  const cr = (p0,p1,p2,p3,t) => { const t2=t*t,t3=t2*t; return 0.5*(2*p1 + (-p0+p2)*t + (2*p0-5*p1+4*p2-p3)*t2 + (-p0+3*p1-3*p2+p3)*t3); };
+  const K = 18, dense = [], dcol = [];
+  for (let i = 0; i < n-1; i++) for (let j = 0; j < K; j++) {
+    const t = j/K;
+    dense.push({ x: cr(at(xs,i-1),xs[i],xs[i+1],at(xs,i+2),t), y: cr(at(ys,i-1),ys[i],ys[i+1],at(ys,i+2),t) });
+    dcol.push(`rgba(${blend(nodeRGB[i],nodeRGB[i+1],t)},${(nodeA[i]+(nodeA[i+1]-nodeA[i])*t).toFixed(3)})`);
+  }
+  if (n) { dense.push({ x: xs[n-1], y: ys[n-1] }); dcol.push(`rgba(${nodeRGB[n-1]},${nodeA[n-1].toFixed(3)})`); }
+  new Chart(el, {
+    type: 'line',
+    data: { datasets: [
+      { data: dense, showLine: true, borderWidth: 2.5, tension: 0, borderCapStyle: 'butt', borderJoinStyle: 'round',
+        segment: { borderColor: ctx => dcol[ctx.p1DataIndex] || 'rgba(88,101,119,1)' }, pointRadius: 0, pointHoverRadius: 0 },
+      { data: pts.map(p => ({ x: p.x, y: p.y, _p: p })), showLine: false,
+        pointRadius: pts.map((_,i) => i === n-1 ? 5 : 0), pointHitRadius: 14,
+        pointHoverRadius: pts.map((_,i) => i === n-1 ? 6 : 0), pointBackgroundColor: WHITE, pointBorderColor: WHITE }
+    ] },
+    options: {
+      responsive: true, maintainAspectRatio: false, interaction: { mode: 'nearest', intersect: true },
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1, filter: item => item.datasetIndex === 1,
+          callbacks: { title: ctx => ctx[0].raw._p ? ctx[0].raw._p.date : '',
+            label: ctx => { const p = ctx.raw._p; return p ? [`vs WR: +${p.x.toFixed(2)}%  (${fmtTime(p.best)})`, `中位−最佳: ${p.y.toFixed(3)}s`, `${p.n} 有效圈`] : ''; } } }
+      },
+      scales: {
+        x: { type: 'linear', title: { display: true, text: '距 WR %  →（越左越快）', color: '#8b96a8', font: { size: 10 } }, grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => '+' + v.toFixed(1) + '%' } },
+        y: { title: { display: true, text: '中位−最佳 秒  ↓（越穩）', color: '#8b96a8', font: { size: 10 } }, grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => v.toFixed(2) + 's' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
 function renderCarCharts(g) {
+  drawTrajectory('trajChart-' + g.key, g.sessions, (getCarReference(g.carKey || carSlug(g.car)) || {}).time);
   const allLaps = [];
   g.sessions.forEach(s => {
     s.laps.forEach(l => {
@@ -2218,20 +2255,18 @@ function buildConsistencyChart() {
   const canvas = document.getElementById('consistencyOverviewChart');
   if (!canvas) return;
   const groups = getTrackGroups();
-  const trackColors = ['#00ff88', '#4dabf7', '#ed7d31', '#c266ff', '#ffd43b'];
   let allLabels = [];
-  let ci = 0;
   const plot = [];
   Object.values(groups).forEach(g => {
-    const color = trackColors[ci % trackColors.length]; ci++;
     if (g.key === 'watkins') return;   // 一致性圖移除沃特金斯峽谷
-    const sorted = [...g.sessions].sort((a, b) => {
-      if (a.date !== b.date) return a.date.localeCompare(b.date);
-      return (a.session || '').localeCompare(b.session || '');
-    });
-    const pts = sorted.map(s => +(s.avg - s.best).toFixed(3));
+    // 以「日」為單位:當日中位數 − 當日最佳
+    const byDate = {};
+    g.sessions.forEach(s => { (byDate[s.date] = byDate[s.date] || []).push(...s.laps.filter(l => !l.invalid).map(l => l.total)); });
+    const dates = Object.keys(byDate).sort();
+    const pts = dates.map(d => { const v = byDate[d]; return +(_median(v) - Math.min(...v)).toFixed(3); });
+    if (!pts.length) return;
     if (pts.length > allLabels.length) allLabels = pts.map((_, i) => 'Day ' + (i + 1));
-    plot.push({ g, sorted, pts, color, last: sorted.length ? sorted[sorted.length - 1].date : '' });
+    plot.push({ g, sorted: dates.map((d, i) => ({ date: d, v: pts[i] })), pts, last: dates[dates.length - 1] });
   });
   const datasets = makeFadedLines(plot);
   new Chart(canvas, {
@@ -2247,16 +2282,14 @@ function buildConsistencyChart() {
             label: ctx => {
               const ds = ctx.dataset;
               const s = ds._sorted ? ds._sorted[ctx.dataIndex] : null;
-              let line = `${ds.label}: ${ctx.parsed.y.toFixed(2)}s`;
-              if (s) line += ` · best ${fmtTime(s.best)} avg ${fmtTime(s.avg)}`;
-              return line;
+              return `${ds.label}: ${ctx.parsed.y.toFixed(3)}s` + (s ? ` · ${s.date}` : '');
             }
           }
         }
       },
       scales: {
         x: { grid: { display: false }, ticks: { color: '#8b96a8', font: { size: 10 } } },
-        y: { grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => v.toFixed(2) + 's' }, title: { display: true, text: '一致性秒差（越低越穩定）', color: '#8b96a8', font: { size: 11 } } }
+        y: { grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => v.toFixed(2) + 's' }, title: { display: true, text: '當日中位−最佳 秒（越低越穩定）', color: '#8b96a8', font: { size: 11 } } }
       }
     }
   });
@@ -2267,71 +2300,6 @@ function _median(arr) {
   const m = Math.floor((a.length - 1) / 2);
   return a.length % 2 ? a[m] : (a[m] + a[m + 1]) / 2;
 }
-// Generic per-session metric chart on the History page (Day-N x, recency-faded lines).
-function buildMetricChart(canvasId, metricFn, yTitle, yFmt) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  const groups = getTrackGroups();
-  let allLabels = [];
-  const plot = [];
-  Object.values(groups).forEach(g => {
-    if (g.key === 'watkins') return;   // 單場、無趨勢意義
-    const sorted = [...g.sessions].sort((a, b) => {
-      if (a.date !== b.date) return a.date.localeCompare(b.date);
-      return (a.session || '').localeCompare(b.session || '');
-    });
-    const pts = sorted.map(s => { const v = metricFn(s); return v == null ? null : +v.toFixed(3); });
-    if (pts.every(v => v == null)) return;
-    if (pts.length > allLabels.length) allLabels = pts.map((_, i) => 'Day ' + (i + 1));
-    plot.push({ g, sorted, pts, last: sorted.length ? sorted[sorted.length - 1].date : '' });
-  });
-  const datasets = makeFadedLines(plot);
-  new Chart(canvas, {
-    type: 'line',
-    data: { labels: allLabels, datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: datasets.length > 1, labels: { color: '#e8ecf1', usePointStyle: true } },
-        tooltip: {
-          backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1,
-          callbacks: {
-            label: ctx => {
-              const ds = ctx.dataset;
-              const s = ds._sorted ? ds._sorted[ctx.dataIndex] : null;
-              let line = `${ds.label}: ${yFmt(ctx.parsed.y)}`;
-              if (s && s.sessionLabel) line += ` · ${s.sessionLabel}`;
-              return line;
-            }
-          }
-        }
-      },
-      scales: {
-        x: { grid: { display: false }, ticks: { color: '#8b96a8', font: { size: 10 } } },
-        y: { grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: yFmt }, title: { display: true, text: yTitle, color: '#8b96a8', font: { size: 11 } } }
-      }
-    }
-  });
-}
-function buildAdvancedMetrics() {
-  const validTotals = s => s.laps.filter(l => !l.invalid).map(l => l.total);
-  // 一致性帶:中位 − 最速(秒)
-  buildMetricChart('bandChart', s => {
-    const v = validTotals(s); if (!v.length) return null;
-    return _median(v) - Math.min(...v);
-  }, '中位 − 最速 秒差（越低越穩）', v => v.toFixed(2) + 's');
-  // 無效圈比例 %
-  buildMetricChart('invalidChart', s => {
-    return s.laps.length ? s.laps.filter(l => l.invalid).length / s.laps.length * 100 : null;
-  }, '無效圈 %（越低越好）', v => v.toFixed(0) + '%');
-  // 近 PB 密度:當場 best+0.5s 內的有效圈 %
-  buildMetricChart('densityChart', s => {
-    const v = validTotals(s); if (!v.length) return null;
-    const b = Math.min(...v);
-    return v.filter(t => t <= b + 0.5).length / v.length * 100;
-  }, 'best+0.5s 內 %（越高越可複製）', v => v.toFixed(0) + '%');
-}
-
 // ===== F1 start reaction game =====
 const F1 = { state: 'idle', timers: [], goAt: 0, history: [], best: null };
 function f1Grade(rt) {
