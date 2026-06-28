@@ -200,6 +200,41 @@ def resolve_board_id(token, event_id, verbose=True):
     return str(ranking_id), result
 
 
+def probe_dgedge_page(event_url):
+    """Debug：抓 dg-edge 事件頁，dump 出可能藏 GT board_id / 活動ID 的線索。
+    （dg-edge 擋機房 IP，須在自家網路跑。）找它有沒有 p_rt_ / ranking_id /
+    連到 gran-turismo sportmode/event/<id> / 或自家 JSON API。"""
+    r = requests.get(event_url, headers={"User-Agent": UA, "Accept": "text/html,*/*"}, timeout=20)
+    print(f"\n=== dg-edge {event_url} （HTTP {r.status_code}, len={len(r.text)}）===")
+    t = r.text
+    pats = {
+        "p_rt_ (board/ranking id)": r"p_[a-z]{1,3}_\d+_\d+",
+        "ranking_id": r"ranking_id",
+        "board_id": r"board_id",
+        "gran-turismo sportmode/event": r"sportmode/event/(\d+)",
+        "gt event_id 鍵": r"[\"']?(?:gt_)?event_id[\"']?\s*[:=]\s*[\"']?\d+",
+        "dg-edge API 路徑": r"/api/[A-Za-z0-9_/\-]+",
+    }
+    any_hit = False
+    for label, pat in pats.items():
+        seen = set()
+        for m in re.finditer(pat, t, re.I):
+            s = t[max(0, m.start() - 50):m.end() + 50].replace("\n", " ")
+            if s in seen:
+                continue
+            seen.add(s)
+            any_hit = True
+            print(f"  [{label}] …{s}…")
+            if len(seen) >= 3:
+                break
+    if not any_hit:
+        print("  （頁面內沒有明顯線索 —— 多半是前端 JS 載入。下一步：DevTools→Network 看 dg-edge"
+              " 打哪支 API 拿到賽事資料，把該回應或 URL 貼回來。）")
+        for s in re.findall(r'<script[^>]*\bsrc=["\']([^"\']+)["\']', t)[:8]:
+            print(f"    <script src> {s}")
+    return t
+
+
 def probe_event_page(token, event_id):
     """Debug：dump /event/get_parameter 回應，幫忙定位 ranking_id。"""
     result = fetch_event_parameter(token, event_id)
@@ -402,14 +437,16 @@ def gh_put(repo, path, branch, gh_token, d, sha, message):
 def run(*, bearer=None, jsessionid=None, browser=None, locale="tw", max_pages=60,
         push=False, repo="WYSwolf/GT7", branch="main", gh_path="data.json",
         gh_token=None, data_path="data.json", dry=False, verbose=True,
-        event=None, key=None, probe_event=None):
+        event=None, key=None, probe_event=None, probe_dgedge=None):
     """抓榜並更新 data.json。push=True → 從 GitHub 抓最新、改、推回（不碰本機、不會蓋掉他人改動）；
     否則讀寫本機 data.json。dry=True 只顯示不寫。browser → 自動從瀏覽器讀 JSESSIONID。
     probe_event=<id> → 只 dump 活動詳情原始 JSON。
     event=<id> → 自動解出 board_id 印出；配 key=<trackKey__carSlug> 寫進 data.json。"""
     today = datetime.now().strftime("%Y-%m-%d")   # 用本機日期（=玩家當天）
 
-    # --- 找新賽道 board_id 的兩個輔助流程（打 web-api，需要 Bearer，與排行榜同一把）---
+    # --- 找新賽道 board_id 的輔助流程 ---
+    if probe_dgedge is not None:   # 看 dg-edge 頁面藏了什麼（不需認證）
+        return probe_dgedge_page(probe_dgedge)
     if probe_event is not None:
         token, _ = resolve_token(bearer, jsessionid, locale, browser, verbose)
         return probe_event_page(token, probe_event)
@@ -489,6 +526,8 @@ def main():
     ap.add_argument("--key", help="--event 寫入目標：meta.leaderboards.<trackKey__carSlug>")
     ap.add_argument("--probe-event", dest="probe_event",
                     help="只 dump 活動詳情原始 JSON（debug 用，找不到 ranking_id 時貼回來）")
+    ap.add_argument("--probe-dgedge", dest="probe_dgedge",
+                    help="抓 dg-edge 事件頁 URL，dump 出可能藏 GT board_id/活動ID 的線索（debug）")
     ap.add_argument("--data", default="data.json", help="本機 data.json 路徑（不加 --push 時用）")
     ap.add_argument("--dry", action="store_true", help="只顯示、不寫入")
     ap.add_argument("--max-pages", type=int, default=60)
@@ -504,7 +543,8 @@ def main():
         run(bearer=args.bearer, jsessionid=args.jsessionid, browser=args.browser, locale=args.locale,
             max_pages=args.max_pages, push=args.push, repo=args.repo, branch=args.branch,
             gh_path=args.gh_path, gh_token=args.gh_token, data_path=args.data, dry=args.dry,
-            event=args.event, key=args.key, probe_event=args.probe_event)
+            event=args.event, key=args.key, probe_event=args.probe_event,
+            probe_dgedge=args.probe_dgedge)
     except (RuntimeError, FileNotFoundError) as e:
         sys.exit(str(e))
 
