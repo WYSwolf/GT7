@@ -52,6 +52,10 @@ GT7 Telemetry Capture  ·  WYS / GT7 Training Tracker   (v3 · CSV 一天一檔)
     設定一次即可:export GT7_GITHUB_TOKEN=<具 repo 權限的 GitHub token>
     關閉用 --no-push。篩選成 slim CSV / data.json 之後再另外請 Claude 處理。
 
+收工一條龍(名次更新):若同時設了 GT7_JSESSIONID(或 GT7_GT_TOKEN),收工會再 import
+    同目錄的 gt7_rank.py,自動抓世界紀錄/門檻/你的名次,推回 GitHub 的 data.json。
+    需 pip install requests。關閉用 --no-rank。缺 token / requests 會自動略過,不影響 CSV 上傳。
+
 PS5 IP 怎麼找:PS5 → 設定 → 網路 → 連線狀態 → 查看連線狀態,看 IP 位址。
 防火牆:第一次跑若收不到,Windows 防火牆要放行 UDP 連接埠 33740(輸入)/ 33739(輸出)。
 """
@@ -765,6 +769,32 @@ def _github_upload(path, repo, branch, dest_dir, note='', local_is_fresh=False):
         print(f'  ✗ 自動上傳失敗({e})。原始檔仍在本機:{path}')
 
 
+def _rank_update(repo, branch):
+    """收工後順手更新世界排名 / WR / 你的名次 → 推回 GitHub 的 data.json。
+    需要:① GT7 認證(GT7_JSESSIONID 或 GT7_GT_TOKEN)② GitHub token ③ 同目錄 gt7_rank.py + requests。
+    任何一項缺就略過,不影響已上傳的 CSV。"""
+    js = os.environ.get('GT7_JSESSIONID')
+    bearer = os.environ.get('GT7_GT_TOKEN')
+    gh = os.environ.get('GT7_GITHUB_TOKEN') or os.environ.get('GITHUB_TOKEN')
+    if not (js or bearer):
+        print('  ⓘ 未設定 GT7_JSESSIONID / GT7_GT_TOKEN,略過名次更新(只上傳了 CSV)。')
+        return
+    if not gh:
+        print('  ⓘ 未設定 GitHub token,略過名次更新。')
+        return
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import gt7_rank
+    except Exception as e:
+        print(f'  ⓘ 名次更新需要同目錄的 gt7_rank.py 與 requests(pip install requests);略過。({e})')
+        return
+    try:
+        print('🏁 收工順手更新世界排名 / WR / 你的名次…')
+        gt7_rank.run(jsessionid=js, bearer=bearer, push=True, repo=repo, branch=branch, gh_token=gh)
+    except Exception as e:
+        print(f'  ✗ 名次更新失敗(CSV 已上傳,不受影響):{e}')
+
+
 def main():
     ap = argparse.ArgumentParser(description='GT7 telemetry capture (v2)')
     ap.add_argument('ps_ip', nargs='?', default=None,
@@ -785,6 +815,8 @@ def main():
     ap.add_argument('--repo', default='WYSwolf/GT7', help='自動上傳目標 repo(owner/name),預設 WYSwolf/GT7')
     ap.add_argument('--branch', default='main', help='自動上傳目標分支,預設 main')
     ap.add_argument('--dest-dir', default='telemetry', help='原始檔在 repo 內的資料夾,預設 telemetry')
+    ap.add_argument('--no-rank', action='store_true',
+                    help='關閉收工自動更新世界排名/名次(預設:有 GT7_JSESSIONID + GitHub token 就一起更新 data.json)')
     args = ap.parse_args()
 
     heartbeat = args.packet.encode('ascii')
@@ -1081,6 +1113,9 @@ def main():
                 note += f',best {bm}:{best_time - bm*60:06.3f}'
             _github_upload(out_path, args.repo, args.branch, args.dest_dir, note,
                            local_is_fresh=not append)
+        # 接著順手更新世界排名 / 名次(條件齊全才跑;缺 token 或 requests 就略過)
+        if not args.no_rank:
+            _rank_update(args.repo, args.branch)
 
 if __name__ == '__main__':
     main()

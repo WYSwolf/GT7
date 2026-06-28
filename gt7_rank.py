@@ -25,10 +25,17 @@ board_id：寫在 data.json 的 meta.leaderboards.<key>.boardId
   （目前 redbullring__fordgt17 = p_rt_1014277_001）
 
 選項：
-  --dry        只顯示、不寫入
-  --data       data.json 路徑（預設 ./data.json）
+  --dry        只顯示、不寫入（驗證數字用）
+  --push       不碰本機，直接從 GitHub 抓最新 data.json → 更新 → 推回
+               （需 GitHub token：GT7_GITHUB_TOKEN / GITHUB_TOKEN 或 --gh-token）
+               這條會自動取最新版再改，不會蓋掉 Claude 那邊對 data.json 的編輯。
+  --data       本機 data.json 路徑（不加 --push 時用，預設 ./data.json，會自動往上層找）
+  --repo/--branch/--gh-path   --push 目標（預設 WYSwolf/GT7 / main / data.json）
   --locale     gran-turismo 語系路徑，預設 tw
   --max-pages  最多翻幾頁找你的名次（每頁 100，預設 60）
+
+收工一條龍：gt7_capture.py 收工後會自動 import 本檔 run(push=True,...)，
+  只要環境同時有 GT7_JSESSIONID（或 GT7_GT_TOKEN）+ GitHub token 就會一起更新名次。
 """
 
 import argparse
@@ -37,7 +44,7 @@ import os
 import re
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 
 try:
     import requests
@@ -165,55 +172,34 @@ def recompute_goals(d: dict, track_key: str, wr: float):
         g["items"] = items
 
 
-def main():
-    ap = argparse.ArgumentParser(description="GT7 Rank Fetcher (web-api)")
-    ap.add_argument("--bearer", default=os.environ.get("GT7_GT_TOKEN"), help="web-api Bearer token（或設 GT7_GT_TOKEN）")
-    ap.add_argument("--jsessionid", default=os.environ.get("GT7_JSESSIONID"), help="gran-turismo.com JSESSIONID（或設 GT7_JSESSIONID）")
-    ap.add_argument("--locale", default="tw")
-    ap.add_argument("--data", default="data.json")
-    ap.add_argument("--dry", action="store_true", help="只顯示、不寫入")
-    ap.add_argument("--max-pages", type=int, default=60)
-    args = ap.parse_args()
-
-    token = args.bearer
-    my_id = None
+def resolve_token(bearer=None, jsessionid=None, locale="tw", verbose=True):
+    """回傳 (token, my_id)。優先用 bearer；否則用 jsessionid 換。"""
+    token, my_id = bearer, None
     if not token:
-        if not args.jsessionid:
-            sys.exit("請給 --bearer 或 --jsessionid（或設環境變數）。用法見檔頭。")
-        print("🔑 用 JSESSIONID 換 Bearer…")
-        info = get_token_info(args.jsessionid, args.locale)
+        if not jsessionid:
+            raise RuntimeError("請給 --bearer 或 --jsessionid（或設環境變數）。用法見檔頭。")
+        if verbose: print("🔑 用 JSESSIONID 換 Bearer…")
+        info = get_token_info(jsessionid, locale)
         token = info["access_token"]
         my_id = info.get("user_id")
-        print(f"  ✓ 取得 Bearer（user_id={my_id}）")
-
+        if verbose: print(f"  ✓ 取得 Bearer（user_id={my_id}）")
     if not my_id:
-        print("👤 取得自己的 user_id…")
+        if verbose: print("👤 取得自己的 user_id…")
         my_id = get_my_user_id(token)
-        print(f"  ✓ user_id = {my_id}")
+        if verbose: print(f"  ✓ user_id = {my_id}")
+    return token, my_id
 
-    # 自動定位 data.json（腳本可能放在 telemetry/ 子資料夾跑）
-    data_path = args.data
-    if not os.path.exists(data_path):
-        here = os.path.dirname(os.path.abspath(__file__))
-        for cand in (os.path.join(os.getcwd(), "..", "data.json"),
-                     os.path.join(here, "data.json"),
-                     os.path.join(here, "..", "data.json")):
-            if os.path.exists(cand):
-                data_path = cand; break
-    if not os.path.exists(data_path):
-        sys.exit(f"找不到 data.json（試過 {args.data} 與上層）；用 --data 指定路徑。")
-    print(f"📄 data.json = {os.path.abspath(data_path)}")
-    with open(data_path, encoding="utf-8") as f:
-        d = json.load(f)
+
+def apply_updates(d: dict, token: str, my_id: str, today: str, max_pages=60, verbose=True):
+    """就地更新 data.json 的 leaderboards / references / goals。回傳是否有任何榜更新成功。"""
     boards = {k: v["boardId"] for k, v in d.get("meta", {}).get("leaderboards", {}).items() if v.get("boardId")}
     if not boards:
-        sys.exit("data.json 沒有任何 meta.leaderboards.<key>.boardId；先填好再跑。")
-
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        raise RuntimeError("data.json 沒有任何 meta.leaderboards.<key>.boardId；先填好再跑。")
+    changed = False
     for key, board_id in boards.items():
-        print(f"📊 {key}  (board_id={board_id})…")
+        if verbose: print(f"📊 {key}  (board_id={board_id})…")
         try:
-            r = fetch_board(token, board_id, my_id, args.max_pages)
+            r = fetch_board(token, board_id, my_id, max_pages)
         except Exception as e:
             print(f"  ✗ 失敗：{e}")
             continue
@@ -225,13 +211,14 @@ def main():
             dg_total = fetch_dgedge_total(ev)
             if dg_total:
                 entry["totalPlayers"] = dg_total
-                print(f"  · dg-edge 母體：{dg_total} 人")
+                if verbose: print(f"  · dg-edge 母體：{dg_total} 人")
         population = entry.get("totalPlayers")
         pct = round(r["rank"] / population * 100, 2) if r["rank"] and population else None
-        print(f"  WR={disp(r['wr'])}  top100={disp(r['top100'])}  top1000={disp(r['top1000'])}  "
-              f"你的名次=#{r['rank']}"
-              + (f" (前 {pct}% / {population} 人)" if pct else "")
-              + f"  PB={disp(r['pb'])}  [API 榜清單大小={r['total']}]")
+        if verbose:
+            print(f"  WR={disp(r['wr'])}  top100={disp(r['top100'])}  top1000={disp(r['top1000'])}  "
+                  f"你的名次=#{r['rank']}"
+                  + (f" (前 {pct}% / {population} 人)" if pct else "")
+                  + f"  PB={disp(r['pb'])}  [API 榜清單大小={r['total']}]")
 
         if r["total"]:   entry["boardSize"] = r["total"]   # 參考用，非母體
         if r["top100"]:  entry["top100"] = r["top100"]
@@ -250,14 +237,110 @@ def main():
             ref.setdefault("label", "WR(GT7 全球#1)")
             ref["note"] = f"GT7 官方排行 #1（{today} 自動抓取）"
             recompute_goals(d, track_key, r["wr"])
-
+        changed = changed or bool(r["wr"] or r["rank"])
     d["meta"]["lastUpdated"] = today
-    if args.dry:
-        print("\n[DRY] 未寫入。確認數字 OK 後拿掉 --dry 再跑。")
+    return changed
+
+
+# ---------------- 本機 / GitHub 讀寫 ----------------
+def locate_data(path="data.json"):
+    """自動定位 data.json（腳本可能放在 telemetry/ 子資料夾跑）。"""
+    if os.path.exists(path):
+        return path
+    here = os.path.dirname(os.path.abspath(__file__))
+    for cand in (os.path.join(os.getcwd(), "..", "data.json"),
+                 os.path.join(here, "data.json"),
+                 os.path.join(here, "..", "data.json")):
+        if os.path.exists(cand):
+            return cand
+    raise FileNotFoundError(f"找不到 data.json（試過 {path} 與上層）；用 --data 指定路徑。")
+
+
+def _gh_headers(gh_token):
+    return {"Authorization": f"token {gh_token}", "Accept": "application/vnd.github+json",
+            "User-Agent": "gt7_rank", "X-GitHub-Api-Version": "2022-11-28"}
+
+
+def gh_get(repo, path, branch, gh_token):
+    """回傳 (data_dict, sha)。"""
+    import base64
+    api = f"https://api.github.com/repos/{repo}/contents/{path}"
+    r = requests.get(api, params={"ref": branch}, headers=_gh_headers(gh_token), timeout=30)
+    r.raise_for_status()
+    j = r.json()
+    raw = base64.b64decode(j["content"]).decode("utf-8")
+    return json.loads(raw), j["sha"]
+
+
+def gh_put(repo, path, branch, gh_token, d, sha, message):
+    import base64
+    api = f"https://api.github.com/repos/{repo}/contents/{path}"
+    raw = json.dumps(d, ensure_ascii=False, indent=1).encode("utf-8")
+    body = {"message": message, "branch": branch, "sha": sha,
+            "content": base64.b64encode(raw).decode("ascii")}
+    r = requests.put(api, headers={**_gh_headers(gh_token), "Content-Type": "application/json"},
+                     data=json.dumps(body), timeout=60)
+    r.raise_for_status()
+    return r.json().get("content", {}).get("html_url", "")
+
+
+def run(*, bearer=None, jsessionid=None, locale="tw", max_pages=60,
+        push=False, repo="WYSwolf/GT7", branch="main", gh_path="data.json",
+        gh_token=None, data_path="data.json", dry=False, verbose=True):
+    """抓榜並更新 data.json。push=True → 從 GitHub 抓最新、改、推回（不碰本機、不會蓋掉他人改動）；
+    否則讀寫本機 data.json。dry=True 只顯示不寫。"""
+    today = datetime.now().strftime("%Y-%m-%d")   # 用本機日期（=玩家當天）
+    token, my_id = resolve_token(bearer, jsessionid, locale, verbose)
+
+    sha = None
+    if push:
+        if not gh_token:
+            raise RuntimeError("--push 需要 GitHub token（設 GT7_GITHUB_TOKEN / GITHUB_TOKEN，或 --gh-token）。")
+        if verbose: print(f"☁ 從 GitHub 取最新 {repo}/{gh_path}@{branch}…")
+        d, sha = gh_get(repo, gh_path, branch, gh_token)
+    else:
+        data_path = locate_data(data_path)
+        if verbose: print(f"📄 data.json = {os.path.abspath(data_path)}")
+        with open(data_path, encoding="utf-8") as f:
+            d = json.load(f)
+
+    apply_updates(d, token, my_id, today, max_pages, verbose)
+
+    if dry:
+        if verbose: print("\n[DRY] 未寫入。確認數字 OK 後拿掉 --dry 再跑。")
+    elif push:
+        url = gh_put(repo, gh_path, branch, gh_token, d, sha,
+                     f"rank: auto update leaderboards/WR ({today})")
+        if verbose: print(f"\n✓ 已推回 GitHub {repo}/{gh_path}@{branch}" + (f"\n   {url}" if url else ""))
     else:
         with open(data_path, "w", encoding="utf-8") as f:
             json.dump(d, f, ensure_ascii=False, indent=1)
-        print(f"\n✓ 已更新 {os.path.abspath(data_path)}")
+        if verbose: print(f"\n✓ 已更新 {os.path.abspath(data_path)}")
+    return d
+
+
+def main():
+    ap = argparse.ArgumentParser(description="GT7 Rank Fetcher (web-api)")
+    ap.add_argument("--bearer", default=os.environ.get("GT7_GT_TOKEN"), help="web-api Bearer token（或設 GT7_GT_TOKEN）")
+    ap.add_argument("--jsessionid", default=os.environ.get("GT7_JSESSIONID"), help="gran-turismo.com JSESSIONID（或設 GT7_JSESSIONID）")
+    ap.add_argument("--locale", default="tw")
+    ap.add_argument("--data", default="data.json", help="本機 data.json 路徑（不加 --push 時用）")
+    ap.add_argument("--dry", action="store_true", help="只顯示、不寫入")
+    ap.add_argument("--max-pages", type=int, default=60)
+    ap.add_argument("--push", action="store_true",
+                    help="直接從 GitHub 抓最新 data.json、更新、推回（用 GitHub token；不碰本機檔）")
+    ap.add_argument("--repo", default="WYSwolf/GT7", help="--push 目標 repo（owner/name）")
+    ap.add_argument("--branch", default="main", help="--push 目標分支")
+    ap.add_argument("--gh-path", default="data.json", help="data.json 在 repo 內的路徑")
+    ap.add_argument("--gh-token", default=os.environ.get("GT7_GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN"),
+                    help="GitHub token（或設 GT7_GITHUB_TOKEN / GITHUB_TOKEN）")
+    args = ap.parse_args()
+    try:
+        run(bearer=args.bearer, jsessionid=args.jsessionid, locale=args.locale,
+            max_pages=args.max_pages, push=args.push, repo=args.repo, branch=args.branch,
+            gh_path=args.gh_path, gh_token=args.gh_token, data_path=args.data, dry=args.dry)
+    except (RuntimeError, FileNotFoundError) as e:
+        sys.exit(str(e))
 
 
 if __name__ == "__main__":

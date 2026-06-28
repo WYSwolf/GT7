@@ -70,7 +70,10 @@ demos/in-car-dashboard.html  # 即時儀表板展示
 - 目標門檻 = WR ×(1 + 3% / 2% / 1%),規則存於 `meta.goalPolicy`。
   **更新某車 WR(`meta.references.<carSlug>.time`)後,要依此重算該賽道 `goals`。**
 - 全站「vs WR %」都從 `meta.references.<carSlug>` 即時計算 —— 改這一個欄位,所有卡片/圖表跟著更新。
-- 全球名次/百分位只在有 **dg-edge 截圖**時更新(存在 `meta.leaderboards`),沒有截圖**不引用舊名次**。
+- 全球名次/WR/門檻可用 `gt7_rank.py` **自動抓取**(見 §4):GT7 官方 API 給
+  WR / top100 / top1000 / 你的名次,**母體總人數**從 `eventUrl` 指的 dg-edge 事件頁抓
+  「Total players」。官方 API 的 `total` 只是榜上回傳的清單大小(`boardSize`,非母體),
+  百分位一律用 dg-edge 母體當分母。沒有來源時**不引用舊名次**。
 
 ---
 
@@ -89,6 +92,11 @@ PS5 ──UDP──> gt7_capture.py ──(收工自動上傳)──> telemetry/
 - **自動上傳**:`gt7_capture.py` 收工(Ctrl+C)後,若環境有 `GT7_GITHUB_TOKEN`(或 `GITHUB_TOKEN`),
   會用 GitHub API 把**整份原始 CSV(不篩選)**上傳到 `telemetry/` → `main`。`--no-push` 可關閉。
   同日多次跑會合併成同一檔;若本機檔被刪/換機,會另存時間後綴避免覆蓋。
+- **收工順手更新名次**:若同時設了 `GT7_JSESSIONID`(或 `GT7_GT_TOKEN`),收工會再
+  import `gt7_rank.py`,自動抓 WR/門檻/你的名次並**推回 GitHub 的 `data.json`**
+  (從遠端取最新版再改,不會蓋掉 Claude 的編輯)。`--no-rank` 關閉。
+  也可單獨跑:`python gt7_rank.py --jsessionid <值> --dry`(驗證)/ `--push`(寫回 repo)。
+  認證流程與 board_id 見 `gt7_rank.py` 檔頭。**須在自家網路跑**(Sony / dg-edge 會擋機房 IP)。
 - **精簡 CSV**:`telemetry/gt7-YYYY-MM-DD.csv` 只存當天各場次的 PB 圈(原生 Hz、無空行),
   檔名對應 `data.json` 各 session 的 `csv` 欄位,供 `telemetry.html` 檢視。
 

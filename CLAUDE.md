@@ -38,7 +38,7 @@ telemetry/          # CSV 遙測原始資料，從 GT7 匯出
 - `data.json` 需手動更新以新增訓練記錄
 - CSV 檔案命名慣例：精簡檔 `gt7-YYYY-MM-DD.csv`（dash，存各場 PB 圈）；原始 capture `gt7_YYYY-MM-DD.csv`（底線，gt7_capture.py 自動上傳）
 - 目標設定慣例：各賽道目標一律以世界第一（WR）為基準 —— 🎯 主要 = WR +3%、🚀 進階 = WR +2%、🏁 衝刺 = WR +1%（規則存於 `meta.goalPolicy`）。更新 `meta.references.<carSlug>` 的 WR 後，需依此重算該賽道 `goals`；球門隨 WR 紀錄移動是預期行為，不要改成更寬鬆或個人化的門檻。
-- 全球名次/百分位只在有 dg-edge 截圖時更新（存 `meta.leaderboards`）；沒有截圖不要引用舊名次。
+- 全球名次/WR/門檻可由 `gt7_rank.py` 自動抓：GT7 官方 API 給 WR/top100/top1000/你的名次；母體總人數從 `eventUrl` 指的 dg-edge 事件頁抓「Total players」。官方 API 的 `total` 只是榜上清單大小（存 `boardSize`，非母體），百分位一律用 dg-edge 母體當分母。`gt7_capture.py` 收工會順手跑（需 `GT7_JSESSIONID`+GitHub token，`--no-rank` 關閉）。沒有來源時不要引用舊名次。
 
 ## 收到每日練習紀錄後的更新步驟
 
