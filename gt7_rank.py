@@ -287,9 +287,35 @@ def _known_time_ms(d: dict, key: str, entry: dict):
     return round(min(bests) * 1000) if bests else None
 
 
+def _lcs_len(a: str, b: str) -> int:
+    """最長共同子字串長度。"""
+    if not a or not b:
+        return 0
+    prev = [0] * (len(b) + 1)
+    best = 0
+    for i in range(1, len(a) + 1):
+        cur = [0] * (len(b) + 1)
+        for j in range(1, len(b) + 1):
+            if a[i - 1] == b[j - 1]:
+                cur[j] = prev[j - 1] + 1
+                best = max(best, cur[j])
+        prev = cur
+    return best
+
+
+def _car_score(cs: str, cn: str) -> float:
+    """車款相似度（0~1）。互為子字串=1；否則用最長共同子字串 / 較短長度。"""
+    if not cs or not cn:
+        return 0.0
+    if cs in cn or cn in cs:
+        return 1.0
+    return _lcs_len(cs, cn) / min(len(cs), len(cn))
+
+
 def match_event(key: str, entry: dict, events: list, known_ms):
     """把一條 leaderboard（trackKey__carSlug）配到玩家場次。回傳 (命中 event 或 None, 候選清單)。
-    先用賽道名篩候選；多於一個就用「精確時間 → 車名 → 最近時間」依序消歧。"""
+    先用賽道名篩候選；多於一個時消歧順序＝精確時間(僅 dg 夠新時會中) → 車款相似度(主力,
+    不受成績新舊影響) → 最近時間(≤500ms 且明顯唯一)；都不唯一就留候選。"""
     tk = _norm(key.split("__")[0])
     cs = _norm(key.split("__")[1] if "__" in key else "")
     cands = [e for e in events if tk and tk in _norm(e.get("track_name") or e.get("track_alias"))]
@@ -297,14 +323,14 @@ def match_event(key: str, entry: dict, events: list, known_ms):
         cands = [e for e in events if tk and tk in _norm(e.get("track_alias"))]
     if len(cands) <= 1:
         return (cands[0] if cands else None), cands
-    if known_ms:                                   # 精確時間（最可靠）
+    if known_ms:                                   # 精確時間：dg 夠新時最準（你新成績還沒上 dg 就會落空，沒關係）
         ex = [e for e in cands if e.get("time_ms") == known_ms]
         if len(ex) == 1:
             return ex[0], cands
-    carm = [e for e in cands if cs and _norm(e.get("car"))            # 車名互含
-            and (_norm(e["car"]) in cs or cs in _norm(e["car"]))]
-    if len(carm) == 1:
-        return carm[0], cands
+    # 車款相似度：主力消歧，車不會「過期」，不受你今天成績有沒有同步影響
+    scored = sorted(((_car_score(cs, _norm(e.get("car"))), e) for e in cands), key=lambda x: -x[0])
+    if scored and scored[0][0] >= 0.5 and (len(scored) == 1 or scored[0][0] - scored[1][0] >= 0.25):
+        return scored[0][1], cands
     if known_ms:                                   # 最近時間（≤500ms 且明顯唯一）
         near = sorted([e for e in cands if e.get("time_ms")], key=lambda e: abs(e["time_ms"] - known_ms))
         if near and abs(near[0]["time_ms"] - known_ms) <= 500 and \
