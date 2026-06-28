@@ -1788,7 +1788,7 @@ function renderCarSection(g) {
       <div class="panel-body"><div class="chart-wrap tall"><canvas id="lapChart-${g.key}"></canvas></div></div>
     </div>
     <div class="panel">
-      <div class="panel-header"><div class="panel-title">各分段穩定性軌跡</div><div class="panel-meta">每日 · X=距該段最佳 Y=中位−最佳 · 綠進步/橘退步 · 全圈粗實線</div></div>
+      <div class="panel-header"><div class="panel-title">各分段穩定性軌跡</div><div class="panel-meta">每日 · X=距該段最佳 Y=中位−最佳 · 綠進步/橘退步 <button onclick="playSectorTraj('sectorStabChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .6rem;border-radius:6px;border:1px solid var(--accent-dim);background:transparent;color:var(--accent);cursor:pointer;font-size:.72rem;font-family:inherit;">▶ 播放</button></div></div>
       <div class="panel-body"><div class="chart-wrap tall"><canvas id="sectorStabChart-${g.key}"></canvas></div><div id="sectorLeg-${g.key}" class="seg-legend"></div></div>
     </div>
     <div class="grid-2">
@@ -1882,6 +1882,23 @@ function animDim(chart, target, syncLeg) {
   chart.$raf = requestAnimationFrame(step);
 }
 function scaleA(s, m) { const p = s.replace(/rgba?\(|\)/g, '').split(',').map(Number); return `rgba(${p[0]},${p[1]},${p[2]},${(((p[3] == null ? 1 : p[3])) * m).toFixed(3)})`; }
+// Replay the trajectory: progressively reveal the densified points oldest→newest.
+function playSectorTraj(canvasId) {
+  const chart = Chart.getChart(canvasId);
+  if (!chart) return;
+  if (chart.$praf) cancelAnimationFrame(chart.$praf);
+  chart.$sel = null; chart.$na = 1;                                   // show all during playback
+  chart.data.datasets.forEach(d => { if (!d._full) d._full = d.data; });
+  const dur = 2600, t0 = performance.now();
+  const step = now => {
+    const p = Math.min(1, (now - t0) / dur);
+    chart.data.datasets.forEach(d => { const L = d._full.length; d.data = d._full.slice(0, Math.max(2, Math.ceil(p * L))); });
+    chart.update('none');
+    if (p < 1) chart.$praf = requestAnimationFrame(step);
+    else { chart.data.datasets.forEach(d => { d.data = d._full; }); chart.update('none'); chart.$praf = null; }
+  };
+  chart.$praf = requestAnimationFrame(step);
+}
 function drawSectorTrajectory(canvasId, sessions, sectorCount) {
   const el = document.getElementById(canvasId);
   if (!el) return;
