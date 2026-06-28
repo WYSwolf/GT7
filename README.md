@@ -121,6 +121,7 @@ PS5 ──UDP──> gt7_capture.py ──(收工自動上傳)──> telemetry/
 - **只想刷新排名/WR/門檻** → 收工自動跑就完整,**不用找 Claude**。
 - **跑了新的一天** → 把 CSV 給 Claude 做 `sessions` 那層分析;WR/名次那塊由 rank 腳本負責。
 - rank 腳本**只更新已存在的 leaderboard key**:全新賽道要 Claude 先建條目,之後它才能自動補 boardId/eventUrl/名次。
+- **`--replay`(錄 WR ghost)隱含 `--no-rank`**:重播跟你的排名無關,收工只上傳 `wr_` ghost、不刷名次。那份原始 ghost 要變成 `telemetry.html` 用的 `wr-<carSlug>.csv` 仍需 Claude 整理。
 
 ---
 

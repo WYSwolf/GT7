@@ -37,7 +37,7 @@ GT7 Telemetry Capture  ·  WYS / GT7 Training Tracker   (v3 · CSV 一天一檔)
 
 選項:
     --live                     同時開本機即時儀表板網站(訓練看 RPM/G/胎溫/側滑)
-    --replay                   重播模式:不管在不在跑道都錄,輸出檔自動加 wr_ 前綴
+    --replay                   重播模式:不管在不在跑道都錄,輸出檔自動加 wr_ 前綴(隱含 --no-rank)
     --track / --car            這次的賽道名 / 車名(寫進檔頭,可省略事後補)
     --hz    20                 逐筆取樣頻率(預設 20Hz;0 = 全收 ~60Hz)
     --port  8080               即時看板連接埠(配 --live)
@@ -809,7 +809,7 @@ def main():
     ap.add_argument('--port', type=int, default=8080, help='即時看板連接埠(預設 8080)')
     ap.add_argument('--sec', default=None, help='分段界距離百分比,如 "25.72,72.36"(用官方分段校正值);不給=依參考圈等時間三等分')
     ap.add_argument('--replay', action='store_true',
-                    help='重播模式:不管在不在跑道都錄,收工自動寫出最後一段(抓 WR ghost 走線用)')
+                    help='重播模式:不管在不在跑道都錄,收工自動寫出最後一段(抓 WR ghost 走線用;隱含 --no-rank)')
     ap.add_argument('--no-push', action='store_true',
                     help='關閉收工自動上傳(預設:偵測到 GT7_GITHUB_TOKEN 就自動把原始檔上傳到 GitHub)')
     ap.add_argument('--repo', default='WYSwolf/GT7', help='自動上傳目標 repo(owner/name),預設 WYSwolf/GT7')
@@ -1114,8 +1114,11 @@ def main():
             _github_upload(out_path, args.repo, args.branch, args.dest_dir, note,
                            local_is_fresh=not append)
         # 接著順手更新世界排名 / 名次(條件齊全才跑;缺 token 或 requests 就略過)
-        if not args.no_rank:
+        # --replay 是錄 WR ghost、與你的競技名次無關,隱含略過名次更新(省得白刷一次、多一個 commit)
+        if not args.no_rank and not args.replay:
             _rank_update(args.repo, args.branch)
+        elif args.replay and not args.no_rank:
+            print('  ⓘ 重播模式:略過名次更新(--replay 與你的排名無關)。')
 
 if __name__ == '__main__':
     main()
