@@ -149,10 +149,21 @@ def debug_user(access_token: str, psn_id: str):
         hits = re.findall(pat, r.text)
         if hits:
             print(f"pattern {pat!r} -> {hits[:6]}")
-    # show any long digit runs (candidate ids) and the head of the body
-    print("digit runs:", sorted(set(re.findall(r'\d{5,}', r.text)))[:20])
-    print("----- body head (1500 chars) -----")
-    print(r.text[:1500])
+    # canonical / og:url often carry the numeric profile id
+    for m in re.findall(r'<link[^>]+canonical[^>]*>', r.text): print("canonical:", m.strip())
+    for m in re.findall(r'og:url"[^>]*content="([^"]+)"', r.text): print("og:url:", m)
+    # context around id-ish keywords
+    for kw in ['user_no', 'userNo', 'user-no', '/user/', 'board_id', 'boardId', 'data-']:
+        for mm in list(re.finditer(re.escape(kw), r.text))[:4]:
+            s = max(0, mm.start() - 45)
+            print(f"  [{kw}] …{r.text[s:mm.start()+70].strip()}…")
+    # context around each long number candidate
+    print("----- number contexts -----")
+    for num in sorted(set(re.findall(r'\b\d{6,}\b', r.text))):
+        i = r.text.find(num); s = max(0, i - 55)
+        print(f"  [{num}] …{r.text[s:i+len(num)+15].strip()}…")
+    print("----- body head (1200 chars) -----")
+    print(r.text[:1200])
 
 
 def get_sport_mode_stats(access_token: str, user_no: int) -> dict:
