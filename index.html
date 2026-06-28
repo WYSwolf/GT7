@@ -832,7 +832,6 @@
     </div>
     <div class="nav-tabs" id="navTabs">
       <button class="nav-tab active" data-page="dashboard">總覽</button>
-      <button class="nav-tab" data-page="tracks">賽道</button>
       <button class="nav-tab" data-page="goals">目標</button>
       <button class="nav-tab" data-page="history">紀錄</button>
       <button class="nav-tab" data-page="games">遊戲</button>
@@ -869,15 +868,6 @@
       </div>
       <div class="panel-body" id="dashboardInsights"></div>
     </div>
-  </div>
-
-  <div class="page" id="page-tracks">
-    <div class="page-header">
-      <div class="breadcrumb">SYSTEM <span class="sep">/</span> <span class="current">賽道列表</span></div>
-      <h1 class="page-title">CIRCUITS <span class="accent">·</span> 賽道</h1>
-      <div class="page-subtitle">所有已練習的賽道</div>
-    </div>
-    <div id="tracksGrid"></div>
   </div>
 
   <div id="trackPages"></div>
@@ -1115,7 +1105,6 @@ function initApp() {
   document.getElementById('statusPill').textContent = `LIVE · ${DATA.meta?.lastUpdated || ''}`;
   buildDashboard();
   buildEventResults();
-  buildTracks();
   buildTrackDetailPages();
   buildGoals();
   buildHistory();
@@ -1569,45 +1558,6 @@ function buildPBProgression() {
       }
     }
   });
-}
-
-function buildTracks() {
-  const groups = Object.values(getTrackGroups());
-  const html = MODES.map(m => {
-    const list = groups.filter(g => modeOf(g) === m.id);
-    if (!list.length) return '';
-    const cards = list.map(g => {
-      const lb = getLeaderboard(g.key);
-      return `
-      <div class="track-card" onclick="navigateTo('track-${g.key}')">
-        <div style="margin-bottom:.5rem;"><span class="badge" style="background:${m.color};color:#0a0d12;font-weight:700;">${m.icon} ${m.short}</span></div>
-        <div class="track-card-name">${g.track}</div>
-        <div class="track-card-meta">${g.trackEn} ${g.route ? '· ' + g.route : ''} · ${g.car}</div>
-        <div class="track-stats-row">
-          <div><div class="track-stat-label">最佳圈</div><div class="track-stat-value" style="color: var(--accent);">${fmtTime(g.pb)}</div></div>
-          <div><div class="track-stat-label">理論最佳</div><div class="track-stat-value" style="color: var(--purple);">${fmtTime(g.opt)}</div></div>
-          <div><div class="track-stat-label">總圈數</div><div class="track-stat-value">${g.totalLaps}</div></div>
-        </div>
-        <div style="margin-top: 1rem;">
-          <span class="badge accent">${g.sessions[0].tire} 輪胎</span>
-          <span class="badge">${g.sessions[0].carClass}</span>
-          <span class="badge">${g.sessions.length} sessions</span>
-          ${lb ? `<span class="badge" style="border-color:${m.color};">🏆 排名對標</span>` : ''}
-        </div>
-      </div>`;
-    }).join('');
-    return `
-      <div style="margin-bottom:1.75rem;">
-        <div style="display:flex;align-items:center;gap:.55rem;margin-bottom:.9rem;">
-          <span style="font-size:1.15rem;">${m.icon}</span>
-          <span style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1.3rem;color:${m.color};">${m.zh}</span>
-          <span style="flex:1;height:1px;background:#1c232c;"></span>
-          <span style="color:var(--text-secondary);font-size:.8rem;">${list.length}</span>
-        </div>
-        <div class="grid-2">${cards}</div>
-      </div>`;
-  }).join('');
-  document.getElementById('tracksGrid').innerHTML = html;
 }
 
 function buildEventResults() {
