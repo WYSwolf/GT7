@@ -1868,6 +1868,20 @@ function drawSectorLine(canvasId, sessions, sectorCount) {
 
 // Per-sector (+ overall) stability trajectory: X = day best − all-time best, Y = day median−best.
 // Each series gradient-coloured by progress, faded by recency; overall = thick solid, sectors thin dashed.
+// Smoothly animate a chart's non-selected alpha ($na) toward target; clears $sel when fully restored.
+function animDim(chart, target, syncLeg) {
+  if (chart.$raf) cancelAnimationFrame(chart.$raf);
+  const from = chart.$na == null ? 1 : chart.$na, dur = 280, t0 = performance.now();
+  const step = now => {
+    const p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+    chart.$na = from + (target - from) * e;
+    chart.update('none'); if (syncLeg) syncLeg();
+    if (p < 1) chart.$raf = requestAnimationFrame(step);
+    else { chart.$raf = null; if (target >= 1) chart.$sel = null; chart.update('none'); if (syncLeg) syncLeg(); }
+  };
+  chart.$raf = requestAnimationFrame(step);
+}
+function scaleA(s, m) { const p = s.replace(/rgba?\(|\)/g, '').split(',').map(Number); return `rgba(${p[0]},${p[1]},${p[2]},${(((p[3] == null ? 1 : p[3])) * m).toFixed(3)})`; }
 function drawSectorTrajectory(canvasId, sessions, sectorCount) {
   const el = document.getElementById(canvasId);
   if (!el) return;
@@ -1904,9 +1918,9 @@ function drawSectorTrajectory(canvasId, sessions, sectorCount) {
     datasets.push({
       label: k === 'total' ? '全圈' : k.toUpperCase(), data: dense, showLine: true,
       borderColor: col, borderWidth: bw, borderDash: dash, tension: 0, borderCapStyle: 'butt',
-      segment: { borderColor: ctx => { const sel = ctx.chart.$sel; return (sel == null || sel === ctx.datasetIndex) ? (dcol[ctx.p1DataIndex] || `rgba(${col},1)`) : hexA(col, 0.07); } },
+      segment: { borderColor: ctx => { const sel = ctx.chart.$sel, base = dcol[ctx.p1DataIndex] || `rgba(${col},1)`; return (sel == null || sel === ctx.datasetIndex) ? base : scaleA(base, ctx.chart.$na == null ? 1 : ctx.chart.$na); } },
       pointRadius: dense.map((_, i) => i === dense.length-1 ? (k === 'total' ? 9 : 4) : 0),
-      pointBackgroundColor: ctx => { const sel = ctx.chart.$sel; return (sel == null || sel === ctx.datasetIndex) ? col : hexA(col, 0.12); },
+      pointBackgroundColor: ctx => { const sel = ctx.chart.$sel; return (sel == null || sel === ctx.datasetIndex) ? col : hexA(col, Math.max(0.05, ctx.chart.$na == null ? 1 : ctx.chart.$na)); },
       pointBorderColor: '#0a0d12', pointBorderWidth: 2, pointHoverRadius: 0, _k: k
     });
   });
@@ -1914,7 +1928,7 @@ function drawSectorTrajectory(canvasId, sessions, sectorCount) {
     type: 'line', data: { datasets },
     options: {
       responsive: true, maintainAspectRatio: false, interaction: { mode: 'nearest', intersect: true },
-      onClick: (e, els, ch) => { const hit = ch.getElementsAtEventForMode(e, 'nearest', { intersect: false }, true); if (hit.length) { const di = hit[0].datasetIndex; ch.$sel = ch.$sel === di ? null : di; ch.update(); syncLeg(); } },
+      onClick: (e, els, ch) => { const hit = ch.getElementsAtEventForMode(e, 'nearest', { intersect: false }, true); if (!hit.length) return; const di = hit[0].datasetIndex; if (ch.$sel === di) animDim(ch, 1, syncLeg); else { ch.$sel = di; if (ch.$na == null) ch.$na = 1; animDim(ch, 0.07, syncLeg); } },
       plugins: {
         legend: { display: false },
         tooltip: { backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1,
@@ -1934,7 +1948,7 @@ function drawSectorTrajectory(canvasId, sessions, sectorCount) {
     if (!legEl) return;
     [...legEl.children].forEach(ch => {
       const di = chart.data.datasets.findIndex(d => d._k === ch.dataset.k);
-      ch.style.opacity = (chart.$sel == null || chart.$sel === di) ? '1' : '0.3';
+      ch.style.opacity = (chart.$sel == null || chart.$sel === di) ? '1' : String(Math.max(0.3, chart.$na == null ? 1 : chart.$na));
     });
   }
   if (legEl) {
@@ -1943,7 +1957,7 @@ function drawSectorTrajectory(canvasId, sessions, sectorCount) {
     ).join('');
     [...legEl.children].forEach(ch => {
       ch.style.cursor = 'pointer';
-      ch.addEventListener('click', () => { const di = chart.data.datasets.findIndex(d => d._k === ch.dataset.k); chart.$sel = chart.$sel === di ? null : di; chart.update(); syncLeg(); });
+      ch.addEventListener('click', () => { const di = chart.data.datasets.findIndex(d => d._k === ch.dataset.k); if (chart.$sel === di) animDim(chart, 1, syncLeg); else { chart.$sel = di; if (chart.$na == null) chart.$na = 1; animDim(chart, 0.07, syncLeg); } });
     });
   }
 }
