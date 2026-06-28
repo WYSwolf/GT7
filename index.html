@@ -1978,11 +1978,14 @@ function renderCarCharts(g) {
   for (let i = 0; i < bins; i++) distLabels.push((min + i * step).toFixed(1));
   const distDates = [...new Set(validLapsD.map(l => l.date))].sort();   // 舊→新
   const mixHex = (a, b, t) => { const A = hxArr(a), B = hxArr(b); return `rgb(${Math.round(A[0]+(B[0]-A[0])*t)},${Math.round(A[1]+(B[1]-A[1])*t)},${Math.round(A[2]+(B[2]-A[2])*t)})`; };
+  const lastI = distDates.length - 1;
   const distDatasets = distDates.map((d, di) => {
     const c = new Array(bins).fill(0);
     validLapsD.filter(l => l.date === d).forEach(l => { c[Math.min(Math.floor((l.total - min) / step), bins - 1)]++; });
-    const t = distDates.length < 2 ? 1 : di / (distDates.length - 1);   // 舊=暗 新=亮
-    return { label: d.slice(5), data: c, backgroundColor: mixHex('#0a4d33', '#00ff88', t), borderWidth: 0, stack: 'd' };
+    let color;
+    if (di === lastI) color = '#00ff88';                        // 最新一日:突出綠
+    else { const denom = lastI - 1; color = mixHex('#1d3a4d', '#4dabf7', denom > 0 ? di / denom : 1); }  // 其餘:藍色系漸層(舊暗→近亮)
+    return { label: d.slice(5), data: c, backgroundColor: color, borderWidth: 0, stack: 'd' };
   });
   new Chart(document.getElementById('distChart-' + g.key), {
     type: 'bar',
