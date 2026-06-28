@@ -698,9 +698,11 @@ def start_live_server(port):
     return srv
 
 # ---------------- main loop ----------------
-def _github_upload(path, repo, branch, dest_dir, note=''):
+def _github_upload(path, repo, branch, dest_dir, note='', local_is_fresh=False):
     """收工後把整份原始紀錄檔(不篩選)透過 GitHub Contents API 上傳到 repo。
-    不需本機裝 git;token 由環境變數 GT7_GITHUB_TOKEN / GITHUB_TOKEN 提供。"""
+    不需本機裝 git;token 由環境變數 GT7_GITHUB_TOKEN / GITHUB_TOKEN 提供。
+    local_is_fresh=True 表示本機這份是全新檔(非接續);若遠端已有同名檔,
+    為避免蓋掉先前那次,會改用時間後綴另存。"""
     import base64, urllib.request, urllib.error
     token = os.environ.get('GT7_GITHUB_TOKEN') or os.environ.get('GITHUB_TOKEN')
     if not token:
@@ -730,6 +732,13 @@ def _github_upload(path, repo, branch, dest_dir, note=''):
             print(f'  ⚠ 查詢現有檔失敗(HTTP {e.code}),仍嘗試上傳…')
     except Exception:
         pass
+    # 防呆:本機是全新檔、但遠端同名已存在 → 不覆蓋,改用時間後綴另存(避免蓋掉先前那次)
+    if sha and local_is_fresh:
+        base, ext = os.path.splitext(name)
+        name = f"{base}_{datetime.now().strftime('%H%M%S')}{ext}"
+        api = f'https://api.github.com/repos/{repo}/contents/{dest_dir.strip("/")}/{name}'
+        print(f'  ⚠ 遠端已有同名檔,但本機這份是全新內容 → 另存為 {name},不覆蓋舊檔')
+        sha = None
     body = {'message': f'capture: {name}' + (f' — {note}' if note else ''),
             'content': base64.b64encode(content).decode('ascii'),
             'branch': branch}
@@ -1070,7 +1079,8 @@ def main():
             if best_time is not None:
                 bm = int(best_time // 60)
                 note += f',best {bm}:{best_time - bm*60:06.3f}'
-            _github_upload(out_path, args.repo, args.branch, args.dest_dir, note)
+            _github_upload(out_path, args.repo, args.branch, args.dest_dir, note,
+                           local_is_fresh=not append)
 
 if __name__ == '__main__':
     main()
