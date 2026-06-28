@@ -26,23 +26,24 @@ GT7 Rank Fetcher  ·  WYS / GT7 Training Tracker
      （也可設環境變數 GT7_GT_TOKEN / GT7_JSESSIONID / GT7_BROWSER）
 
 board_id：寫在 data.json 的 meta.leaderboards.<key>.boardId
-  （目前 redbullring__fordgt17 = p_rt_1014277_001）
+  ★ 通常不必手填 ★ —— 只要該 leaderboard 有 dg-edge 的 eventUrl，本檔抓榜時會自動
+  從 dg-edge 事件頁解出 board_id 並補進 boardId（dg-edge 頁面內嵌
+  "<dgId>",<num>,"p_rt_..._...","TT"，用事件 id 錨定取得）。所以新賽道一般只要填
+  eventUrl 即可，boardId 留空，跑一次就自動補上。
 
-  從官方 sportmode 前端解出的組成規則（給新賽道用）：
+  board_id 的組成（從官方 sportmode 前端解出，供理解/手動 fallback）：
     · 一般時間競賽（registration_key 為空）→ board_id 直接 = 活動的 ranking_id，
-      沒有任何後綴運算。你看到的 p_rt_1014277_001 整串就是 ranking_id（_001 是後端
-      字串的一部分，不是區碼）。
-    · 分區報名賽事（World Series 區域資格賽等，registration_key 非空）才會接區碼：
-      board_id = ranking_id + "_" + 區碼，區碼 = 成人:2 位數補零、非成人:(區+100)，
-      且 Oita/Kumamoto 互換。個人 TT 不碰這條。
-  → 新賽道不必手算：用 --event <活動ID> 讓本檔自動抓 ranking_id（見下）。
+      沒有任何後綴運算。p_rt_1014277_001 整串就是 ranking_id（_001 是後端字串的一部分，
+      不是區碼）。
+    · 分區報名賽事（registration_key 非空）才接區碼：board_id = ranking_id + "_" + 區碼，
+      區碼 = 成人:2 位數補零、非成人:(區+100)，且 Oita/Kumamoto 互換。個人 TT 不碰這條。
 
-找新賽道的 board_id（打 web-api，認證與抓榜共用，所以一樣需 --browser/--jsessionid/--bearer）：
+手動找 board_id 的 fallback（沒有 dg-edge eventUrl 時，打 web-api，認證與抓榜共用）：
   --event <id>     打 POST /event/get_parameter {"event_id": id}（id = 活動頁網址尾數，
                    如 .../sportmode/event/14277/ → 14277），取回應的 ranking_id 當 board_id
-                   印出來。配 --key <trackKey__carSlug> 可直接寫進 data.json 的
-                   meta.leaderboards.<key>.boardId（遵守 --dry/--push/本機）。
-  --probe-event <id>  Dump /event/get_parameter 的完整回應 JSON（萬一欄位變了，貼回來對欄位）。
+                   印出來。配 --key <trackKey__carSlug> 可直接寫進 data.json。
+  --probe-event <id>   Dump /event/get_parameter 的完整回應 JSON（欄位變了時對欄位）。
+  --probe-dgedge <url> Dump dg-edge 事件頁裡的 board_id/活動 id 線索（版面變了時對結構）。
 
 選項：
   --dry        只顯示、不寫入（驗證數字用）
@@ -252,20 +253,37 @@ def disp(sec):
     return f"{m}:{sec - m * 60:06.3f}"
 
 
-def fetch_dgedge_total(event_url: str):
-    """從 dg-edge 事件頁抓「Total players」真正母體人數（官方 API 抓不到）。失敗回 None。"""
+DGEDGE_BOARD_RE = re.compile(r'"(p_[a-z]{1,4}_\d+_\d+)"')
+
+
+def fetch_dgedge(event_url: str) -> dict:
+    """抓一次 dg-edge 事件頁，回傳 {total, board_id}（抓不到的欄位為 None）。
+    · total：母體人數（官方 API 抓不到），版面 <span>Total players</span><b>150118</b>。
+    · board_id：頁面內嵌資料含 "<dgId>",<num>,"p_rt_..._...","TT" —— 用 dg-edge 事件 id
+      錨定取它後面那個 board_id（取不到再退求頁面第一個 p_rt_ 字串）。"""
+    out = {"total": None, "board_id": None}
     try:
-        r = requests.get(event_url, headers={"User-Agent": UA, "Accept": "text/html"}, timeout=15)
+        r = requests.get(event_url, headers={"User-Agent": UA, "Accept": "text/html"}, timeout=20)
         r.raise_for_status()
     except Exception as e:
-        print(f"  · dg-edge 母體抓取失敗（沿用既有 totalPlayers）：{e}")
-        return None
-    # 頁面 server-render：<span>Total players</span> <b>150118</b>
-    m = re.search(r"Total\s*players\s*</span>\s*<b[^>]*>\s*([\d,]+)", r.text, re.I)
-    if not m:
+        print(f"  · dg-edge 抓取失敗（沿用既有值）：{e}")
+        return out
+    t = r.text
+    m = re.search(r"Total\s*players\s*</span>\s*<b[^>]*>\s*([\d,]+)", t, re.I)
+    if m:
+        out["total"] = int(m.group(1).replace(",", ""))
+    else:
         print("  · dg-edge 頁面找不到 Total players（版面可能改了，沿用既有 totalPlayers）。")
-        return None
-    return int(m.group(1).replace(",", ""))
+    dg_id = re.search(r"/(\d+)/?$", event_url)
+    if dg_id:
+        am = re.search(r'"%s"\s*,\s*\d+\s*,\s*"(p_[a-z]{1,4}_\d+_\d+)"' % re.escape(dg_id.group(1)), t)
+        if am:
+            out["board_id"] = am.group(1)
+    if not out["board_id"]:
+        fm = DGEDGE_BOARD_RE.search(t)
+        if fm:
+            out["board_id"] = fm.group(1)
+    return out
 
 
 def fetch_board(token: str, board_id: str, my_id: str, max_pages: int = 60) -> dict:
@@ -342,26 +360,31 @@ def resolve_token(bearer=None, jsessionid=None, locale="tw", browser=None, verbo
 
 def apply_updates(d: dict, token: str, my_id: str, today: str, max_pages=60, verbose=True):
     """就地更新 data.json 的 leaderboards / references / goals。回傳是否有任何榜更新成功。"""
-    boards = {k: v["boardId"] for k, v in d.get("meta", {}).get("leaderboards", {}).items() if v.get("boardId")}
-    if not boards:
-        raise RuntimeError("data.json 沒有任何 meta.leaderboards.<key>.boardId；先填好再跑。")
+    lbs = d.get("meta", {}).get("leaderboards", {})
+    if not lbs:
+        raise RuntimeError("data.json 沒有 meta.leaderboards；先填好（至少要有 eventUrl 或 boardId）再跑。")
     changed = False
-    for key, board_id in boards.items():
+    for key, entry in lbs.items():
+        # 母體人數 + board_id 都從 dg-edge 事件頁一次抓（boardId 缺就自動補）。
+        # 官方 API 的 total 只是「榜上清單大小」（cap），非參賽總數，母體一律用 dg-edge。
+        ev = entry.get("eventUrl", "")
+        dg = fetch_dgedge(ev) if "dg-edge.com" in ev else {"total": None, "board_id": None}
+        board_id = entry.get("boardId") or dg["board_id"]
+        if not board_id:
+            print(f"  · {key}：沒有 boardId、也無法從 dg-edge 解出（檢查 eventUrl），跳過。")
+            continue
+        if not entry.get("boardId") and dg["board_id"]:
+            entry["boardId"] = board_id
+            if verbose: print(f"  · {key} 自動補 boardId={board_id}（取自 dg-edge）")
         if verbose: print(f"📊 {key}  (board_id={board_id})…")
         try:
             r = fetch_board(token, board_id, my_id, max_pages)
         except Exception as e:
             print(f"  ✗ 失敗：{e}")
             continue
-        entry = d["meta"]["leaderboards"][key]
-        # 母體人數：官方 API 的 total 只是「榜上回傳的清單大小」（cap），不是參賽總數。
-        # 真正母體去 dg-edge 事件頁抓 Total players；抓不到就沿用既有 totalPlayers。
-        ev = entry.get("eventUrl", "")
-        if "dg-edge.com" in ev:
-            dg_total = fetch_dgedge_total(ev)
-            if dg_total:
-                entry["totalPlayers"] = dg_total
-                if verbose: print(f"  · dg-edge 母體：{dg_total} 人")
+        if dg["total"]:
+            entry["totalPlayers"] = dg["total"]
+            if verbose: print(f"  · dg-edge 母體：{dg['total']} 人")
         population = entry.get("totalPlayers")
         pct = round(r["rank"] / population * 100, 2) if r["rank"] and population else None
         if verbose:
