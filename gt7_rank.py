@@ -3,361 +3,219 @@
 """
 GT7 Rank Fetcher  ·  WYS / GT7 Training Tracker
 ================================================
-從 gran-turismo.com 抓取你目前參加的所有 Time Trial / Daily Race 的
-實際名次與排行榜門檻，自動更新 data.json。
+從 gran-turismo.com 官方 web API 抓「你目前活動」的世界紀錄 / top100 / top1000 /
+總人數 / 你的名次，更新 data.json 的 meta.leaderboards + references（WR）+ goals。
 
-需求：Python 3.8+，需要 requests（pip install requests）。
-NPSSO 取得方式：
-    1. 瀏覽器登入 PlayStation.com
-    2. 開新分頁前往 https://ca.account.sony.com/api/v1/ssocookie
-    3. 複製 npsso 值（勿分享他人）
+必須在「你自己的電腦」跑（家用 IP）——Sony / gran-turismo 會擋資料中心 IP。
 
-用法：
-    python gt7_rank.py --npsso <你的npsso> [--data data.json]
+認證二選一：
+  A) 直接給 Bearer（最快，先用這個驗證）：
+       1. 瀏覽器登入 gran-turismo.com，開你參加的活動頁
+       2. F12 → Network → 任一個打向 web-api.gt7.game.gran-turismo.com 的請求
+          → Request Headers 複製 Authorization: 後面那串（不含 "Bearer "）
+       3. python gt7_rank.py --bearer <貼上> --dry
+  B) 用 JSESSIONID（較持久，能自動換 Bearer）：
+       1. F12 → Application → Cookies → www.gran-turismo.com → 複製 JSESSIONID 值
+       2. python gt7_rank.py --jsessionid <貼上> --dry
+     （或設環境變數 GT7_GT_TOKEN / GT7_JSESSIONID）
+
+board_id：寫在 data.json 的 meta.leaderboards.<key>.boardId
+  （目前 redbullring__fordgt17 = p_rt_1014277_001）
 
 選項：
-    --npsso   NPSSO token（必填；或設定環境變數 GT7_NPSSO）
-    --data    data.json 路徑（預設 ./data.json）
-    --dry     只顯示結果，不寫入 data.json
+  --dry        只顯示、不寫入
+  --data       data.json 路徑（預設 ./data.json）
+  --locale     gran-turismo 語系路徑，預設 tw
+  --max-pages  最多翻幾頁找你的名次（每頁 100，預設 60）
 """
 
 import argparse
-import base64
 import json
 import os
 import sys
 import time
 from datetime import datetime, timezone
-from urllib.parse import parse_qs, urlparse
 
 try:
     import requests
 except ImportError:
     sys.exit("請先安裝 requests：pip install requests")
 
-# ── PSN OAuth 常數（公開於多個社群 PSN API 專案）──
-_PSN_CLIENT_ID     = "09515159-7237-4370-9b40-3806e67c0891"
-_PSN_CLIENT_SECRET = "ucPjka5tntB2KqsP"
-_PSN_REDIRECT_URI  = "com.scee.psxandroid.scecompcall://redirect"
-_PSN_SCOPE         = "psn:mobile.v2.core psn:clientapp"
-
-GT_API = "https://www.gran-turismo.com/us/api/gt7sp"
+WEB_API = "https://web-api.gt7.game.gran-turismo.com"
+UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+      "(KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36")
 
 
-def _psn_auth_code(npsso: str) -> str:
-    r = requests.get(
-        "https://ca.account.sony.com/api/authz/v3/oauth/authorize",
-        params={
-            "access_type": "offline",
-            "client_id": _PSN_CLIENT_ID,
-            "redirect_uri": _PSN_REDIRECT_URI,
-            "response_type": "code",
-            "scope": _PSN_SCOPE,
-        },
-        cookies={"npsso": npsso},
-        headers={"User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)"},
-        allow_redirects=False,
-        timeout=10,
-    )
-    loc = r.headers.get("Location", "")
-    code = parse_qs(urlparse(loc).query).get("code", [None])[0]
-    if not code:
-        raise RuntimeError(f"無法取得授權碼（status={r.status_code}）；NPSSO 可能過期，請重新取得。")
-    return code
-
-
-def _psn_access_token(code: str) -> str:
-    creds = base64.b64encode(f"{_PSN_CLIENT_ID}:{_PSN_CLIENT_SECRET}".encode()).decode()
-    r = requests.post(
-        "https://ca.account.sony.com/api/authz/v3/oauth/token",
-        data={
-            "code": code,
-            "grant_type": "authorization_code",
-            "redirect_uri": _PSN_REDIRECT_URI,
-            "token_format": "jwt",
-        },
-        headers={
-            "Authorization": f"Basic {creds}",
-            "Content-Type": "application/x-www-form-urlencoded",
-        },
-        timeout=10,
-    )
-    r.raise_for_status()
-    return r.json()["access_token"]
-
-
-def _gt_post(path: str, access_token: str, **params) -> dict:
-    """呼叫 gran-turismo.com gt7sp API（POST + access_token）。"""
-    r = requests.post(
-        f"{GT_API}/{path}/",
-        data=params,
-        headers={
-            "Authorization": f"Bearer {access_token}",
-            "Referer": "https://www.gran-turismo.com/",
-            "User-Agent": "Mozilla/5.0",
-        },
-        timeout=15,
-    )
-    r.raise_for_status()
-    return r.json()
-
-
-import re
-
-_USER_NO_PATTERNS = [
-    r'/user/(\d{4,})',
-    r'user_no["\s:=]+(\d{3,})',
-    r'"userNo"\s*:\s*"?(\d{3,})',
-    r'data-user-?no["\s:=]+(\d{3,})',
-    r'profile/(\d{4,})',
-]
-
-def get_user_no(access_token: str, psn_id: str) -> int:
-    """用 PSN ID 查 gran-turismo.com 的 user_no。"""
-    r = requests.get(
-        f"https://www.gran-turismo.com/us/gt7/user/{psn_id}/",
-        headers={
-            "Authorization": f"Bearer {access_token}",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
-        },
-        timeout=10,
-    )
-    final_url = r.url
-    parts = [p for p in final_url.rstrip("/").split("/") if p.isdigit() and len(p) >= 4]
-    if parts:
-        return int(parts[-1])
-    for pat in _USER_NO_PATTERNS:
-        m = re.search(pat, r.text)
-        if m:
-            return int(m.group(1))
-    raise RuntimeError(f"找不到 user_no（status={r.status_code}, url={final_url}）— 跑 --debug-user 把回應貼給我")
-
-
-def debug_user(access_token: str, psn_id: str):
-    """Dump the raw profile response so we can see how to extract user_no."""
-    url = f"https://www.gran-turismo.com/us/gt7/user/{psn_id}/"
+def get_token_info(jsessionid: str, locale: str = "tw") -> dict:
+    """用 gran-turismo.com 的 JSESSIONID 換 token；回傳含 access_token / user_id 的 dict。"""
+    url = f"https://www.gran-turismo.com/{locale}/gt7/info/api/token/"
     r = requests.get(url, headers={
-        "Authorization": f"Bearer {access_token}",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
-    }, timeout=15)
-    print(f"--- GET {url}")
-    print(f"status   = {r.status_code}")
-    print(f"final_url= {r.url}")
-    print(f"ctype    = {r.headers.get('Content-Type')}")
-    print(f"len      = {len(r.text)}")
-    for pat in _USER_NO_PATTERNS:
-        hits = re.findall(pat, r.text)
-        if hits:
-            print(f"pattern {pat!r} -> {hits[:6]}")
-    # canonical / og:url often carry the numeric profile id
-    for m in re.findall(r'<link[^>]+canonical[^>]*>', r.text): print("canonical:", m.strip())
-    for m in re.findall(r'og:url"[^>]*content="([^"]+)"', r.text): print("og:url:", m)
-    # context around id-ish keywords
-    for kw in ['user_no', 'userNo', 'user-no', '/user/', 'board_id', 'boardId', 'data-']:
-        for mm in list(re.finditer(re.escape(kw), r.text))[:4]:
-            s = max(0, mm.start() - 45)
-            print(f"  [{kw}] …{r.text[s:mm.start()+70].strip()}…")
-    # context around each long number candidate
-    print("----- number contexts -----")
-    for num in sorted(set(re.findall(r'\b\d{6,}\b', r.text))):
-        i = r.text.find(num); s = max(0, i - 55)
-        print(f"  [{num}] …{r.text[s:i+len(num)+15].strip()}…")
-    print("----- body head (1200 chars) -----")
-    print(r.text[:1200])
+        "Accept": "*/*", "User-Agent": UA,
+        "Referer": f"https://www.gran-turismo.com/{locale}/gt7/sportmode/",
+    }, cookies={"JSESSIONID": jsessionid}, timeout=15)
+    r.raise_for_status()
+    try:
+        data = r.json()
+    except ValueError:
+        raise RuntimeError(f"token/ 不是 JSON（status={r.status_code}）：{r.text[:200]}")
+    if not data.get("access_token"):
+        if data.get("is_signed_in") is False:
+            raise RuntimeError("token/ 顯示未登入（is_signed_in=false）—— JSESSIONID 可能過期，重新登入再複製。")
+        raise RuntimeError(f"token/ 找不到 access_token：{json.dumps(data)[:200]}")
+    return data
 
 
-def get_sport_mode_stats(access_token: str, user_no: int) -> dict:
-    """取得 Sport Mode 統計（含各時間試煉成績與名次）。"""
-    return _gt_post("profile", access_token, job=13, user_no=user_no)
+def _headers(token: str) -> dict:
+    return {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json, text/plain, */*",
+        "Origin": "https://www.gran-turismo.com",
+        "Referer": "https://www.gran-turismo.com/",
+        "User-Agent": UA,
+    }
 
 
-def get_ranking_around_player(access_token: str, user_no: int, board_id: int) -> dict:
-    """取得玩家附近的排名（含玩家名次）。"""
-    return _gt_post("ranking", access_token, job=1, user_no=user_no, board_id=board_id)
+def get_my_user_id(token: str) -> str:
+    r = requests.post(f"{WEB_API}/user/get_sport_profile", headers=_headers(token), timeout=15)
+    r.raise_for_status()
+    return r.json()["result"]["user_id"]
 
 
-def get_ranking_list(access_token: str, board_id: int, begin: int = 1, end: int = 1000) -> dict:
-    """取得排行榜範圍（用來抓門檻）。"""
-    return _gt_post("ranking", access_token, job=3, board_id=board_id, begin=begin, end=end)
+def get_page(token: str, board_id: str, page: int) -> dict:
+    h = _headers(token); h["Content-Type"] = "application/json"
+    r = requests.post(f"{WEB_API}/ranking/get_list_by_page", headers=h,
+                      data=json.dumps({"board_id": board_id, "page": page}), timeout=15)
+    r.raise_for_status()
+    return r.json()["result"]
 
 
-def discover_board_id(access_token: str, user_no: int) -> list[dict]:
-    """從 Sport Mode stats 反推目前有成績的 board_id 清單。"""
-    stats = get_sport_mode_stats(access_token, user_no)
-    boards = []
-    # gt7sp API 回傳結構依版本不同；嘗試常見欄位
-    for entry in stats.get("stats", stats.get("result", [])):
-        bid = entry.get("board_id") or entry.get("boardId")
-        if bid:
-            boards.append({"board_id": bid, "raw": entry})
-    return boards
-
-
-def fmt_ms(ms: int) -> str:
-    if ms is None or ms < 0:
+def disp(sec):
+    if sec is None:
         return "—"
-    s = ms / 1000.0
-    m = int(s // 60)
-    return f"{m}:{s - m * 60:06.3f}"
+    m = int(sec // 60)
+    return f"{m}:{sec - m * 60:06.3f}"
 
 
-def update_data_json(path: str, updates: list[dict], dry: bool = False):
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
+def fetch_board(token: str, board_id: str, my_id: str, max_pages: int = 60) -> dict:
+    """回傳 {wr, top100, top1000, total, rank, pb}（秒）。score 單位是毫秒。"""
+    out = {"wr": None, "top100": None, "top1000": None, "total": None, "rank": None, "pb": None}
+    page = 0
+    while page < max_pages:
+        res = get_page(token, board_id, page)
+        lst = res.get("list", [])
+        if out["total"] is None:
+            out["total"] = res.get("total")
+        if not lst:
+            break
+        for e in lst:
+            r = e.get("display_rank")
+            s = e.get("score")
+            if r == 1:
+                out["wr"] = round(s / 1000, 3)
+            if r == 100:
+                out["top100"] = round(s / 1000, 3)
+            if r == 1000:
+                out["top1000"] = round(s / 1000, 3)
+            if e.get("user", {}).get("user_id") == my_id:
+                out["rank"] = r
+                out["pb"] = round(s / 1000, 3)
+        last_rank = lst[-1].get("display_rank") or 0
+        got_top1000 = out["top1000"] is not None or (out["total"] or 0) < 1000
+        if out["rank"] is not None and got_top1000:
+            break
+        if out["total"] and last_rank >= out["total"]:
+            break
+        page += 1
+        time.sleep(0.3)   # 尊重速率限制
+    # total<1000 時用末位當 top1000 近似（其實就是最後一名）
+    return out
 
-    lb = data.setdefault("meta", {}).setdefault("leaderboards", {})
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    for u in updates:
-        key = u["key"]
-        if key not in lb:
-            print(f"  ⚠ {key} 不在 leaderboards，略過（先在 data.json 建好 entry 再跑）")
+def recompute_goals(d: dict, track_key: str, wr: float):
+    pol = d.get("meta", {}).get("goalPolicy")
+    if not pol or wr is None:
+        return
+    for g in d.get("goals", []):
+        if g.get("trackKey") != track_key:
             continue
-        entry = lb[key]
-        changed = []
-
-        if u.get("total_players") and entry.get("totalPlayers") != u["total_players"]:
-            entry["totalPlayers"] = u["total_players"]
-            changed.append(f"totalPlayers={u['total_players']}")
-
-        if u.get("top100"):
-            entry["top100"] = u["top100"]
-            changed.append(f"top100={u['top100']}")
-
-        if u.get("top1000"):
-            entry["top1000"] = u["top1000"]
-            changed.append(f"top1000={u['top1000']}")
-
-        if u.get("player_rank") is not None:
-            pr = entry.setdefault("playerRank", {})
-            pr["rank"] = u["player_rank"]
-            pr["pb"] = u.get("pb", pr.get("pb"))
-            pr["source"] = "auto(gt7-rank.py)"
-            pr["asOf"] = today
-            pr.pop("rankStale", None)
-            top_pct = round(u["player_rank"] / u["total_players"] * 100, 2) if u.get("total_players") else None
-            if top_pct:
-                pr["topPct"] = top_pct
-            pr["note"] = (
-                f"自動抓取 Global #{u['player_rank']}"
-                + (f" top {top_pct}%" if top_pct else "")
-                + f"（{today}，共 {u.get('total_players','?')} 人）"
-            )
-            changed.append(f"rank=#{u['player_rank']} ({top_pct}%)")
-
-        entry["asOf"] = today
-        print(f"  {'[DRY]' if dry else '✓'} {key}: {', '.join(changed) if changed else '無變動'}")
-
-    data["meta"]["lastUpdated"] = today
-
-    if not dry:
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        print(f"已寫入 {path}")
-
-
-# ── 已知 board_id 對應表（每次新活動跑一次 --discover 更新）──
-KNOWN_BOARDS: dict[str, int] = {
-    # key（data.json leaderboards key）: gran-turismo.com board_id
-    # 首次執行請先跑 --discover 填入
-    # "redbullring__fordgt17": 99999,
-}
+        items = []
+        for t in pol["tiers"]:
+            tgt = round(wr * (1 + t["offsetPct"] / 100), 3)
+            items.append({"label": t["label"], "target": tgt, "displayTarget": disp(tgt),
+                          "desc": f"世界第一 +{t['offsetPct']}%(門檻 {disp(tgt)},WR {disp(wr)})"})
+        g["items"] = items
 
 
 def main():
-    ap = argparse.ArgumentParser(description="GT7 Rank Fetcher")
-    ap.add_argument("--npsso", default=os.environ.get("GT7_NPSSO"), help="NPSSO token（或設 GT7_NPSSO 環境變數）")
-    ap.add_argument("--psn-id", default="b95208010", help="PSN ID（預設 b95208010）")
-    ap.add_argument("--data", default="data.json", help="data.json 路徑")
-    ap.add_argument("--dry", action="store_true", help="只顯示，不寫入")
-    ap.add_argument("--discover", action="store_true", help="列出目前有成績的 board_id（用於建立對應表）")
-    ap.add_argument("--debug-user", action="store_true", help="印出 user 個人頁的原始回應（用來校正 user_no 抓法）")
+    ap = argparse.ArgumentParser(description="GT7 Rank Fetcher (web-api)")
+    ap.add_argument("--bearer", default=os.environ.get("GT7_GT_TOKEN"), help="web-api Bearer token（或設 GT7_GT_TOKEN）")
+    ap.add_argument("--jsessionid", default=os.environ.get("GT7_JSESSIONID"), help="gran-turismo.com JSESSIONID（或設 GT7_JSESSIONID）")
+    ap.add_argument("--locale", default="tw")
+    ap.add_argument("--data", default="data.json")
+    ap.add_argument("--dry", action="store_true", help="只顯示、不寫入")
+    ap.add_argument("--max-pages", type=int, default=60)
     args = ap.parse_args()
 
-    if not args.npsso:
-        sys.exit("請提供 --npsso 或設定環境變數 GT7_NPSSO\n"
-                 "取得方式：瀏覽器登入 PS，開 https://ca.account.sony.com/api/v1/ssocookie")
+    token = args.bearer
+    my_id = None
+    if not token:
+        if not args.jsessionid:
+            sys.exit("請給 --bearer 或 --jsessionid（或設環境變數）。用法見檔頭。")
+        print("🔑 用 JSESSIONID 換 Bearer…")
+        info = get_token_info(args.jsessionid, args.locale)
+        token = info["access_token"]
+        my_id = info.get("user_id")
+        print(f"  ✓ 取得 Bearer（user_id={my_id}）")
 
-    print("🔑 PSN 認證中…")
-    code = _psn_auth_code(args.npsso)
-    token = _psn_access_token(code)
-    print("  ✓ 取得 access token")
+    if not my_id:
+        print("👤 取得自己的 user_id…")
+        my_id = get_my_user_id(token)
+        print(f"  ✓ user_id = {my_id}")
 
-    if args.debug_user:
-        debug_user(token, args.psn_id)
-        return
-
-    print(f"👤 查詢 user_no ({args.psn_id})…")
-    user_no = get_user_no(token, args.psn_id)
-    print(f"  ✓ user_no = {user_no}")
-
-    if args.discover:
-        print("🔍 探索 board_id（有成績的活動）…")
-        boards = discover_board_id(token, user_no)
-        if boards:
-            for b in boards:
-                print(f"  board_id={b['board_id']}  raw={json.dumps(b['raw'])[:120]}")
-        else:
-            print("  找不到，可能 API 結構不同；請改查 Sport Mode stats 原始資料：")
-            raw = get_sport_mode_stats(token, user_no)
-            print(json.dumps(raw, ensure_ascii=False, indent=2)[:2000])
-        return
-
-    # 從 data.json 補充 boardId（優先使用 KNOWN_BOARDS，data.json 作為備援）
-    boards: dict[str, int] = {}
-    try:
-        with open(args.data, encoding="utf-8") as f:
-            _d = json.load(f)
-        for k, v in _d.get("meta", {}).get("leaderboards", {}).items():
-            if v.get("boardId"):
-                boards[k] = int(v["boardId"])
-    except Exception:
-        pass
-    boards.update(KNOWN_BOARDS)  # KNOWN_BOARDS 覆蓋 data.json
-
+    with open(args.data, encoding="utf-8") as f:
+        d = json.load(f)
+    boards = {k: v["boardId"] for k, v in d.get("meta", {}).get("leaderboards", {}).items() if v.get("boardId")}
     if not boards:
-        print("⚠ 找不到 board_id。請先跑 --discover，")
-        print("  然後在 data.json meta.leaderboards.<key>.boardId 填入對應的 board_id。")
-        return
+        sys.exit("data.json 沒有任何 meta.leaderboards.<key>.boardId；先填好再跑。")
 
-    updates = []
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     for key, board_id in boards.items():
-        print(f"📊 抓取 {key} (board_id={board_id})…")
+        print(f"📊 {key}  (board_id={board_id})…")
         try:
-            rank_data = get_ranking_around_player(token, user_no, board_id)
-            top_data  = get_ranking_list(token, board_id, 1, 1)
-            top1000   = get_ranking_list(token, board_id, 999, 1001)
-
-            # 從回傳資料解析（實際欄位名稱待確認，依 API 回傳調整）
-            player_entry = next(
-                (e for e in rank_data.get("entries", rank_data.get("result", []))
-                 if str(e.get("user_no", "")) == str(user_no)),
-                None
-            )
-            total = rank_data.get("total_count") or rank_data.get("totalCount")
-            pb_ms = player_entry.get("best_time") or player_entry.get("bestTime") if player_entry else None
-            rank  = player_entry.get("rank") if player_entry else None
-
-            top1000_time_ms = None
-            for e in top1000.get("entries", top1000.get("result", [])):
-                if e.get("rank") in (999, 1000, 1001):
-                    top1000_time_ms = e.get("best_time") or e.get("bestTime")
-                    break
-
-            print(f"  rank=#{rank}  PB={fmt_ms(pb_ms)}  total={total}  top1000={fmt_ms(top1000_time_ms)}")
-            updates.append({
-                "key": key,
-                "player_rank": rank,
-                "pb": round(pb_ms / 1000, 3) if pb_ms else None,
-                "total_players": total,
-                "top1000": round(top1000_time_ms / 1000, 3) if top1000_time_ms else None,
-            })
+            r = fetch_board(token, board_id, my_id, args.max_pages)
         except Exception as e:
-            print(f"  ✗ {key} 失敗：{e}")
+            print(f"  ✗ 失敗：{e}")
+            continue
+        pct = round(r["rank"] / r["total"] * 100, 2) if r["rank"] and r["total"] else None
+        print(f"  WR={disp(r['wr'])}  top100={disp(r['top100'])}  top1000={disp(r['top1000'])}  "
+              f"total={r['total']}  你的名次=#{r['rank']} ({pct}%)  PB={disp(r['pb'])}")
 
-    if updates:
-        print(f"\n📝 更新 {args.data}…")
-        update_data_json(args.data, updates, dry=args.dry)
+        entry = d["meta"]["leaderboards"][key]
+        if r["total"]:   entry["totalPlayers"] = r["total"]
+        if r["top100"]:  entry["top100"] = r["top100"]
+        if r["top1000"]: entry["top1000"] = r["top1000"]
+        if r["wr"]:      entry["wr"] = r["wr"]
+        if r["rank"]:
+            entry["playerRank"] = {"rank": r["rank"], "pb": r["pb"], "source": "auto(gt7_rank.py)",
+                                   "asOf": today, **({"topPct": pct} if pct else {})}
+        entry["asOf"] = today
+        # 同步更新 WR 參考值 + 依 goalPolicy 重算該賽道目標
+        car_slug = key.split("__")[1] if "__" in key else None
+        track_key = key.split("__")[0]
+        if r["wr"] and car_slug:
+            ref = d["meta"].setdefault("references", {}).setdefault(car_slug, {})
+            ref["time"] = r["wr"]; ref["displayTime"] = disp(r["wr"])
+            ref.setdefault("label", "WR(GT7 全球#1)")
+            ref["note"] = f"GT7 官方排行 #1（{today} 自動抓取）"
+            recompute_goals(d, track_key, r["wr"])
+
+    d["meta"]["lastUpdated"] = today
+    if args.dry:
+        print("\n[DRY] 未寫入。確認數字 OK 後拿掉 --dry 再跑。")
+    else:
+        with open(args.data, "w", encoding="utf-8") as f:
+            json.dump(d, f, ensure_ascii=False, indent=1)
+        print(f"\n✓ 已更新 {args.data}")
 
 
 if __name__ == "__main__":
