@@ -1936,33 +1936,6 @@ function renderCarCharts(g) {
         const { ctx, chartArea, scales } = chart;
         if (!chartArea) return;
         ctx.save();
-        let cum = 0;
-        g.sessions.forEach((s, i) => {
-          if (i < g.sessions.length - 1) {
-            cum += s.totalLaps;
-            const xPx = scales.x.getPixelForValue(cum - 0.5);
-            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([]);
-            ctx.beginPath();
-            ctx.moveTo(xPx, chartArea.top);
-            ctx.lineTo(xPx, chartArea.bottom);
-            ctx.stroke();
-          }
-        });
-        if (g.sessions.length > 1) {
-          let start = 0;
-          g.sessions.forEach(s => {
-            const mid = start + s.totalLaps / 2;
-            const xPx = scales.x.getPixelForValue(mid);
-            ctx.fillStyle = '#5a6577';
-            ctx.font = "bold 11px 'Bebas Neue'";
-            ctx.textAlign = 'center';
-            const lbl = s.session ? s.session : 'SESSION';
-            ctx.fillText(lbl, xPx, chartArea.top + 16);
-            start += s.totalLaps;
-          });
-        }
         ctx.setLineDash([6, 4]);
         ctx.strokeStyle = '#00ff88';
         const pbY = scales.y.getPixelForValue(g.pb);
