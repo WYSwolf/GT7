@@ -3,10 +3,12 @@
 """
 GT7 Rank Fetcher  ·  WYS / GT7 Training Tracker
 ================================================
-從 gran-turismo.com 官方 web API 抓「你目前活動」的世界紀錄 / top100 / top1000 /
-你的名次，更新 data.json 的 meta.leaderboards + references（WR）+ goals。
-母體總人數（官方 API 抓不到，它只回榜上清單大小）改從 leaderboards.<key>.eventUrl
-指向的 dg-edge 事件頁抓「Total players」。
+從 gran-turismo.com 官方 web API 抓「你目前活動」的世界紀錄 / top100 / top1000，
+更新 data.json 的 meta.leaderboards + references（WR）+ goals。
+注意 ranking API 的 result.total 其實是『頁數』(每頁 100 名)，不是清單大小 ——
+所以母體 ≈ pages×100（存 boardPages；母體仍優先用 dg-edge「Total players」，更精確）。
+你的名次：只在前 ~1000 名（抓門檻時順手掃到）才用 GT；更深的交給 dg-edge globalPosition
+（涵蓋所有深度、一次給齊，活動結束也有）。
 
 必須在「你自己的電腦」跑（家用 IP）——Sony / gran-turismo 會擋資料中心 IP。
 
@@ -588,15 +590,21 @@ def fetch_dgedge(event_url: str) -> dict:
     return out
 
 
-def fetch_board(token: str, board_id: str, my_id: str, max_pages: int = 60) -> dict:
-    """回傳 {wr, top100, top1000, total, rank, pb}（秒）。score 單位是毫秒。"""
-    out = {"wr": None, "top100": None, "top1000": None, "total": None, "rank": None, "pb": None}
+def fetch_board(token: str, board_id: str, my_id: str, threshold_pages: int = 11) -> dict:
+    """只抓 WR / top100 / top1000（都在前 ~10 頁就齊了），順便看你是否在這幾頁內（前 1000 名）。
+    回傳 {wr, top100, top1000, pages, pop_est, rank, pb}（秒）。score 單位是毫秒。
+    注意：API 回的 result.total 其實是『頁數』(每頁 100)，母體 ≈ pages×100；
+    你的名次不在這裡深挖——交給 dg-edge globalPosition（涵蓋所有深度、一次給齊）。"""
+    out = {"wr": None, "top100": None, "top1000": None, "pages": None, "pop_est": None,
+           "rank": None, "pb": None}
     page = 0
-    while page < max_pages:
+    while page < threshold_pages:
         res = get_page(token, board_id, page)
         lst = res.get("list", [])
-        if out["total"] is None:
-            out["total"] = res.get("total")
+        if out["pages"] is None:
+            out["pages"] = res.get("total")          # ← 其實是頁數，不是清單大小
+            if out["pages"]:
+                out["pop_est"] = out["pages"] * 100  # 母體估計（≈ dg-edge Total players）
         if not lst:
             break
         for e in lst:
@@ -608,18 +616,15 @@ def fetch_board(token: str, board_id: str, my_id: str, max_pages: int = 60) -> d
                 out["top100"] = round(s / 1000, 3)
             if r == 1000:
                 out["top1000"] = round(s / 1000, 3)
-            if e.get("user", {}).get("user_id") == my_id:
+            if e.get("user", {}).get("user_id") == my_id:   # 你在前 1000 名才會在這幾頁出現
                 out["rank"] = r
                 out["pb"] = round(s / 1000, 3)
-        last_rank = lst[-1].get("display_rank") or 0
-        got_top1000 = out["top1000"] is not None or (out["total"] or 0) < 1000
-        if out["rank"] is not None and got_top1000:
+        if out["top1000"] is not None:                # 門檻抓齊就收（top1000 在第 9~10 頁）
             break
-        if out["total"] and last_rank >= out["total"]:
+        if out["pages"] and page + 1 >= out["pages"]:  # 這個榜根本不到該頁數（人少）
             break
         page += 1
         time.sleep(0.3)   # 尊重速率限制
-    # total<1000 時用末位當 top1000 近似（其實就是最後一名）
     return out
 
 
@@ -683,22 +688,26 @@ def apply_updates(d: dict, token: str, my_id: str, today: str, max_pages=60, ver
             if verbose: print(f"  · {key} 自動補 boardId={board_id}（取自 dg-edge）")
         if verbose: print(f"📊 {key}  (board_id={board_id})…")
         try:
-            r = fetch_board(token, board_id, my_id, max_pages)
+            r = fetch_board(token, board_id, my_id)   # 只抓門檻頁（~11 頁），名次靠 dg-edge
         except Exception as e:
             print(f"  ✗ 失敗：{e}")
             continue
         if dg["total"]:
             entry["totalPlayers"] = dg["total"]
             if verbose: print(f"  · dg-edge 母體：{dg['total']} 人")
+        elif r["pop_est"] and not entry.get("totalPlayers"):
+            entry["totalPlayers"] = r["pop_est"]          # dg 抓不到時，用 GT 頁數×100 估母體
+            if verbose: print(f"  · 母體估計（GT {r['pages']} 頁×100）：{r['pop_est']} 人")
         population = entry.get("totalPlayers")
         pct = round(r["rank"] / population * 100, 2) if r["rank"] and population else None
         if verbose:
             print(f"  WR={disp(r['wr'])}  top100={disp(r['top100'])}  top1000={disp(r['top1000'])}  "
                   f"你的名次=#{r['rank']}"
                   + (f" (前 {pct}% / {population} 人)" if pct else "")
-                  + f"  PB={disp(r['pb'])}  [API 榜清單大小={r['total']}]")
+                  + f"  PB={disp(r['pb'])}  [GT 頁數={r['pages']}≈{r['pop_est']} 人]")
 
-        if r["total"]:   entry["boardSize"] = r["total"]   # 參考用，非母體
+        if r["pages"]:   entry["boardPages"] = r["pages"]   # GT 榜頁數（×100≈母體），參考用
+        entry.pop("boardSize", None)                        # 舊欄位其實是頁數、會誤導，清掉
         if r["top100"]:  entry["top100"] = r["top100"]
         if r["top1000"]: entry["top1000"] = r["top1000"]
         if r["wr"]:      entry["wr"] = r["wr"]
