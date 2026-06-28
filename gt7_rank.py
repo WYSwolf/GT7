@@ -25,8 +25,33 @@ GT7 Rank Fetcher  ·  WYS / GT7 Training Tracker
        → Request Headers 複製 Authorization: 後面那串（不含 "Bearer "）
      （也可設環境變數 GT7_GT_TOKEN / GT7_JSESSIONID / GT7_BROWSER）
 
-board_id：寫在 data.json 的 meta.leaderboards.<key>.boardId
-  （目前 redbullring__fordgt17 = p_rt_1014277_001）
+eventUrl / board_id：通常都不必手填。
+  ★ eventUrl 自動找 ★ —— 缺 eventUrl 的 leaderboard，抓榜時會打 dg-edge 的 player API
+    （你的所有場次），用「你的成績(timeMS) / 賽道 / 車」比對自動填上對應的 dg-edge
+    eventUrl。對不出唯一就把候選記到 entry['eventUrlCandidates']，不亂猜，等對話確認。
+    第一次玩、dg 還沒收錄你的成績時也配不到 → 去 dg-edge.com/events 清單反查。
+    （單獨看你的場次清單：--my-events）
+  ★ boardId 自動補 ★ —— 有了 eventUrl，就從該 dg-edge 事件頁內嵌的
+    "<dgId>",<num>,"p_rt_..._...","TT" 解出 board_id 補進 boardId。
+  → 新賽道一般「什麼都不必填」：有成績被 dg 收錄就全自動；真的對不出時才需手動。
+
+名次來源：WR/門檻一律用 GT 官方榜；你的名次優先用 GT 榜，但活動已結束/榜只回前段
+  抓不到你時，改用 dg-edge player API 的 globalPosition（+ countryRank、你的時間），
+  標 source:"dg-edge"。百分位分母一律用 dg-edge 母體。
+
+  board_id 的組成（從官方 sportmode 前端解出，供理解/手動 fallback）：
+    · 一般時間競賽（registration_key 為空）→ board_id 直接 = 活動的 ranking_id，
+      沒有任何後綴運算。p_rt_1014277_001 整串就是 ranking_id（_001 是後端字串的一部分，
+      不是區碼）。
+    · 分區報名賽事（registration_key 非空）才接區碼：board_id = ranking_id + "_" + 區碼，
+      區碼 = 成人:2 位數補零、非成人:(區+100)，且 Oita/Kumamoto 互換。個人 TT 不碰這條。
+
+手動找 board_id 的 fallback（沒有 dg-edge eventUrl 時，打 web-api，認證與抓榜共用）：
+  --event <id>     打 POST /event/get_parameter {"event_id": id}（id = 活動頁網址尾數，
+                   如 .../sportmode/event/14277/ → 14277），取回應的 ranking_id 當 board_id
+                   印出來。配 --key <trackKey__carSlug> 可直接寫進 data.json。
+  --probe-event <id>   Dump /event/get_parameter 的完整回應 JSON（欄位變了時對欄位）。
+  --probe-dgedge <url> Dump dg-edge 事件頁裡的 board_id/活動 id 線索（版面變了時對結構）。
 
 選項：
   --dry        只顯示、不寫入（驗證數字用）
@@ -58,6 +83,10 @@ except ImportError:
 WEB_API = "https://web-api.gt7.game.gran-turismo.com"
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36")
+
+DGEDGE_BASE = "https://www.dg-edge.com"
+PLAYER_EVENTS_API = "https://admin.dg-edge.com/api/b.players.retrievePlayerEvents"
+DGEDGE_SITE_VERSION = 185   # player API body 需要的網站版本；dg-edge 改版可能要更新
 
 
 def jsessionid_from_browser(browser="auto"):
@@ -134,6 +163,391 @@ def get_page(token: str, board_id: str, page: int) -> dict:
     return r.json()["result"]
 
 
+# ---------------- 由活動 ID 自動解出 board_id ----------------
+# 活動詳情打 web-api 的 event 模組：POST /event/get_parameter {"event_id": <id>}
+# （由官方前端 thunk Ze.getParameter({event_id}) 解出）。回應 result.event 內含
+# online.ranking_id 與 registration_key。需要 Bearer（與排行榜同一把）。
+EVENT_PARAM_API = f"{WEB_API}/event/get_parameter"
+
+
+def _find_key(obj, key):
+    """遞迴找巢狀 dict/list 裡第一個出現的 key 值（找不到回 None）。"""
+    if isinstance(obj, dict):
+        if key in obj and obj[key] not in (None, ""):
+            return obj[key]
+        for v in obj.values():
+            r = _find_key(v, key)
+            if r is not None:
+                return r
+    elif isinstance(obj, list):
+        for v in obj:
+            r = _find_key(v, key)
+            if r is not None:
+                return r
+    return None
+
+
+def fetch_event_parameter(token: str, event_id) -> dict:
+    """POST /event/get_parameter，回傳 result（活動詳情 dict）。"""
+    h = _headers(token); h["Content-Type"] = "application/json"
+    eid = int(event_id) if str(event_id).isdigit() else event_id
+    r = requests.post(EVENT_PARAM_API, headers=h,
+                      data=json.dumps({"event_id": eid}), timeout=15)
+    r.raise_for_status()
+    j = r.json()
+    return j.get("result", j)
+
+
+def resolve_board_id(token, event_id, verbose=True):
+    """由活動 ID 解出 board_id（= ranking_id；分區賽事另需區碼後綴）。回傳 (board_id, result)。"""
+    result = fetch_event_parameter(token, event_id)
+    ranking_id = _find_key(result, "ranking_id")
+    if not ranking_id:
+        raise RuntimeError(f"活動 {event_id} 詳情裡找不到 ranking_id —— 用 --probe-event 看回應結構。")
+    reg = _find_key(result, "registration_key")
+    if reg and verbose:
+        print(f"  ⚠ registration_key={reg!r}（分區報名賽事）—— board_id 可能要接區碼後綴，"
+              "見檔頭區域規則；個人 TT 用不到。")
+    if verbose:
+        print(f"  · event {event_id} → ranking_id = {ranking_id}（board_id 直接用它）")
+    return str(ranking_id), result
+
+
+def _collect_events(o, out):
+    """從 player API 回應裡撈出所有 event 物件（含 slug + playerResult/track）。"""
+    if isinstance(o, dict):
+        if "slug" in o and ("playerResult" in o or "track" in o):
+            out.append(o)
+        for v in o.values():
+            _collect_events(v, out)
+    elif isinstance(o, list):
+        for v in o:
+            _collect_events(v, out)
+
+
+def _simplify_event(e: dict) -> dict:
+    tr = e.get("track") or {}
+    pr = e.get("playerResult") or {}
+    car = pr.get("car") or {}
+    slug = e.get("slug", "") or ""
+    return {
+        "slug": slug,
+        "eventUrl": (DGEDGE_BASE + slug) if slug.startswith("/") else slug,
+        "track_alias": tr.get("alias"),
+        "track_name": tr.get("name") or tr.get("fullName"),
+        "car": car.get("name"),
+        "car_brand": car.get("brand"),
+        "time_ms": pr.get("timeMS"),
+        "time": pr.get("time"),
+        "global_pos": pr.get("globalPosition"),
+        "country_pos": pr.get("countryPosition"),
+        "delta_global": pr.get("deltaGlobal"),
+        "delta_global_perc": pr.get("deltaGlobalPerc"),
+        "active": e.get("isActive"),
+        "ended": e.get("isEnded"),
+    }
+
+
+def fetch_player_events(online_id: str, tz: str = "Asia/Taipei", max_pages: int = 10, verbose=True):
+    """打 dg-edge player API，回傳該玩家所有場次的精簡清單（每場含 eventUrl + 你的時間 timeMS）。
+    認證：先載選手頁取得 dgh* cookie，再用同 session POST API。"""
+    s = requests.Session()
+    s.headers.update({"User-Agent": UA})
+    try:
+        s.get(f"{DGEDGE_BASE}/players/{online_id}", timeout=20)   # 取 cookie
+    except Exception as e:
+        if verbose: print(f"  · 載入選手頁取 cookie 失敗（仍試打 API）：{e}")
+    out, seen = [], set()
+    for page in range(1, max_pages + 1):
+        body = {"onlineId": online_id, "page": page, "language": "EN",
+                "version": DGEDGE_SITE_VERSION, "cookieVersion": None,
+                "ajax_referer": f"/players/{online_id}", "tz": tz}
+        r = s.post(PLAYER_EVENTS_API, json=body, headers={
+            "Accept": "application/json", "Content-Type": "application/json",
+            "Origin": DGEDGE_BASE, "Referer": f"{DGEDGE_BASE}/players/{online_id}",
+            "X-Requested-With": "XMLHttpRequest"}, timeout=20)
+        r.raise_for_status()
+        raw = []
+        _collect_events(r.json(), raw)
+        fresh = [_simplify_event(e) for e in raw if e.get("slug") not in seen]
+        for e in fresh:
+            seen.add(e["slug"])
+        if not fresh:
+            break
+        out.extend(fresh)
+    return out
+
+
+def _norm(s):
+    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
+
+
+def _known_time_ms(d: dict, key: str, entry: dict):
+    """該賽道你已知的最佳時間（ms）：優先 playerRank.pb，否則取 sessions 最佳。"""
+    pr = entry.get("playerRank") or {}
+    if pr.get("pb"):
+        return round(pr["pb"] * 1000)
+    tk = key.split("__")[0]
+    cs = key.split("__")[1] if "__" in key else ""
+    bests = [s.get("best") for s in d.get("sessions", [])
+             if s.get("trackKey") == tk and s.get("best")
+             and (not cs or s.get("carSlug") in (cs, None, ""))]
+    return round(min(bests) * 1000) if bests else None
+
+
+def _lcs_len(a: str, b: str) -> int:
+    """最長共同子字串長度。"""
+    if not a or not b:
+        return 0
+    prev = [0] * (len(b) + 1)
+    best = 0
+    for i in range(1, len(a) + 1):
+        cur = [0] * (len(b) + 1)
+        for j in range(1, len(b) + 1):
+            if a[i - 1] == b[j - 1]:
+                cur[j] = prev[j - 1] + 1
+                best = max(best, cur[j])
+        prev = cur
+    return best
+
+
+def _car_score(cs: str, cn: str) -> float:
+    """車款相似度（0~1）。互為子字串=1；否則用最長共同子字串 / 較短長度。"""
+    if not cs or not cn:
+        return 0.0
+    if cs in cn or cn in cs:
+        return 1.0
+    return _lcs_len(cs, cn) / min(len(cs), len(cn))
+
+
+def match_event(key: str, entry: dict, events: list, known_ms):
+    """把一條 leaderboard（trackKey__carSlug）配到玩家場次。回傳 (命中 event 或 None, 候選清單)。
+    先用賽道名篩候選；多於一個時消歧順序＝精確時間(僅 dg 夠新時會中) → 車款相似度(主力,
+    不受成績新舊影響) → 最近時間(≤500ms 且明顯唯一)；都不唯一就留候選。"""
+    tk = _norm(key.split("__")[0])
+    cs = _norm(key.split("__")[1] if "__" in key else "")
+    cands = [e for e in events if tk and tk in _norm(e.get("track_name") or e.get("track_alias"))]
+    if not cands:
+        cands = [e for e in events if tk and tk in _norm(e.get("track_alias"))]
+    if len(cands) <= 1:
+        return (cands[0] if cands else None), cands
+    if known_ms:                                   # 精確時間：dg 夠新時最準（你新成績還沒上 dg 就會落空，沒關係）
+        ex = [e for e in cands if e.get("time_ms") == known_ms]
+        if len(ex) == 1:
+            return ex[0], cands
+    # 車款相似度：主力消歧，車不會「過期」，不受你今天成績有沒有同步影響
+    scored = sorted(((_car_score(cs, _norm(e.get("car"))), e) for e in cands), key=lambda x: -x[0])
+    if scored and scored[0][0] >= 0.5 and (len(scored) == 1 or scored[0][0] - scored[1][0] >= 0.25):
+        return scored[0][1], cands
+    if known_ms:                                   # 最近時間（≤500ms 且明顯唯一）
+        near = sorted([e for e in cands if e.get("time_ms")], key=lambda e: abs(e["time_ms"] - known_ms))
+        if near and abs(near[0]["time_ms"] - known_ms) <= 500 and \
+           (len(near) == 1 or abs(near[1]["time_ms"] - known_ms) > 500):
+            return near[0], cands
+    return None, cands                             # 模稜兩可：留候選
+
+
+def _ev_key(u: str) -> str:
+    """從 dg-edge 網址抽出 /events/<type>/<id> 當比較鍵（容忍 host/結尾斜線差異）。"""
+    m = re.search(r"/events/[a-z\-]+/\d+", u or "")
+    return m.group(0) if m else (u or "")
+
+
+def resolve_player_data(d: dict, online_id: str, verbose=True) -> dict:
+    """抓一次 dg-edge 你的場次：(1) 補缺的 eventUrl（成績比對，對不出就記候選）；
+    (2) 回傳 {key: 你在該場的 playerResult}，供 GT API 抓不到名次時當 fallback。"""
+    lbs = d.get("meta", {}).get("leaderboards", {})
+    if not lbs:
+        return {}
+    if verbose:
+        print("🔎 從 dg-edge 抓你的場次（補 eventUrl + 名次 fallback）…")
+    try:
+        events = fetch_player_events(online_id, verbose=verbose)
+    except Exception as e:
+        print(f"  · 抓 dg-edge 場次失敗，略過 eventUrl 配對/名次 fallback：{e}")
+        return {}
+    by_url = {_ev_key(e["eventUrl"]): e for e in events}
+    player_map = {}
+    for k, entry in lbs.items():
+        ev = entry.get("eventUrl")
+        m = None
+        if ev and _ev_key(ev) in by_url:           # 已有 eventUrl：直接對上你的該場結果
+            m = by_url[_ev_key(ev)]
+        elif not ev:                                # 缺 eventUrl：用成績比對自動補
+            m, cands = match_event(k, entry, events, _known_time_ms(d, k, entry))
+            if m:
+                entry["eventUrl"] = m["eventUrl"]
+                entry.pop("eventUrlCandidates", None)
+                if verbose:
+                    print(f"  ✓ {k} → {m['eventUrl']}  ({m.get('time')} / {m.get('track_name')} / {m.get('car')})")
+            elif cands:
+                entry["eventUrlCandidates"] = [c["eventUrl"] for c in cands]
+                print(f"  ? {k}：{len(cands)} 個候選對不出唯一，先記下等你確認：")
+                for c in cands:
+                    print(f"      {c['eventUrl']}  {c.get('time')}  {c.get('car')}")
+            else:
+                print(f"  · {k}：dg-edge 沒有你的成績（可能還沒收錄）→ 去 {DGEDGE_BASE}/events 清單反查。")
+        if m:
+            player_map[k] = m
+    return player_map
+
+
+def _nuxt_unflatten(values):
+    """把 Nuxt/devalue 扁平化陣列還原成正常巢狀結構（物件/陣列的數字=指向陣列索引）。"""
+    n = len(values)
+    hydrated = [None] * n
+    done = [False] * n
+    SPECIAL = {-1: None, -2: float("nan"), -3: float("inf"), -4: float("-inf"), -5: -0.0}
+    WRAP = {"Reactive", "Ref", "ShallowRef", "ShallowReactive", "EmptyRef", "EmptyShallowRef"}
+
+    def hyd(i):
+        if not isinstance(i, int) or isinstance(i, bool):
+            return i
+        if i < 0:
+            return SPECIAL.get(i)
+        if i >= n:
+            return None
+        if done[i]:
+            return hydrated[i]
+        done[i] = True
+        v = values[i]
+        if isinstance(v, list):
+            if v and isinstance(v[0], str):
+                tag = v[0]
+                if tag in WRAP or tag == "Date":
+                    hydrated[i] = hyd(v[1]) if len(v) > 1 else None
+                elif tag == "Set":
+                    hydrated[i] = [hyd(x) for x in v[1:]]
+                elif tag == "Map":
+                    it = v[1:]; hydrated[i] = {str(hyd(it[k])): hyd(it[k + 1]) for k in range(0, len(it) - 1, 2)}
+                else:
+                    hydrated[i] = hyd(v[1]) if len(v) == 2 else [hyd(x) for x in v[1:]]
+            else:
+                arr = []; hydrated[i] = arr
+                for x in v:
+                    arr.append(hyd(x))
+        elif isinstance(v, dict):
+            obj = {}; hydrated[i] = obj
+            for k, idx in v.items():
+                obj[k] = hyd(idx)
+        else:
+            hydrated[i] = v
+        return hydrated[i]
+
+    return hyd(0)
+
+
+def _walk_collect(o, want_keys, out, depth=0):
+    """蒐集所有「鍵含結果欄位」的 dict（比賽成績通常長這樣）。"""
+    if depth > 14 or len(out) > 60:
+        return
+    if isinstance(o, dict):
+        if any(k in o for k in want_keys):
+            out.append(o)
+        for v in o.values():
+            _walk_collect(v, want_keys, out, depth + 1)
+    elif isinstance(o, list):
+        for v in o:
+            _walk_collect(v, want_keys, out, depth + 1)
+
+
+def probe_dgedge_page(event_url):
+    """Debug：抓 dg-edge 事件頁，dump 出可能藏 GT board_id / 活動ID 的線索。
+    （dg-edge 擋機房 IP，須在自家網路跑。）找它有沒有 p_rt_ / ranking_id /
+    連到 gran-turismo sportmode/event/<id> / 或自家 JSON API。"""
+    r = requests.get(event_url, headers={"User-Agent": UA, "Accept": "text/html,*/*"}, timeout=20)
+    print(f"\n=== dg-edge {event_url} （HTTP {r.status_code}, len={len(r.text)}）===")
+    t = r.text
+    pats = {
+        "p_rt_ (board/ranking id)": r"p_[a-z]{1,3}_\d+_\d+",
+        "dg-edge 事件連結 /events/.../id": r"/events/[a-z\-]+/\d+",
+        "ranking_id": r"ranking_id",
+        "board_id": r"board_id",
+        "gran-turismo sportmode/event": r"sportmode/event/(\d+)",
+        "選手/racer 連結": r"/(?:racer|racers|player|players|profile)/[A-Za-z0-9_\-]+",
+        "圈速 1:23.456": r"\b\d:\d{2}\.\d{3}\b",
+        "dg-edge API 路徑": r"/api/[A-Za-z0-9_/\-]+",
+    }
+    for label, pat in pats.items():
+        seen = set()
+        for m in re.finditer(pat, t, re.I):
+            s = t[max(0, m.start() - 50):m.end() + 50].replace("\n", " ")
+            if s in seen:
+                continue
+            seen.add(s)
+            print(f"  [{label}] …{s}…")
+            if len(seen) >= 3:
+                break
+
+    # 內嵌資料線索：事件列以 ...,"TT",... / isEnded / competition 標記；dump 寬一點看整列
+    print("  --- 內嵌資料標記（事件列長相）---")
+    for kw in ('"TT"', '"isEnded"', '"competition"', '"course"', '"car"'):
+        ms = list(re.finditer(re.escape(kw), t))
+        if ms:
+            i = ms[0].start()
+            print(f"  [{kw} x{len(ms)}] …{t[max(0,i-140):i+60]}…".replace('\n', ' '))
+
+    # 對外 API / 資料來源（前端 fetch 的對象）
+    print("  --- 可能的資料來源 ---")
+    urls = set(re.findall(r'(?:fetch\(|axios|https?://)[^\s"\'<>]*?(?:/api/|graphql|/v\d/|/players/|/events/)[^\s"\'<>]*', t, re.I))
+    for u in list(urls)[:10]:
+        print(f"    {u[:140]}")
+    for marker in ('__NUXT__', '__next_f', 'window.__', 'application/json', 'apollo', 'buildId'):
+        if marker in t:
+            j = t.find(marker)
+            print(f"    [{marker}] …{t[j:j+120]}…".replace('\n', ' '))
+    for s in re.findall(r'<script[^>]*\bsrc=["\']([^"\']+)["\']', t)[:6]:
+        print(f"    <script src> {s}")
+
+    # Nuxt SSR：資料其實內嵌在 <script id="__NUXT_DATA__"> 的 JSON 陣列裡（扁平化、用索引互參）。
+    nm = re.search(r'id="__NUXT_DATA__"[^>]*>(.*?)</script>', t, re.S)
+    if nm:
+        print("  --- __NUXT_DATA__ 內的賽事線索 ---")
+        try:
+            arr = json.loads(nm.group(1))
+        except Exception as e:
+            print(f"    （解析 __NUXT_DATA__ 失敗：{e}）")
+            return t
+        strs = [x for x in arr if isinstance(x, str)]
+        print(f"    陣列元素 {len(arr)} 個、字串 {len(strs)} 個")
+        cats = {
+            "事件 slug/連結": re.compile(r'(?:time-trials|dailies|/events/|/event/)', re.I),
+            "賽事 slug-結尾id": re.compile(r'^[a-z0-9][a-z0-9\-]+-\d+$', re.I),
+            "圈速 1:23.456": re.compile(r'^\d:\d{2}\.\d{3}$'),
+            "board/ranking id": re.compile(r'p_[a-z]{1,4}_\d+_\d+'),
+        }
+        for label, rgx in cats.items():
+            hits = sorted({s for s in strs if rgx.search(s)})
+            if hits:
+                print(f"    [{label}] {len(hits)} 筆：", hits[:12])
+        # 還原 Nuxt 巢狀結構，撈出「成績列」dict（含 time/rank/event/track 等鍵）
+        try:
+            root = _nuxt_unflatten(arr)
+            want = {"time", "lap_time", "best_time", "best_lap_time", "score", "rank",
+                    "position", "event", "event_id", "eventId", "event_slug", "slug",
+                    "ranking_id", "board_id", "track", "car", "course", "gap", "result"}
+            found = []
+            _walk_collect(root, want, found)
+            print(f"    --- 還原後的成績列（{len(found)} 筆，dump 前 12）---")
+            for rec in found[:12]:
+                small = {k: v for k, v in rec.items() if not isinstance(v, (dict, list))}
+                print("     ", json.dumps(small, ensure_ascii=False)[:280])
+        except Exception as e:
+            print(f"    （Nuxt 還原失敗：{e}）字串樣本：", strs[:40])
+    print("  若仍看不出 schema：DevTools→Network 重整此頁，找回應含你成績/賽事清單的請求，貼 URL+回應。")
+    return t
+
+
+def probe_event_page(token, event_id):
+    """Debug：dump /event/get_parameter 回應，幫忙定位 ranking_id。"""
+    result = fetch_event_parameter(token, event_id)
+    print(f"\n=== 活動 {event_id} 詳情（POST /event/get_parameter）===")
+    print(json.dumps(result, ensure_ascii=False, indent=2)[:4000])
+    rid = _find_key(result, "ranking_id")
+    print(f"\n[自動偵測] ranking_id = {rid or '（找不到 —— 把上面 JSON 貼回來）'}")
+    return result
+
+
 def disp(sec):
     if sec is None:
         return "—"
@@ -141,20 +555,37 @@ def disp(sec):
     return f"{m}:{sec - m * 60:06.3f}"
 
 
-def fetch_dgedge_total(event_url: str):
-    """從 dg-edge 事件頁抓「Total players」真正母體人數（官方 API 抓不到）。失敗回 None。"""
+DGEDGE_BOARD_RE = re.compile(r'"(p_[a-z]{1,4}_\d+_\d+)"')
+
+
+def fetch_dgedge(event_url: str) -> dict:
+    """抓一次 dg-edge 事件頁，回傳 {total, board_id}（抓不到的欄位為 None）。
+    · total：母體人數（官方 API 抓不到），版面 <span>Total players</span><b>150118</b>。
+    · board_id：頁面內嵌資料含 "<dgId>",<num>,"p_rt_..._...","TT" —— 用 dg-edge 事件 id
+      錨定取它後面那個 board_id（取不到再退求頁面第一個 p_rt_ 字串）。"""
+    out = {"total": None, "board_id": None}
     try:
-        r = requests.get(event_url, headers={"User-Agent": UA, "Accept": "text/html"}, timeout=15)
+        r = requests.get(event_url, headers={"User-Agent": UA, "Accept": "text/html"}, timeout=20)
         r.raise_for_status()
     except Exception as e:
-        print(f"  · dg-edge 母體抓取失敗（沿用既有 totalPlayers）：{e}")
-        return None
-    # 頁面 server-render：<span>Total players</span> <b>150118</b>
-    m = re.search(r"Total\s*players\s*</span>\s*<b[^>]*>\s*([\d,]+)", r.text, re.I)
-    if not m:
+        print(f"  · dg-edge 抓取失敗（沿用既有值）：{e}")
+        return out
+    t = r.text
+    m = re.search(r"Total\s*players\s*</span>\s*<b[^>]*>\s*([\d,]+)", t, re.I)
+    if m:
+        out["total"] = int(m.group(1).replace(",", ""))
+    else:
         print("  · dg-edge 頁面找不到 Total players（版面可能改了，沿用既有 totalPlayers）。")
-        return None
-    return int(m.group(1).replace(",", ""))
+    dg_id = re.search(r"/(\d+)/?$", event_url)
+    if dg_id:
+        am = re.search(r'"%s"\s*,\s*\d+\s*,\s*"(p_[a-z]{1,4}_\d+_\d+)"' % re.escape(dg_id.group(1)), t)
+        if am:
+            out["board_id"] = am.group(1)
+    if not out["board_id"]:
+        fm = DGEDGE_BOARD_RE.search(t)
+        if fm:
+            out["board_id"] = fm.group(1)
+    return out
 
 
 def fetch_board(token: str, board_id: str, my_id: str, max_pages: int = 60) -> dict:
@@ -229,28 +660,36 @@ def resolve_token(bearer=None, jsessionid=None, locale="tw", browser=None, verbo
     return token, my_id
 
 
-def apply_updates(d: dict, token: str, my_id: str, today: str, max_pages=60, verbose=True):
+def apply_updates(d: dict, token: str, my_id: str, today: str, max_pages=60, verbose=True,
+                  online_id=None):
     """就地更新 data.json 的 leaderboards / references / goals。回傳是否有任何榜更新成功。"""
-    boards = {k: v["boardId"] for k, v in d.get("meta", {}).get("leaderboards", {}).items() if v.get("boardId")}
-    if not boards:
-        raise RuntimeError("data.json 沒有任何 meta.leaderboards.<key>.boardId；先填好再跑。")
+    lbs = d.get("meta", {}).get("leaderboards", {})
+    if not lbs:
+        raise RuntimeError("data.json 沒有 meta.leaderboards；先填好（至少要有 eventUrl 或 boardId）再跑。")
+    # 抓你的 dg-edge 場次：補缺 eventUrl + 取得各場你的成績（GT API 抓不到名次時當 fallback）
+    player_map = resolve_player_data(d, online_id, verbose) if online_id else {}
     changed = False
-    for key, board_id in boards.items():
+    for key, entry in lbs.items():
+        # 母體人數 + board_id 都從 dg-edge 事件頁一次抓（boardId 缺就自動補）。
+        # 官方 API 的 total 只是「榜上清單大小」（cap），非參賽總數，母體一律用 dg-edge。
+        ev = entry.get("eventUrl", "")
+        dg = fetch_dgedge(ev) if "dg-edge.com" in ev else {"total": None, "board_id": None}
+        board_id = entry.get("boardId") or dg["board_id"]
+        if not board_id:
+            print(f"  · {key}：沒有 boardId、也無法從 dg-edge 解出（檢查 eventUrl），跳過。")
+            continue
+        if not entry.get("boardId") and dg["board_id"]:
+            entry["boardId"] = board_id
+            if verbose: print(f"  · {key} 自動補 boardId={board_id}（取自 dg-edge）")
         if verbose: print(f"📊 {key}  (board_id={board_id})…")
         try:
             r = fetch_board(token, board_id, my_id, max_pages)
         except Exception as e:
             print(f"  ✗ 失敗：{e}")
             continue
-        entry = d["meta"]["leaderboards"][key]
-        # 母體人數：官方 API 的 total 只是「榜上回傳的清單大小」（cap），不是參賽總數。
-        # 真正母體去 dg-edge 事件頁抓 Total players；抓不到就沿用既有 totalPlayers。
-        ev = entry.get("eventUrl", "")
-        if "dg-edge.com" in ev:
-            dg_total = fetch_dgedge_total(ev)
-            if dg_total:
-                entry["totalPlayers"] = dg_total
-                if verbose: print(f"  · dg-edge 母體：{dg_total} 人")
+        if dg["total"]:
+            entry["totalPlayers"] = dg["total"]
+            if verbose: print(f"  · dg-edge 母體：{dg['total']} 人")
         population = entry.get("totalPlayers")
         pct = round(r["rank"] / population * 100, 2) if r["rank"] and population else None
         if verbose:
@@ -266,6 +705,21 @@ def apply_updates(d: dict, token: str, my_id: str, today: str, max_pages=60, ver
         if r["rank"]:
             entry["playerRank"] = {"rank": r["rank"], "pb": r["pb"], "source": "auto(gt7_rank.py)",
                                    "asOf": today, **({"topPct": pct} if pct else {})}
+        else:
+            # GT API 抓不到你名次（活動已結束/榜只回前段）→ 用 dg-edge 你的該場結果補
+            dgp = player_map.get(key)
+            if dgp and dgp.get("global_pos"):
+                gp = dgp["global_pos"]
+                dgpct = round(gp / population * 100, 2) if population else None
+                pb = round(dgp["time_ms"] / 1000, 3) if dgp.get("time_ms") else (entry.get("playerRank") or {}).get("pb")
+                entry["playerRank"] = {"rank": gp, "pb": pb, "source": "dg-edge",
+                                       "asOf": today,
+                                       **({"topPct": dgpct} if dgpct else {}),
+                                       **({"countryRank": dgp["country_pos"]} if dgp.get("country_pos") else {})}
+                if verbose:
+                    print(f"  ↳ GT 榜無你名次 → 用 dg-edge：#{gp}"
+                          + (f" (前 {dgpct}% / {population} 人)" if dgpct else "")
+                          + (f"  PB={disp(pb)}" if pb else ""))
         entry["asOf"] = today
         # 同步更新 WR 參考值 + 依 goalPolicy 重算該賽道目標
         car_slug = key.split("__")[1] if "__" in key else None
@@ -325,10 +779,65 @@ def gh_put(repo, path, branch, gh_token, d, sha, message):
 
 def run(*, bearer=None, jsessionid=None, browser=None, locale="tw", max_pages=60,
         push=False, repo="WYSwolf/GT7", branch="main", gh_path="data.json",
-        gh_token=None, data_path="data.json", dry=False, verbose=True):
+        gh_token=None, data_path="data.json", dry=False, verbose=True,
+        event=None, key=None, probe_event=None, probe_dgedge=None, my_events=None,
+        online_id="b95208010"):
     """抓榜並更新 data.json。push=True → 從 GitHub 抓最新、改、推回（不碰本機、不會蓋掉他人改動）；
-    否則讀寫本機 data.json。dry=True 只顯示不寫。browser → 自動從瀏覽器讀 JSESSIONID。"""
+    否則讀寫本機 data.json。dry=True 只顯示不寫。browser → 自動從瀏覽器讀 JSESSIONID。
+    probe_event=<id> → 只 dump 活動詳情原始 JSON。
+    event=<id> → 自動解出 board_id 印出；配 key=<trackKey__carSlug> 寫進 data.json。"""
     today = datetime.now().strftime("%Y-%m-%d")   # 用本機日期（=玩家當天）
+
+    # --- 找新賽道 board_id 的輔助流程 ---
+    if my_events:   # 列出你在 dg-edge 上所有場次（含 eventUrl + 你的成績），不需 GT 認證
+        evs = fetch_player_events(my_events, verbose=verbose)
+        print(f"\n=== {my_events} 的 dg-edge 場次（{len(evs)} 場）===")
+        for e in sorted(evs, key=lambda x: (not x["active"], x["track_alias"] or "")):
+            flag = "🟢進行中" if e["active"] else ("⚪已結束" if e["ended"] else "")
+            print(f"  {e['time'] or '—':>10}  {e['track_name'] or e['track_alias']:<22} "
+                  f"{(e['car'] or ''):<16} {flag}")
+            print(f"             {e['eventUrl']}")
+        return evs
+    if probe_dgedge is not None:   # 看 dg-edge 頁面藏了什麼（不需認證）
+        return probe_dgedge_page(probe_dgedge)
+    if probe_event is not None:
+        token, _ = resolve_token(bearer, jsessionid, locale, browser, verbose)
+        return probe_event_page(token, probe_event)
+
+    if event is not None:
+        token, _ = resolve_token(bearer, jsessionid, locale, browser, verbose)
+        board_id, _ = resolve_board_id(token, event, verbose)
+        if not key:
+            print(f"\n✓ board_id = {board_id}")
+            print(f"  把它填進 data.json → meta.leaderboards.<trackKey__carSlug>.boardId；"
+                  "或重跑時加 --key <key> 自動寫入。")
+            return board_id
+        # 寫進 data.json（本機 / --push），遵守 --dry
+        sha = None
+        if push:
+            if not gh_token:
+                raise RuntimeError("--push 需要 GitHub token（GT7_GITHUB_TOKEN / GITHUB_TOKEN，或 --gh-token）。")
+            d, sha = gh_get(repo, gh_path, branch, gh_token)
+        else:
+            data_path = locate_data(data_path)
+            with open(data_path, encoding="utf-8") as f:
+                d = json.load(f)
+        entry = d.setdefault("meta", {}).setdefault("leaderboards", {}).setdefault(key, {})
+        old = entry.get("boardId")
+        entry["boardId"] = board_id
+        print(f"\n  meta.leaderboards.{key}.boardId: {old!r} → {board_id!r}")
+        if dry:
+            print("[DRY] 未寫入。確認 OK 後拿掉 --dry 再跑。")
+        elif push:
+            url = gh_put(repo, gh_path, branch, gh_token, d, sha,
+                         f"rank: set boardId for {key} (event {event})")
+            print(f"✓ 已推回 GitHub {repo}/{gh_path}@{branch}" + (f"\n   {url}" if url else ""))
+        else:
+            with open(data_path, "w", encoding="utf-8") as f:
+                json.dump(d, f, ensure_ascii=False, indent=1)
+            print(f"✓ 已寫入 {os.path.abspath(data_path)}")
+        return board_id
+
     token, my_id = resolve_token(bearer, jsessionid, locale, browser, verbose)
 
     sha = None
@@ -343,7 +852,7 @@ def run(*, bearer=None, jsessionid=None, browser=None, locale="tw", max_pages=60
         with open(data_path, encoding="utf-8") as f:
             d = json.load(f)
 
-    apply_updates(d, token, my_id, today, max_pages, verbose)
+    apply_updates(d, token, my_id, today, max_pages, verbose, online_id=online_id)
 
     if dry:
         if verbose: print("\n[DRY] 未寫入。確認數字 OK 後拿掉 --dry 再跑。")
@@ -366,6 +875,17 @@ def main():
                     help="自動從瀏覽器讀 JSESSIONID（免手動複製＝自動續期）。不帶值=auto；"
                          "可指定 chrome/edge/firefox/brave/...（或設 GT7_BROWSER）")
     ap.add_argument("--locale", default="tw")
+    ap.add_argument("--event", help="由 sportmode 活動 ID 自動解出 board_id（配 --key 可寫進 data.json）")
+    ap.add_argument("--key", help="--event 寫入目標：meta.leaderboards.<trackKey__carSlug>")
+    ap.add_argument("--probe-event", dest="probe_event",
+                    help="只 dump 活動詳情原始 JSON（debug 用，找不到 ranking_id 時貼回來）")
+    ap.add_argument("--probe-dgedge", dest="probe_dgedge",
+                    help="抓 dg-edge 事件頁 URL，dump 出可能藏 GT board_id/活動ID 的線索（debug）")
+    ap.add_argument("--my-events", dest="my_events", nargs="?",
+                    const=os.environ.get("GT7_ONLINE_ID", "b95208010"),
+                    help="列出你在 dg-edge 上所有場次（含 eventUrl + 你的成績）；不帶值=用預設 PSN")
+    ap.add_argument("--online-id", dest="online_id", default=os.environ.get("GT7_ONLINE_ID", "b95208010"),
+                    help="你的 PSN online id（給缺 eventUrl 時自動配對用；預設 b95208010）")
     ap.add_argument("--data", default="data.json", help="本機 data.json 路徑（不加 --push 時用）")
     ap.add_argument("--dry", action="store_true", help="只顯示、不寫入")
     ap.add_argument("--max-pages", type=int, default=60)
@@ -380,7 +900,9 @@ def main():
     try:
         run(bearer=args.bearer, jsessionid=args.jsessionid, browser=args.browser, locale=args.locale,
             max_pages=args.max_pages, push=args.push, repo=args.repo, branch=args.branch,
-            gh_path=args.gh_path, gh_token=args.gh_token, data_path=args.data, dry=args.dry)
+            gh_path=args.gh_path, gh_token=args.gh_token, data_path=args.data, dry=args.dry,
+            event=args.event, key=args.key, probe_event=args.probe_event,
+            probe_dgedge=args.probe_dgedge, my_events=args.my_events, online_id=args.online_id)
     except (RuntimeError, FileNotFoundError) as e:
         sys.exit(str(e))
 
