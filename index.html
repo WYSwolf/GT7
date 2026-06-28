@@ -1472,9 +1472,10 @@ function buildDashboard() {
     const _wr = (getCarReference(g.carKey || carSlug(g.car)) || {}).time;
     const _gap = _wr ? ((g.pb - _wr) / _wr * 100) : null;
     const topSpd = Math.max(0, ...g.sessions.map(s => s.topSpeed || 0));
-    const ser = [...g.sessions]
-      .sort((a, b) => a.date !== b.date ? a.date.localeCompare(b.date) : (a.session || '').localeCompare(b.session || ''))
-      .map(s => s.best);
+    // 每日一點:當日最佳(與紀錄頁/賽道頁一致)
+    const _byDate = {};
+    g.sessions.forEach(s => { (_byDate[s.date] = _byDate[s.date] || []).push(s.best); });
+    const ser = Object.keys(_byDate).sort().map(d => Math.min(..._byDate[d]));
     const goal = (DATA.goals || []).find(x => x.trackKey === g.key);
     let tierHTML = '';
     if (goal && goal.items && goal.items.length) {
@@ -1513,7 +1514,7 @@ function buildDashboard() {
         <div class="rc-metric"><div class="rc-v info">${topSpd || '—'}</div><div class="rc-l">極速 km/h</div></div>
       </div>
       ${tierHTML}
-      ${sp ? `<div class="rc-spark">${sp}<span class="rc-cap">PB 走勢 · ${g.sessions.length} 場 · ${g.totalLaps} 圈</span></div>` : ''}
+      ${sp ? `<div class="rc-spark">${sp}<span class="rc-cap">PB 走勢 · ${ser.length} 天 · ${g.totalLaps} 圈</span></div>` : ''}
     </div>`;
   }).join('');
 
