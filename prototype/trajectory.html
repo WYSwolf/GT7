@@ -108,7 +108,8 @@ fetch('../data.json').then(r => r.json()).then(D => {
       type: 'line',
       data: { datasets: [{
         data: pts.map(p => ({ x: p.x, y: p.y, _p: p })),
-        showLine: true, borderWidth: 2.5, tension: 0.15,
+        showLine: true, borderWidth: 2.5, tension: 0.35,
+        borderCapStyle: 'round', borderJoinStyle: 'round',
         segment: { borderColor: ctx => { const i = ctx.p1DataIndex; return `rgba(${segCol[i] || '88,101,119'},${segA(i)})`; } },
         pointRadius: ptRad, pointHoverRadius: 7, pointBackgroundColor: ptCol, pointBorderColor: ptCol
       }] },
