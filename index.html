@@ -1800,6 +1800,10 @@ function renderCarSection(g) {
       <div class="panel-body"><div class="chart-wrap"><canvas id="sectorLineChart-${g.key}"></canvas></div></div>
     </div>
     <div class="panel">
+      <div class="panel-header"><div class="panel-title">圈數象限分布</div><div class="panel-meta">每圈一點 · X=前段距最佳 Y=末段距最佳 · 越靠左下越乾淨 · 虛線=中位</div></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="quadChart-${g.key}"></canvas></div></div>
+    </div>
+    <div class="panel">
       <div class="panel-header"><div class="panel-title">Sector 損失分解</div><div class="panel-meta">預設排除大失誤圈 · 雙指縮放 Y <button onclick="resetChartZoom('stackChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .5rem;border-radius:6px;border:1px solid #2a3340;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:.7rem;font-family:inherit;">⟲ 重置</button></div></div>
       <div class="panel-body"><div class="chart-wrap tall"><canvas id="stackChart-${g.key}"></canvas></div></div>
     </div>
@@ -1832,6 +1836,58 @@ function selectSectorLine(chart, di) {
   });
   chart.update();
 }
+// Quadrant distribution of laps: X = front sectors gap to best, Y = rear sectors gap to best.
+function drawQuadrant(canvasId, sessions, sectorCount) {
+  const el = document.getElementById(canvasId);
+  if (!el) return;
+  const laps = [];
+  sessions.forEach(s => s.laps.filter(l => !l.invalid).forEach(l => laps.push({ ...l, date: s.date })));
+  if (laps.length < 2) return;
+  const front = ['s1', 's2'], rear = sectorCount === 4 ? ['s3', 's4'] : ['s3'];
+  const best = {}; ['s1', 's2', 's3', 's4'].forEach(k => { const v = laps.map(l => l[k]).filter(x => x != null); if (v.length) best[k] = Math.min(...v); });
+  const fg = l => front.reduce((a, k) => a + (l[k] - best[k]), 0);
+  const rg = l => rear.reduce((a, k) => a + ((l[k] || 0) - (best[k] || 0)), 0);
+  const dates = [...new Set(laps.map(l => l.date))].sort(), D = dates.length;
+  const mixc = (a, b, t) => { const A = hxArr(a), B = hxArr(b); return `rgb(${Math.round(A[0]+(B[0]-A[0])*t)},${Math.round(A[1]+(B[1]-A[1])*t)},${Math.round(A[2]+(B[2]-A[2])*t)})`; };
+  const pts = laps.map(l => ({ x: +fg(l).toFixed(3), y: +rg(l).toFixed(3), date: l.date, _l: l }));
+  const mx = _median(pts.map(p => p.x)), my = _median(pts.map(p => p.y));
+  const colOf = d => mixc('#3a4a5a', '#00ff88', D < 2 ? 1 : dates.indexOf(d) / (D - 1));
+  const counts = [0, 0, 0, 0]; // [LB clean, LT frontGood, RB rearGood, RT both-lose] via (x<mx,y<my)
+  pts.forEach(p => { const r = p.x >= mx, t = p.y >= my; counts[(t ? 2 : 0) + (r ? 1 : 0)]++; });
+  new Chart(el, {
+    type: 'scatter',
+    data: { datasets: [{ data: pts, parsing: false, pointBackgroundColor: pts.map(p => colOf(p.date)), pointBorderWidth: 0, pointRadius: pts.map(p => p.date === dates[D - 1] ? 4.5 : 2.5), pointHoverRadius: 7 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1, callbacks: { label: ctx => { const p = ctx.raw; return [`${p.date} · ${fmtTime(p._l.total)}`, `前段 +${p.x.toFixed(3)}s · 末段 +${p.y.toFixed(3)}s`]; } } }
+      },
+      scales: {
+        x: { title: { display: true, text: '前段(S1+S2)距最佳 秒  →（越左越好）', color: '#8b96a8', font: { size: 10 } }, grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => v.toFixed(2) }, beginAtZero: true },
+        y: { title: { display: true, text: '末段距最佳 秒  ↑（越下越好）', color: '#8b96a8', font: { size: 10 } }, grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => v.toFixed(2) }, beginAtZero: true }
+      }
+    },
+    plugins: [{
+      afterDraw: chart => {
+        const { ctx, chartArea, scales } = chart; if (!chartArea) return;
+        const px = scales.x.getPixelForValue(mx), py = scales.y.getPixelForValue(my);
+        ctx.save();
+        ctx.setLineDash([5, 4]); ctx.strokeStyle = 'rgba(232,236,241,0.35)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(px, chartArea.top); ctx.lineTo(px, chartArea.bottom); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(chartArea.left, py); ctx.lineTo(chartArea.right, py); ctx.stroke();
+        ctx.setLineDash([]); ctx.font = "11px 'Noto Sans TC'"; ctx.fillStyle = 'rgba(139,150,168,0.7)';
+        const L = chartArea.left + 6, R = chartArea.right - 6, T = chartArea.top + 14, B = chartArea.bottom - 6;
+        ctx.textAlign = 'left'; ctx.fillText(`乾淨 ${counts[0]}`, L, B);
+        ctx.fillText(`末段掉 ${counts[2]}`, L, T);
+        ctx.textAlign = 'right'; ctx.fillText(`前段掉 ${counts[1]}`, R, B);
+        ctx.fillText(`兩段掉 ${counts[3]}`, R, T);
+        ctx.restore();
+      }
+    }]
+  });
+}
+
 // Per-sector stability line: per-day (median − best) for each sector.
 function drawSectorLine(canvasId, sessions, sectorCount) {
   const el = document.getElementById(canvasId);
@@ -2124,6 +2180,7 @@ function renderCarCharts(g) {
 
   drawSectorTrajectory('sectorStabChart-' + g.key, g.sessions, g.sectorCount);
   drawSectorLine('sectorLineChart-' + g.key, g.sessions, g.sectorCount);
+  drawQuadrant('quadChart-' + g.key, g.sessions, g.sectorCount);
 
   const valid = allLaps.filter(l => !l.invalid);
   let losses = { s1: 0, s2: 0, s3: 0, s4: 0 };
