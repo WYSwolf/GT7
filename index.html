@@ -1818,6 +1818,20 @@ function renderCarSection(g) {
   `;
 }
 
+// Click a sector line (or its legend) to isolate it — others fade to 0.1; click again to restore.
+function selectSectorLine(chart, di) {
+  const sel = chart.$sel === di ? null : di;
+  chart.$sel = sel;
+  chart.data.datasets.forEach((d, i) => {
+    const on = sel === null || i === sel;
+    const c = d._c;
+    d.borderColor = on ? c : hexA(c, 0.1);
+    d.backgroundColor = on ? c : hexA(c, 0.1);
+    d.pointBackgroundColor = on ? c : hexA(c, 0.1);
+    d.borderWidth = (sel !== null && i === sel) ? 3 : 2;
+  });
+  chart.update();
+}
 // Per-sector stability line: per-day (median − best) for each sector.
 function drawSectorLine(canvasId, sessions, sectorCount) {
   const el = document.getElementById(canvasId);
@@ -1828,7 +1842,7 @@ function drawSectorLine(canvasId, sessions, sectorCount) {
   const keys = sectorCount === 4 ? ['s1', 's2', 's3', 's4'] : ['s1', 's2', 's3'];
   const colors = { s1: '#4dabf7', s2: '#ff4757', s3: '#ffd43b', s4: '#00ff88' };
   const datasets = keys.map(k => ({
-    label: k.toUpperCase(),
+    label: k.toUpperCase(), _c: colors[k],
     data: dates.map(d => { const vs = byDate[d].map(l => l[k]).filter(v => v != null); return vs.length ? +(_median(vs) - Math.min(...vs)).toFixed(3) : null; }),
     borderColor: colors[k], backgroundColor: colors[k], tension: 0.25, borderWidth: 2, pointRadius: 2.5, pointHoverRadius: 6
   }));
@@ -1837,7 +1851,12 @@ function drawSectorLine(canvasId, sessions, sectorCount) {
     data: { labels: dates.map(d => d.slice(5)), datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: true, labels: { color: '#e8ecf1', usePointStyle: true, boxWidth: 8 } },
+      onClick: (e, els, chart) => {
+        const hit = chart.getElementsAtEventForMode(e, 'nearest', { intersect: false }, true);
+        if (hit.length) selectSectorLine(chart, hit[0].datasetIndex);
+      },
+      plugins: { legend: { display: true, labels: { color: '#e8ecf1', usePointStyle: true, boxWidth: 8 },
+          onClick: (e, item, legend) => selectSectorLine(legend.chart, item.datasetIndex) },
         tooltip: { backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1, callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y == null ? '—' : ctx.parsed.y.toFixed(3) + 's'}` } } },
       scales: {
         x: { grid: { display: false }, ticks: { color: '#8b96a8', font: { size: 10 } } },
@@ -1886,14 +1905,14 @@ function drawSectorTrajectory(canvasId, sessions, sectorCount) {
       label: k === 'total' ? '全圈' : k.toUpperCase(), data: dense, showLine: true,
       borderColor: col, borderWidth: bw, borderDash: dash, tension: 0, borderCapStyle: 'butt',
       segment: { borderColor: ctx => dcol[ctx.p1DataIndex] || `rgba(${col},1)` },
-      pointRadius: dense.map((_, i) => i === dense.length-1 ? (k === 'total' ? 7 : 6) : 0),
+      pointRadius: dense.map((_, i) => i === dense.length-1 ? (k === 'total' ? 9 : 4) : 0),
       pointBackgroundColor: col, pointBorderColor: '#0a0d12', pointBorderWidth: 2, pointHoverRadius: 0, _k: k
     });
   });
   // custom 點+線段 legend (no box)
   const legEl = document.getElementById(canvasId.replace('sectorStabChart-', 'sectorLeg-'));
   if (legEl) legEl.innerHTML = series.filter(s => datasets.some(d => d._k === s[0])).map(([k, col, dash, bw]) =>
-    `<span class="it"><svg width="30" height="12"><line x1="1" y1="6" x2="29" y2="6" stroke="${col}" stroke-width="${k === 'total' ? 3 : 1.6}"${dash.length ? ` stroke-dasharray="${dash.join(' ')}"` : ''}/><circle cx="15" cy="6" r="3.5" fill="${col}"/></svg>${k === 'total' ? '全圈' : k.toUpperCase()}</span>`
+    `<span class="it"><svg width="30" height="12"><line x1="1" y1="6" x2="29" y2="6" stroke="${col}" stroke-width="${k === 'total' ? 3 : 1.6}"${dash.length ? ` stroke-dasharray="${dash.join(' ')}"` : ''}/><circle cx="15" cy="6" r="${k === 'total' ? 4.5 : 3}" fill="${col}"/></svg>${k === 'total' ? '全圈' : k.toUpperCase()}</span>`
   ).join('');
   new Chart(el, {
     type: 'line', data: { datasets },
