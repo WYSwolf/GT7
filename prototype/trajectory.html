@@ -87,6 +87,10 @@ fetch('../data.json').then(r => r.json()).then(D => {
     datasets.push({
       label: g.track, data: pts, showLine: true,
       borderColor: hexA(color, 0.35), borderWidth: 2, tension: 0.25,
+      segment: {
+        // 每段線依「較新端點」的時間調透明度:越早的線段越透明
+        borderColor: ctx => hexA(color, n < 2 ? 0.5 : 0.06 + 0.74 * Math.pow(ctx.p1DataIndex / (n - 1), 1.5))
+      },
       pointBackgroundColor: ptCol, pointBorderColor: ptCol, pointBorderWidth: 0,
       pointRadius: ptRad, pointHoverRadius: 9, _g: g
     });
