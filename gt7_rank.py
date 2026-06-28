@@ -28,6 +28,21 @@ GT7 Rank Fetcher  ·  WYS / GT7 Training Tracker
 board_id：寫在 data.json 的 meta.leaderboards.<key>.boardId
   （目前 redbullring__fordgt17 = p_rt_1014277_001）
 
+  從官方 sportmode 前端解出的組成規則（給新賽道用）：
+    · 一般時間競賽（registration_key 為空）→ board_id 直接 = 活動的 ranking_id，
+      沒有任何後綴運算。你看到的 p_rt_1014277_001 整串就是 ranking_id（_001 是後端
+      字串的一部分，不是區碼）。
+    · 分區報名賽事（World Series 區域資格賽等，registration_key 非空）才會接區碼：
+      board_id = ranking_id + "_" + 區碼，區碼 = 成人:2 位數補零、非成人:(區+100)，
+      且 Oita/Kumamoto 互換。個人 TT 不碰這條。
+  → 新賽道不必手算：用 --event <活動ID> 讓本檔自動抓 ranking_id（見下）。
+
+找新賽道的 board_id：
+  --event <id>     從 sportmode 活動頁（如 .../sportmode/event/14277/ → 14277）自動抓
+                   ranking_id 當 board_id 印出來。配 --key <trackKey__carSlug> 可直接寫進
+                   data.json 的 meta.leaderboards.<key>.boardId（遵守 --dry/--push/本機）。
+  --probe-event <id>  只把活動詳情原始 JSON 印出來（萬一自動找不到 ranking_id，貼回來給我看欄位）。
+
 選項：
   --dry        只顯示、不寫入（驗證數字用）
   --push       不碰本機，直接從 GitHub 抓最新 data.json → 更新 → 推回
@@ -132,6 +147,74 @@ def get_page(token: str, board_id: str, page: int) -> dict:
                       data=json.dumps({"board_id": board_id, "page": page}), timeout=15)
     r.raise_for_status()
     return r.json()["result"]
+
+
+# ---------------- 由活動 ID 自動解出 board_id ----------------
+def _find_key(obj, key):
+    """遞迴在巢狀 dict/list 裡找第一個出現的 key，回傳其值（找不到回 None）。"""
+    if isinstance(obj, dict):
+        if key in obj and obj[key] not in (None, ""):
+            return obj[key]
+        for v in obj.values():
+            r = _find_key(v, key)
+            if r is not None:
+                return r
+    elif isinstance(obj, list):
+        for v in obj:
+            r = _find_key(v, key)
+            if r is not None:
+                return r
+    return None
+
+
+# sportmode 活動詳情 JSON 的候選端點（info API 前綴與 token/ 同源；依序試）
+EVENT_API_CANDIDATES = [
+    "https://www.gran-turismo.com/{locale}/gt7/info/api/sportmode/event/{eid}/",
+    "https://www.gran-turismo.com/{locale}/gt7/info/api/sportmode/event/{eid}/detail/",
+    "https://www.gran-turismo.com/{locale}/gt7/info/api/event/{eid}/",
+]
+
+
+def fetch_event_detail(event_id, jsessionid=None, locale="tw"):
+    """抓 sportmode 活動詳情 JSON（含 ranking_id / registration_key）。
+    回傳 (detail_dict, used_url)；全部端點都失敗時丟 RuntimeError（含各端點錯誤摘要）。"""
+    headers = {"Accept": "application/json, text/plain, */*", "User-Agent": UA,
+               "Referer": f"https://www.gran-turismo.com/{locale}/gt7/sportmode/event/{event_id}/"}
+    cookies = {"JSESSIONID": jsessionid} if jsessionid else None
+    errors = []
+    for tmpl in EVENT_API_CANDIDATES:
+        url = tmpl.format(locale=locale, eid=event_id)
+        try:
+            r = requests.get(url, headers=headers, cookies=cookies, timeout=15)
+        except Exception as e:
+            errors.append(f"{url} → {e}")
+            continue
+        if r.status_code != 200:
+            errors.append(f"{url} → HTTP {r.status_code}")
+            continue
+        try:
+            return r.json(), url
+        except ValueError:
+            errors.append(f"{url} → 非 JSON（前 80 字：{r.text[:80]!r}）")
+    raise RuntimeError("抓不到活動詳情，試過：\n  " + "\n  ".join(errors)
+                       + "\n  端點可能改了 —— 用 --probe-event 把真正的回應貼回來給我看欄位。")
+
+
+def resolve_board_id(event_id, jsessionid=None, locale="tw", verbose=True):
+    """由活動 ID 自動解出 board_id（= ranking_id；分區賽事另需區碼後綴）。
+    回傳 (board_id, detail)。"""
+    detail, url = fetch_event_detail(event_id, jsessionid, locale)
+    ranking_id = _find_key(detail, "ranking_id")
+    if not ranking_id:
+        raise RuntimeError(f"活動詳情裡找不到 ranking_id（來源 {url}）。"
+                           " 用 --probe-event 把回應貼回來，我對一下欄位名。")
+    reg = _find_key(detail, "registration_key")
+    if reg and verbose:
+        print(f"  ⚠ 此活動 registration_key={reg!r}（分區報名賽事）—— board_id 可能要接區碼後綴，"
+              "見檔頭區域規則；個人 TT 一般用不到。")
+    if verbose:
+        print(f"  · event {event_id} → ranking_id = {ranking_id}（board_id 直接用它，來源 {url}）")
+    return str(ranking_id), detail
 
 
 def disp(sec):
@@ -323,12 +406,72 @@ def gh_put(repo, path, branch, gh_token, d, sha, message):
     return r.json().get("content", {}).get("html_url", "")
 
 
+def _resolve_jsessionid(jsessionid=None, browser=None, verbose=True):
+    """回傳可用的 JSESSIONID 字串（給 gran-turismo.com cookie 端點用）；沒有則回 None。"""
+    if jsessionid:
+        return jsessionid
+    if browser:
+        if verbose: print(f"🍪 從瀏覽器自動讀 JSESSIONID（{browser}）…")
+        js = jsessionid_from_browser(browser)
+        if verbose: print("  ✓ 已從瀏覽器取得 JSESSIONID")
+        return js
+    return None
+
+
 def run(*, bearer=None, jsessionid=None, browser=None, locale="tw", max_pages=60,
         push=False, repo="WYSwolf/GT7", branch="main", gh_path="data.json",
-        gh_token=None, data_path="data.json", dry=False, verbose=True):
+        gh_token=None, data_path="data.json", dry=False, verbose=True,
+        event=None, key=None, probe_event=None):
     """抓榜並更新 data.json。push=True → 從 GitHub 抓最新、改、推回（不碰本機、不會蓋掉他人改動）；
-    否則讀寫本機 data.json。dry=True 只顯示不寫。browser → 自動從瀏覽器讀 JSESSIONID。"""
+    否則讀寫本機 data.json。dry=True 只顯示不寫。browser → 自動從瀏覽器讀 JSESSIONID。
+    probe_event=<id> → 只 dump 活動詳情原始 JSON。
+    event=<id> → 自動解出 board_id 印出；配 key=<trackKey__carSlug> 寫進 data.json。"""
     today = datetime.now().strftime("%Y-%m-%d")   # 用本機日期（=玩家當天）
+
+    # --- 找新賽道 board_id 的兩個輔助流程（不需要 web-api Bearer，用 cookie 即可）---
+    if probe_event is not None:
+        js = _resolve_jsessionid(jsessionid, browser, verbose)
+        detail, url = fetch_event_detail(probe_event, js, locale)
+        print(f"\n=== 活動 {probe_event} 詳情（來源 {url}）===")
+        print(json.dumps(detail, ensure_ascii=False, indent=2)[:4000])
+        rid = _find_key(detail, "ranking_id")
+        print(f"\n[自動偵測] ranking_id = {rid or '（找不到 —— 把上面 JSON 貼回來）'}")
+        return detail
+
+    if event is not None:
+        js = _resolve_jsessionid(jsessionid, browser, verbose)
+        board_id, _ = resolve_board_id(event, js, locale, verbose)
+        if not key:
+            print(f"\n✓ board_id = {board_id}")
+            print(f"  把它填進 data.json → meta.leaderboards.<trackKey__carSlug>.boardId；"
+                  "或重跑時加 --key <key> 自動寫入。")
+            return board_id
+        # 寫進 data.json（本機 / --push），遵守 --dry
+        sha = None
+        if push:
+            if not gh_token:
+                raise RuntimeError("--push 需要 GitHub token（GT7_GITHUB_TOKEN / GITHUB_TOKEN，或 --gh-token）。")
+            d, sha = gh_get(repo, gh_path, branch, gh_token)
+        else:
+            data_path = locate_data(data_path)
+            with open(data_path, encoding="utf-8") as f:
+                d = json.load(f)
+        entry = d.setdefault("meta", {}).setdefault("leaderboards", {}).setdefault(key, {})
+        old = entry.get("boardId")
+        entry["boardId"] = board_id
+        print(f"\n  meta.leaderboards.{key}.boardId: {old!r} → {board_id!r}")
+        if dry:
+            print("[DRY] 未寫入。確認 OK 後拿掉 --dry 再跑。")
+        elif push:
+            url = gh_put(repo, gh_path, branch, gh_token, d, sha,
+                         f"rank: set boardId for {key} (event {event})")
+            print(f"✓ 已推回 GitHub {repo}/{gh_path}@{branch}" + (f"\n   {url}" if url else ""))
+        else:
+            with open(data_path, "w", encoding="utf-8") as f:
+                json.dump(d, f, ensure_ascii=False, indent=1)
+            print(f"✓ 已寫入 {os.path.abspath(data_path)}")
+        return board_id
+
     token, my_id = resolve_token(bearer, jsessionid, locale, browser, verbose)
 
     sha = None
@@ -366,6 +509,10 @@ def main():
                     help="自動從瀏覽器讀 JSESSIONID（免手動複製＝自動續期）。不帶值=auto；"
                          "可指定 chrome/edge/firefox/brave/...（或設 GT7_BROWSER）")
     ap.add_argument("--locale", default="tw")
+    ap.add_argument("--event", help="由 sportmode 活動 ID 自動解出 board_id（配 --key 可寫進 data.json）")
+    ap.add_argument("--key", help="--event 寫入目標：meta.leaderboards.<trackKey__carSlug>")
+    ap.add_argument("--probe-event", dest="probe_event",
+                    help="只 dump 活動詳情原始 JSON（debug 用，找不到 ranking_id 時貼回來）")
     ap.add_argument("--data", default="data.json", help="本機 data.json 路徑（不加 --push 時用）")
     ap.add_argument("--dry", action="store_true", help="只顯示、不寫入")
     ap.add_argument("--max-pages", type=int, default=60)
@@ -380,7 +527,8 @@ def main():
     try:
         run(bearer=args.bearer, jsessionid=args.jsessionid, browser=args.browser, locale=args.locale,
             max_pages=args.max_pages, push=args.push, repo=args.repo, branch=args.branch,
-            gh_path=args.gh_path, gh_token=args.gh_token, data_path=args.data, dry=args.dry)
+            gh_path=args.gh_path, gh_token=args.gh_token, data_path=args.data, dry=args.dry,
+            event=args.event, key=args.key, probe_event=args.probe_event)
     except (RuntimeError, FileNotFoundError) as e:
         sys.exit(str(e))
 
