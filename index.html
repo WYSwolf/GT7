@@ -1796,12 +1796,12 @@ function renderCarSection(g) {
       <div class="panel"><div class="panel-header"><div class="panel-title">時間損失來源</div><div class="panel-meta">BY SECTOR</div></div><div class="panel-body"><div class="chart-wrap"><canvas id="pieChart-${g.key}"></canvas></div></div></div>
     </div>
     <div class="panel">
-      <div class="panel-header"><div class="panel-title">各分段穩定性</div><div class="panel-meta">每日 中位−最佳 · 越低越穩</div></div>
-      <div class="panel-body"><div class="chart-wrap"><canvas id="sectorLineChart-${g.key}"></canvas></div></div>
-    </div>
-    <div class="panel">
       <div class="panel-header"><div class="panel-title">速度 × 分段均衡 象限</div><div class="panel-meta">每圈一點 · X=速度vs平均(σ,左=快) Y=分段間落差(σ,低=均衡) · 最新日綠/舊日藍漸層</div></div>
       <div class="panel-body"><div class="chart-wrap"><canvas id="quadChart-${g.key}"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">各分段穩定性</div><div class="panel-meta">每日 中位−最佳 · 越低越穩</div></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="sectorLineChart-${g.key}"></canvas></div></div>
     </div>
     <div class="panel">
       <div class="panel-header"><div class="panel-title">Sector 損失分解</div><div class="panel-meta">預設排除大失誤圈 · 雙指縮放 Y <button onclick="resetChartZoom('stackChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .5rem;border-radius:6px;border:1px solid #2a3340;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:.7rem;font-family:inherit;">⟲ 重置</button></div></div>
