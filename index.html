@@ -2163,12 +2163,16 @@ function buildGoals() {
     </div>`;
   }
   let actionHTML = '';
-  if (DATA.actionItems && DATA.actionItems.length > 0) {
+  // 「下次訓練重點」永遠跟著當前(最新一場)賽道走
+  const curSession = [...DATA.sessions].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
+  let aitems = DATA.actionItems;
+  if (aitems && !Array.isArray(aitems)) aitems = (curSession && aitems[curSession.trackKey]) || [];
+  if (aitems && aitems.length > 0) {
     actionHTML = `
       <div class="panel">
-        <div class="panel-header"><div class="panel-title">下次訓練重點</div><div class="panel-meta">ACTION ITEMS</div></div>
+        <div class="panel-header"><div class="panel-title">下次訓練重點</div><div class="panel-meta">${curSession ? curSession.track + ' · ' : ''}ACTION ITEMS</div></div>
         <div class="panel-body">
-          ${DATA.actionItems.map((a, i) => `<div class="insight"><div class="insight-label">${i + 1}. ${a.title}</div>${a.desc}</div>`).join('')}
+          ${aitems.map((a, i) => `<div class="insight"><div class="insight-label">${i + 1}. ${a.title}</div>${a.desc}</div>`).join('')}
         </div>
       </div>
     `;
