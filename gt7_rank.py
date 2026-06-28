@@ -25,11 +25,15 @@ GT7 Rank Fetcher  ·  WYS / GT7 Training Tracker
        → Request Headers 複製 Authorization: 後面那串（不含 "Bearer "）
      （也可設環境變數 GT7_GT_TOKEN / GT7_JSESSIONID / GT7_BROWSER）
 
-board_id：寫在 data.json 的 meta.leaderboards.<key>.boardId
-  ★ 通常不必手填 ★ —— 只要該 leaderboard 有 dg-edge 的 eventUrl，本檔抓榜時會自動
-  從 dg-edge 事件頁解出 board_id 並補進 boardId（dg-edge 頁面內嵌
-  "<dgId>",<num>,"p_rt_..._...","TT"，用事件 id 錨定取得）。所以新賽道一般只要填
-  eventUrl 即可，boardId 留空，跑一次就自動補上。
+eventUrl / board_id：通常都不必手填。
+  ★ eventUrl 自動找 ★ —— 缺 eventUrl 的 leaderboard，抓榜時會打 dg-edge 的 player API
+    （你的所有場次），用「你的成績(timeMS) / 賽道 / 車」比對自動填上對應的 dg-edge
+    eventUrl。對不出唯一就把候選記到 entry['eventUrlCandidates']，不亂猜，等對話確認。
+    第一次玩、dg 還沒收錄你的成績時也配不到 → 去 dg-edge.com/events 清單反查。
+    （單獨看你的場次清單：--my-events）
+  ★ boardId 自動補 ★ —— 有了 eventUrl，就從該 dg-edge 事件頁內嵌的
+    "<dgId>",<num>,"p_rt_..._...","TT" 解出 board_id 補進 boardId。
+  → 新賽道一般「什麼都不必填」：有成績被 dg 收錄就全自動；真的對不出時才需手動。
 
   board_id 的組成（從官方 sportmode 前端解出，供理解/手動 fallback）：
     · 一般時間競賽（registration_key 為空）→ board_id 直接 = 活動的 ranking_id，
@@ -264,6 +268,80 @@ def fetch_player_events(online_id: str, tz: str = "Asia/Taipei", max_pages: int 
             break
         out.extend(fresh)
     return out
+
+
+def _norm(s):
+    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
+
+
+def _known_time_ms(d: dict, key: str, entry: dict):
+    """該賽道你已知的最佳時間（ms）：優先 playerRank.pb，否則取 sessions 最佳。"""
+    pr = entry.get("playerRank") or {}
+    if pr.get("pb"):
+        return round(pr["pb"] * 1000)
+    tk = key.split("__")[0]
+    cs = key.split("__")[1] if "__" in key else ""
+    bests = [s.get("best") for s in d.get("sessions", [])
+             if s.get("trackKey") == tk and s.get("best")
+             and (not cs or s.get("carSlug") in (cs, None, ""))]
+    return round(min(bests) * 1000) if bests else None
+
+
+def match_event(key: str, entry: dict, events: list, known_ms):
+    """把一條 leaderboard（trackKey__carSlug）配到玩家場次。回傳 (命中 event 或 None, 候選清單)。
+    先用賽道名篩候選；多於一個就用「精確時間 → 車名 → 最近時間」依序消歧。"""
+    tk = _norm(key.split("__")[0])
+    cs = _norm(key.split("__")[1] if "__" in key else "")
+    cands = [e for e in events if tk and tk in _norm(e.get("track_name") or e.get("track_alias"))]
+    if not cands:
+        cands = [e for e in events if tk and tk in _norm(e.get("track_alias"))]
+    if len(cands) <= 1:
+        return (cands[0] if cands else None), cands
+    if known_ms:                                   # 精確時間（最可靠）
+        ex = [e for e in cands if e.get("time_ms") == known_ms]
+        if len(ex) == 1:
+            return ex[0], cands
+    carm = [e for e in cands if cs and _norm(e.get("car"))            # 車名互含
+            and (_norm(e["car"]) in cs or cs in _norm(e["car"]))]
+    if len(carm) == 1:
+        return carm[0], cands
+    if known_ms:                                   # 最近時間（≤500ms 且明顯唯一）
+        near = sorted([e for e in cands if e.get("time_ms")], key=lambda e: abs(e["time_ms"] - known_ms))
+        if near and abs(near[0]["time_ms"] - known_ms) <= 500 and \
+           (len(near) == 1 or abs(near[1]["time_ms"] - known_ms) > 500):
+            return near[0], cands
+    return None, cands                             # 模稜兩可：留候選
+
+
+def resolve_event_urls(d: dict, online_id: str, verbose=True):
+    """為缺 eventUrl 的 leaderboard，自動從 dg-edge 你的場次配對填上（用成績比對）。
+    配不出唯一就把候選記在 entry['eventUrlCandidates']，等對話時你拍板。"""
+    lbs = d.get("meta", {}).get("leaderboards", {})
+    missing = [k for k, v in lbs.items() if not v.get("eventUrl")]
+    if not missing:
+        return
+    if verbose:
+        print(f"🔎 {len(missing)} 條缺 eventUrl，從 dg-edge 你的場次自動配對…")
+    try:
+        events = fetch_player_events(online_id, verbose=verbose)
+    except Exception as e:
+        print(f"  · 抓 dg-edge 場次失敗，略過自動配對：{e}")
+        return
+    for k in missing:
+        entry = lbs[k]
+        m, cands = match_event(k, entry, events, _known_time_ms(d, k, entry))
+        if m:
+            entry["eventUrl"] = m["eventUrl"]
+            entry.pop("eventUrlCandidates", None)
+            if verbose:
+                print(f"  ✓ {k} → {m['eventUrl']}  ({m.get('time')} / {m.get('track_name')} / {m.get('car')})")
+        elif cands:
+            entry["eventUrlCandidates"] = [c["eventUrl"] for c in cands]
+            print(f"  ? {k}：{len(cands)} 個候選對不出唯一，先記下等你確認：")
+            for c in cands:
+                print(f"      {c['eventUrl']}  {c.get('time')}  {c.get('car')}")
+        else:
+            print(f"  · {k}：dg-edge 沒有你的成績（可能還沒收錄）→ 去 {DGEDGE_BASE}/events 清單反查。")
 
 
 def _nuxt_unflatten(values):
@@ -534,11 +612,14 @@ def resolve_token(bearer=None, jsessionid=None, locale="tw", browser=None, verbo
     return token, my_id
 
 
-def apply_updates(d: dict, token: str, my_id: str, today: str, max_pages=60, verbose=True):
+def apply_updates(d: dict, token: str, my_id: str, today: str, max_pages=60, verbose=True,
+                  online_id=None):
     """就地更新 data.json 的 leaderboards / references / goals。回傳是否有任何榜更新成功。"""
     lbs = d.get("meta", {}).get("leaderboards", {})
     if not lbs:
         raise RuntimeError("data.json 沒有 meta.leaderboards；先填好（至少要有 eventUrl 或 boardId）再跑。")
+    if online_id:   # 缺 eventUrl 的，先用你的 dg-edge 場次（成績比對）自動補
+        resolve_event_urls(d, online_id, verbose)
     changed = False
     for key, entry in lbs.items():
         # 母體人數 + board_id 都從 dg-edge 事件頁一次抓（boardId 缺就自動補）。
@@ -636,7 +717,8 @@ def gh_put(repo, path, branch, gh_token, d, sha, message):
 def run(*, bearer=None, jsessionid=None, browser=None, locale="tw", max_pages=60,
         push=False, repo="WYSwolf/GT7", branch="main", gh_path="data.json",
         gh_token=None, data_path="data.json", dry=False, verbose=True,
-        event=None, key=None, probe_event=None, probe_dgedge=None, my_events=None):
+        event=None, key=None, probe_event=None, probe_dgedge=None, my_events=None,
+        online_id="b95208010"):
     """抓榜並更新 data.json。push=True → 從 GitHub 抓最新、改、推回（不碰本機、不會蓋掉他人改動）；
     否則讀寫本機 data.json。dry=True 只顯示不寫。browser → 自動從瀏覽器讀 JSESSIONID。
     probe_event=<id> → 只 dump 活動詳情原始 JSON。
@@ -707,7 +789,7 @@ def run(*, bearer=None, jsessionid=None, browser=None, locale="tw", max_pages=60
         with open(data_path, encoding="utf-8") as f:
             d = json.load(f)
 
-    apply_updates(d, token, my_id, today, max_pages, verbose)
+    apply_updates(d, token, my_id, today, max_pages, verbose, online_id=online_id)
 
     if dry:
         if verbose: print("\n[DRY] 未寫入。確認數字 OK 後拿掉 --dry 再跑。")
@@ -739,6 +821,8 @@ def main():
     ap.add_argument("--my-events", dest="my_events", nargs="?",
                     const=os.environ.get("GT7_ONLINE_ID", "b95208010"),
                     help="列出你在 dg-edge 上所有場次（含 eventUrl + 你的成績）；不帶值=用預設 PSN")
+    ap.add_argument("--online-id", dest="online_id", default=os.environ.get("GT7_ONLINE_ID", "b95208010"),
+                    help="你的 PSN online id（給缺 eventUrl 時自動配對用；預設 b95208010）")
     ap.add_argument("--data", default="data.json", help="本機 data.json 路徑（不加 --push 時用）")
     ap.add_argument("--dry", action="store_true", help="只顯示、不寫入")
     ap.add_argument("--max-pages", type=int, default=60)
@@ -755,7 +839,7 @@ def main():
             max_pages=args.max_pages, push=args.push, repo=args.repo, branch=args.branch,
             gh_path=args.gh_path, gh_token=args.gh_token, data_path=args.data, dry=args.dry,
             event=args.event, key=args.key, probe_event=args.probe_event,
-            probe_dgedge=args.probe_dgedge, my_events=args.my_events)
+            probe_dgedge=args.probe_dgedge, my_events=args.my_events, online_id=args.online_id)
     except (RuntimeError, FileNotFoundError) as e:
         sys.exit(str(e))
 
