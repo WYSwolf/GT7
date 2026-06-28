@@ -97,31 +97,52 @@ fetch('../data.json').then(r => r.json()).then(D => {
     const ny = v => ymx > ymn ? (v - ymn) / (ymx - ymn) : 0;
     const prog = pts.map((p, i) => i === 0 ? 0 : (nx(pts[i-1].x) + ny(pts[i-1].y)) - (nx(p.x) + ny(p.y)));
     const maxAbs = Math.max(...prog.map(Math.abs), 1e-9);
-    const segCol = prog.map(d => { const t = Math.max(-1, Math.min(1, d / maxAbs)); return t >= 0 ? lerp(MID, PROG, t) : lerp(MID, REG, -t); });
-    const nPts = pts.length;
-    // older segment → more transparent (segment index = its newer endpoint, 1..n-1)
-    const segA = i => (0.12 + 0.88 * Math.pow(nPts <= 2 ? 1 : (i - 1) / (nPts - 2), 1.4)).toFixed(3);
-    const ptRad = pts.map((_, i) => i === pts.length - 1 ? 5 : 0);
-    const ptCol = pts.map((_, i) => i === pts.length - 1 ? WHITE : 'transparent');
+    const n = pts.length;
+    // per-NODE spectrum colour (triplet) from the step arriving at that node; node 0 neutral
+    const cl = v => Math.max(-1, Math.min(1, v));
+    const nodeRGB = prog.map((d, i) => i === 0 ? lerp(MID, MID, 0) : (d >= 0 ? lerp(MID, PROG, cl(d / maxAbs)) : lerp(MID, REG, cl(-d / maxAbs))));
+    const nodeA = pts.map((_, i) => n < 2 ? 1 : 0.12 + 0.88 * Math.pow(i / (n - 1), 1.4));   // older → fainter
+    // Catmull-Rom densify so colour blends continuously between nodes (and the curve stays圓滑)
+    const X = pts.map(p => p.x), Y = pts.map(p => p.y);
+    const at = (a, i) => a[Math.max(0, Math.min(a.length - 1, i))];
+    const cr = (p0, p1, p2, p3, t) => { const t2 = t*t, t3 = t2*t; return 0.5 * (2*p1 + (-p0+p2)*t + (2*p0-5*p1+4*p2-p3)*t2 + (-p0+3*p1-3*p2+p3)*t3); };
+    const blend = (c1, c2, t) => { const A = c1.split(',').map(Number), B = c2.split(',').map(Number); return `${Math.round(A[0]+(B[0]-A[0])*t)},${Math.round(A[1]+(B[1]-A[1])*t)},${Math.round(A[2]+(B[2]-A[2])*t)}`; };
+    const K = 18, dense = [], dcol = [];
+    for (let i = 0; i < n - 1; i++) {
+      for (let j = 0; j < K; j++) {
+        const t = j / K;
+        dense.push({ x: cr(at(X,i-1),X[i],X[i+1],at(X,i+2),t), y: cr(at(Y,i-1),Y[i],Y[i+1],at(Y,i+2),t) });
+        dcol.push(`rgba(${blend(nodeRGB[i], nodeRGB[i+1], t)},${(nodeA[i] + (nodeA[i+1]-nodeA[i])*t).toFixed(3)})`);
+      }
+    }
+    dense.push({ x: X[n-1], y: Y[n-1] }); dcol.push(`rgba(${nodeRGB[n-1]},${nodeA[n-1].toFixed(3)})`);
 
     new Chart(document.getElementById('c' + ti), {
       type: 'line',
-      data: { datasets: [{
-        data: pts.map(p => ({ x: p.x, y: p.y, _p: p })),
-        showLine: true, borderWidth: 2.5, tension: 0.35,
-        borderCapStyle: 'round', borderJoinStyle: 'round',
-        segment: { borderColor: ctx => { const i = ctx.p1DataIndex; return `rgba(${segCol[i] || '88,101,119'},${segA(i)})`; } },
-        pointRadius: ptRad, pointHoverRadius: 7, pointBackgroundColor: ptCol, pointBorderColor: ptCol
-      }] },
+      data: { datasets: [
+        { // gradient trajectory (densified)
+          data: dense, showLine: true, borderWidth: 2.5, tension: 0,
+          borderCapStyle: 'round', borderJoinStyle: 'round',
+          segment: { borderColor: ctx => dcol[ctx.p1DataIndex] || 'rgba(88,101,119,1)' },
+          pointRadius: 0, pointHoverRadius: 0
+        },
+        { // real day points: invisible hit-targets for tooltip + white last-day dot
+          data: pts.map(p => ({ x: p.x, y: p.y, _p: p })), showLine: false,
+          pointRadius: pts.map((_, i) => i === n - 1 ? 5 : 0), pointHitRadius: 14, pointHoverRadius: 7,
+          pointBackgroundColor: WHITE, pointBorderColor: WHITE
+        }
+      ] },
       options: {
         responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'nearest', intersect: true },
         plugins: {
           legend: { display: false },
           tooltip: {
             backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1,
+            filter: item => item.datasetIndex === 1,
             callbacks: {
-              title: ctx => ctx[0].raw._p.date,
-              label: ctx => { const p = ctx.raw._p; return [`vs WR: +${p.x.toFixed(2)}%  (${fmt(p.best)})`, `中位−最佳: ${p.y.toFixed(3)}s`, `${p.n} 有效圈`]; }
+              title: ctx => ctx[0].raw._p ? ctx[0].raw._p.date : '',
+              label: ctx => { const p = ctx.raw._p; return p ? [`vs WR: +${p.x.toFixed(2)}%  (${fmt(p.best)})`, `中位−最佳: ${p.y.toFixed(3)}s`, `${p.n} 有效圈`] : ''; }
             }
           }
         },
