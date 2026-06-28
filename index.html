@@ -1404,7 +1404,8 @@ function switchCar(trackKey, carKey, btn) {
 
 function buildDashboard() {
   const groups = getTrackGroups();
-  const trackList = Object.values(groups);
+  const latestDate = g => g.sessions.reduce((m, s) => (s.date > m ? s.date : m), '');
+  const trackList = Object.values(groups).sort((a, b) => latestDate(b).localeCompare(latestDate(a)));
   const totalLaps = trackList.reduce((s, g) => s + g.totalLaps, 0);
   let overallPB = { time: Infinity, track: '', car: '' };
   DATA.sessions.forEach(s => { if (s.best < overallPB.time) overallPB = { time: s.best, track: s.track, car: s.car }; });
