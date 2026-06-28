@@ -6,7 +6,7 @@
 <title>進步軌跡 · vs WR × 一致性帶 — GT7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&family=Bebas+Neue&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   :root{
     --bg-base:#0a0d12; --bg-panel:#131820; --bg-input:#0f141b;
@@ -82,7 +82,7 @@ fetch('../data.json').then(r => r.json()).then(D => {
       return { x: +(((best - g.wr) / g.wr) * 100).toFixed(3), y: +(median(v) - best).toFixed(3), s, best };
     });
     const n = pts.length;
-    const ptCol = pts.map((_, i) => hexA(color, n < 2 ? 1 : 0.25 + 0.75 * (i / (n - 1))));
+    const ptCol = pts.map((_, i) => hexA(color, n < 2 ? 1 : 0.1 + 0.9 * Math.pow(i / (n - 1), 1.6)));
     const ptRad = pts.map((_, i) => i === n - 1 ? 6.5 : 3.5);
     datasets.push({
       label: g.track, data: pts, showLine: true,
