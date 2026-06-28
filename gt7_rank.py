@@ -201,6 +201,65 @@ def resolve_board_id(token, event_id, verbose=True):
     return str(ranking_id), result
 
 
+def _nuxt_unflatten(values):
+    """把 Nuxt/devalue 扁平化陣列還原成正常巢狀結構（物件/陣列的數字=指向陣列索引）。"""
+    n = len(values)
+    hydrated = [None] * n
+    done = [False] * n
+    SPECIAL = {-1: None, -2: float("nan"), -3: float("inf"), -4: float("-inf"), -5: -0.0}
+    WRAP = {"Reactive", "Ref", "ShallowRef", "ShallowReactive", "EmptyRef", "EmptyShallowRef"}
+
+    def hyd(i):
+        if not isinstance(i, int) or isinstance(i, bool):
+            return i
+        if i < 0:
+            return SPECIAL.get(i)
+        if i >= n:
+            return None
+        if done[i]:
+            return hydrated[i]
+        done[i] = True
+        v = values[i]
+        if isinstance(v, list):
+            if v and isinstance(v[0], str):
+                tag = v[0]
+                if tag in WRAP or tag == "Date":
+                    hydrated[i] = hyd(v[1]) if len(v) > 1 else None
+                elif tag == "Set":
+                    hydrated[i] = [hyd(x) for x in v[1:]]
+                elif tag == "Map":
+                    it = v[1:]; hydrated[i] = {str(hyd(it[k])): hyd(it[k + 1]) for k in range(0, len(it) - 1, 2)}
+                else:
+                    hydrated[i] = hyd(v[1]) if len(v) == 2 else [hyd(x) for x in v[1:]]
+            else:
+                arr = []; hydrated[i] = arr
+                for x in v:
+                    arr.append(hyd(x))
+        elif isinstance(v, dict):
+            obj = {}; hydrated[i] = obj
+            for k, idx in v.items():
+                obj[k] = hyd(idx)
+        else:
+            hydrated[i] = v
+        return hydrated[i]
+
+    return hyd(0)
+
+
+def _walk_collect(o, want_keys, out, depth=0):
+    """蒐集所有「鍵含結果欄位」的 dict（比賽成績通常長這樣）。"""
+    if depth > 14 or len(out) > 60:
+        return
+    if isinstance(o, dict):
+        if any(k in o for k in want_keys):
+            out.append(o)
+        for v in o.values():
+            _walk_collect(v, want_keys, out, depth + 1)
+    elif isinstance(o, list):
+        for v in o:
+            _walk_collect(v, want_keys, out, depth + 1)
+
+
 def probe_dgedge_page(event_url):
     """Debug：抓 dg-edge 事件頁，dump 出可能藏 GT board_id / 活動ID 的線索。
     （dg-edge 擋機房 IP，須在自家網路跑。）找它有沒有 p_rt_ / ranking_id /
@@ -270,8 +329,20 @@ def probe_dgedge_page(event_url):
             hits = sorted({s for s in strs if rgx.search(s)})
             if hits:
                 print(f"    [{label}] {len(hits)} 筆：", hits[:12])
-        # 也 dump 一段原始字串樣本，方便看 schema（事件/成績通常相鄰）
-        print("    字串樣本（前 60 個）：", strs[:60])
+        # 還原 Nuxt 巢狀結構，撈出「成績列」dict（含 time/rank/event/track 等鍵）
+        try:
+            root = _nuxt_unflatten(arr)
+            want = {"time", "lap_time", "best_time", "best_lap_time", "score", "rank",
+                    "position", "event", "event_id", "eventId", "event_slug", "slug",
+                    "ranking_id", "board_id", "track", "car", "course", "gap", "result"}
+            found = []
+            _walk_collect(root, want, found)
+            print(f"    --- 還原後的成績列（{len(found)} 筆，dump 前 12）---")
+            for rec in found[:12]:
+                small = {k: v for k, v in rec.items() if not isinstance(v, (dict, list))}
+                print("     ", json.dumps(small, ensure_ascii=False)[:280])
+        except Exception as e:
+            print(f"    （Nuxt 還原失敗：{e}）字串樣本：", strs[:40])
     print("  若仍看不出 schema：DevTools→Network 重整此頁，找回應含你成績/賽事清單的請求，貼 URL+回應。")
     return t
 
