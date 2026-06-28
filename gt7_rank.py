@@ -35,6 +35,10 @@ eventUrl / board_id：通常都不必手填。
     "<dgId>",<num>,"p_rt_..._...","TT" 解出 board_id 補進 boardId。
   → 新賽道一般「什麼都不必填」：有成績被 dg 收錄就全自動；真的對不出時才需手動。
 
+名次來源：WR/門檻一律用 GT 官方榜；你的名次優先用 GT 榜，但活動已結束/榜只回前段
+  抓不到你時，改用 dg-edge player API 的 globalPosition（+ countryRank、你的時間），
+  標 source:"dg-edge"。百分位分母一律用 dg-edge 母體。
+
   board_id 的組成（從官方 sportmode 前端解出，供理解/手動 fallback）：
     · 一般時間競賽（registration_key 為空）→ board_id 直接 = 活動的 ranking_id，
       沒有任何後綴運算。p_rt_1014277_001 整串就是 ranking_id（_001 是後端字串的一部分，
@@ -235,6 +239,10 @@ def _simplify_event(e: dict) -> dict:
         "car_brand": car.get("brand"),
         "time_ms": pr.get("timeMS"),
         "time": pr.get("time"),
+        "global_pos": pr.get("globalPosition"),
+        "country_pos": pr.get("countryPosition"),
+        "delta_global": pr.get("deltaGlobal"),
+        "delta_global_perc": pr.get("deltaGlobalPerc"),
         "active": e.get("isActive"),
         "ended": e.get("isEnded"),
     }
@@ -339,35 +347,49 @@ def match_event(key: str, entry: dict, events: list, known_ms):
     return None, cands                             # 模稜兩可：留候選
 
 
-def resolve_event_urls(d: dict, online_id: str, verbose=True):
-    """為缺 eventUrl 的 leaderboard，自動從 dg-edge 你的場次配對填上（用成績比對）。
-    配不出唯一就把候選記在 entry['eventUrlCandidates']，等對話時你拍板。"""
+def _ev_key(u: str) -> str:
+    """從 dg-edge 網址抽出 /events/<type>/<id> 當比較鍵（容忍 host/結尾斜線差異）。"""
+    m = re.search(r"/events/[a-z\-]+/\d+", u or "")
+    return m.group(0) if m else (u or "")
+
+
+def resolve_player_data(d: dict, online_id: str, verbose=True) -> dict:
+    """抓一次 dg-edge 你的場次：(1) 補缺的 eventUrl（成績比對，對不出就記候選）；
+    (2) 回傳 {key: 你在該場的 playerResult}，供 GT API 抓不到名次時當 fallback。"""
     lbs = d.get("meta", {}).get("leaderboards", {})
-    missing = [k for k, v in lbs.items() if not v.get("eventUrl")]
-    if not missing:
-        return
+    if not lbs:
+        return {}
     if verbose:
-        print(f"🔎 {len(missing)} 條缺 eventUrl，從 dg-edge 你的場次自動配對…")
+        print("🔎 從 dg-edge 抓你的場次（補 eventUrl + 名次 fallback）…")
     try:
         events = fetch_player_events(online_id, verbose=verbose)
     except Exception as e:
-        print(f"  · 抓 dg-edge 場次失敗，略過自動配對：{e}")
-        return
-    for k in missing:
-        entry = lbs[k]
-        m, cands = match_event(k, entry, events, _known_time_ms(d, k, entry))
+        print(f"  · 抓 dg-edge 場次失敗，略過 eventUrl 配對/名次 fallback：{e}")
+        return {}
+    by_url = {_ev_key(e["eventUrl"]): e for e in events}
+    player_map = {}
+    for k, entry in lbs.items():
+        ev = entry.get("eventUrl")
+        m = None
+        if ev and _ev_key(ev) in by_url:           # 已有 eventUrl：直接對上你的該場結果
+            m = by_url[_ev_key(ev)]
+        elif not ev:                                # 缺 eventUrl：用成績比對自動補
+            m, cands = match_event(k, entry, events, _known_time_ms(d, k, entry))
+            if m:
+                entry["eventUrl"] = m["eventUrl"]
+                entry.pop("eventUrlCandidates", None)
+                if verbose:
+                    print(f"  ✓ {k} → {m['eventUrl']}  ({m.get('time')} / {m.get('track_name')} / {m.get('car')})")
+            elif cands:
+                entry["eventUrlCandidates"] = [c["eventUrl"] for c in cands]
+                print(f"  ? {k}：{len(cands)} 個候選對不出唯一，先記下等你確認：")
+                for c in cands:
+                    print(f"      {c['eventUrl']}  {c.get('time')}  {c.get('car')}")
+            else:
+                print(f"  · {k}：dg-edge 沒有你的成績（可能還沒收錄）→ 去 {DGEDGE_BASE}/events 清單反查。")
         if m:
-            entry["eventUrl"] = m["eventUrl"]
-            entry.pop("eventUrlCandidates", None)
-            if verbose:
-                print(f"  ✓ {k} → {m['eventUrl']}  ({m.get('time')} / {m.get('track_name')} / {m.get('car')})")
-        elif cands:
-            entry["eventUrlCandidates"] = [c["eventUrl"] for c in cands]
-            print(f"  ? {k}：{len(cands)} 個候選對不出唯一，先記下等你確認：")
-            for c in cands:
-                print(f"      {c['eventUrl']}  {c.get('time')}  {c.get('car')}")
-        else:
-            print(f"  · {k}：dg-edge 沒有你的成績（可能還沒收錄）→ 去 {DGEDGE_BASE}/events 清單反查。")
+            player_map[k] = m
+    return player_map
 
 
 def _nuxt_unflatten(values):
@@ -644,8 +666,8 @@ def apply_updates(d: dict, token: str, my_id: str, today: str, max_pages=60, ver
     lbs = d.get("meta", {}).get("leaderboards", {})
     if not lbs:
         raise RuntimeError("data.json 沒有 meta.leaderboards；先填好（至少要有 eventUrl 或 boardId）再跑。")
-    if online_id:   # 缺 eventUrl 的，先用你的 dg-edge 場次（成績比對）自動補
-        resolve_event_urls(d, online_id, verbose)
+    # 抓你的 dg-edge 場次：補缺 eventUrl + 取得各場你的成績（GT API 抓不到名次時當 fallback）
+    player_map = resolve_player_data(d, online_id, verbose) if online_id else {}
     changed = False
     for key, entry in lbs.items():
         # 母體人數 + board_id 都從 dg-edge 事件頁一次抓（boardId 缺就自動補）。
@@ -683,6 +705,21 @@ def apply_updates(d: dict, token: str, my_id: str, today: str, max_pages=60, ver
         if r["rank"]:
             entry["playerRank"] = {"rank": r["rank"], "pb": r["pb"], "source": "auto(gt7_rank.py)",
                                    "asOf": today, **({"topPct": pct} if pct else {})}
+        else:
+            # GT API 抓不到你名次（活動已結束/榜只回前段）→ 用 dg-edge 你的該場結果補
+            dgp = player_map.get(key)
+            if dgp and dgp.get("global_pos"):
+                gp = dgp["global_pos"]
+                dgpct = round(gp / population * 100, 2) if population else None
+                pb = round(dgp["time_ms"] / 1000, 3) if dgp.get("time_ms") else (entry.get("playerRank") or {}).get("pb")
+                entry["playerRank"] = {"rank": gp, "pb": pb, "source": "dg-edge",
+                                       "asOf": today,
+                                       **({"topPct": dgpct} if dgpct else {}),
+                                       **({"countryRank": dgp["country_pos"]} if dgp.get("country_pos") else {})}
+                if verbose:
+                    print(f"  ↳ GT 榜無你名次 → 用 dg-edge：#{gp}"
+                          + (f" (前 {dgpct}% / {population} 人)" if dgpct else "")
+                          + (f"  PB={disp(pb)}" if pb else ""))
         entry["asOf"] = today
         # 同步更新 WR 參考值 + 依 goalPolicy 重算該賽道目標
         car_slug = key.split("__")[1] if "__" in key else None
