@@ -30,7 +30,7 @@
     "time": 90.92,
     "displayTime": "1:30.920",
     "label": "WR(GT7 全球#1)",
-    "note": "GT7 遊戲內全球排行 #1 おさかな 1:30.920(6/25 截圖)。前參考值 91.007(P. Blazsán)已退居 #3。"
+    "note": "GT7 官方排行 #1（2026-06-28 自動抓取）"
    }
   },
   "guides": {
@@ -183,10 +183,10 @@
     "source": "dg-edge.com",
     "asOf": "2026-06-28",
     "totalPlayers": 150118,
-    "boardSize": 1544,
+    "boardSize": 1546,
     "wr": 90.92,
     "top100": 91.86,
-    "top1000": 92.521,
+    "top1000": 92.52,
     "medals": {
      "platinum": 91.375,
      "gold": 93.648,
@@ -202,13 +202,11 @@
     "medalPctMode": "band",
     "endDate": "2026-07-02",
     "playerRank": {
-     "rank": 1489,
+     "rank": 1490,
      "pb": 92.649,
-     "gapToWR": 1.729,
-     "gapPct": 1.9,
-     "topPct": 0.99,
-     "source": "GT7 官方API名次(6/28) + dg-edge母體",
-     "asOf": "2026-06-28"
+     "source": "auto(gt7_rank.py)",
+     "asOf": "2026-06-28",
+     "topPct": 0.99
     },
     "boardId": "p_rt_1014277_001"
    }
