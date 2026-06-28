@@ -1791,13 +1791,13 @@ function renderCarSection(g) {
       <div class="panel-header"><div class="panel-title">各分段穩定性軌跡</div><div class="panel-meta">每日 · X=距該段最佳 Y=中位−最佳 · 綠進步/橘退步 <button onclick="playSectorTraj('sectorStabChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .6rem;border-radius:6px;border:1px solid var(--accent-dim);background:transparent;color:var(--accent);cursor:pointer;font-size:.72rem;font-family:inherit;">▶ 播放</button></div></div>
       <div class="panel-body"><div class="chart-wrap tall"><canvas id="sectorStabChart-${g.key}"></canvas></div><div id="sectorLeg-${g.key}" class="seg-legend"></div></div>
     </div>
-    <div class="grid-2">
-      <div class="panel"><div class="panel-header"><div class="panel-title">圈速分布</div><div class="panel-meta">DISTRIBUTION</div></div><div class="panel-body"><div class="chart-wrap"><canvas id="distChart-${g.key}"></canvas></div></div></div>
-      <div class="panel"><div class="panel-header"><div class="panel-title">時間損失來源</div><div class="panel-meta">BY SECTOR</div></div><div class="panel-body"><div class="chart-wrap"><canvas id="pieChart-${g.key}"></canvas></div></div></div>
-    </div>
     <div class="panel">
       <div class="panel-header"><div class="panel-title">速度 × 分段均衡 象限</div><div class="panel-meta">每圈一點 · X=速度vs平均(σ,左=快) Y=分段間落差(σ,低=均衡) · 最新日綠/舊日藍漸層</div></div>
       <div class="panel-body"><div class="chart-wrap"><canvas id="quadChart-${g.key}"></canvas></div></div>
+    </div>
+    <div class="grid-2">
+      <div class="panel"><div class="panel-header"><div class="panel-title">圈速分布</div><div class="panel-meta">DISTRIBUTION</div></div><div class="panel-body"><div class="chart-wrap"><canvas id="distChart-${g.key}"></canvas></div></div></div>
+      <div class="panel"><div class="panel-header"><div class="panel-title">時間損失來源</div><div class="panel-meta">BY SECTOR</div></div><div class="panel-body"><div class="chart-wrap"><canvas id="pieChart-${g.key}"></canvas></div></div></div>
     </div>
     <div class="panel">
       <div class="panel-header"><div class="panel-title">各分段穩定性</div><div class="panel-meta">每日 中位−最佳 · 越低越穩</div></div>
