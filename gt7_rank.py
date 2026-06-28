@@ -218,7 +218,6 @@ def probe_dgedge_page(event_url):
         "圈速 1:23.456": r"\b\d:\d{2}\.\d{3}\b",
         "dg-edge API 路徑": r"/api/[A-Za-z0-9_/\-]+",
     }
-    any_hit = False
     for label, pat in pats.items():
         seen = set()
         for m in re.finditer(pat, t, re.I):
@@ -226,15 +225,30 @@ def probe_dgedge_page(event_url):
             if s in seen:
                 continue
             seen.add(s)
-            any_hit = True
             print(f"  [{label}] …{s}…")
             if len(seen) >= 3:
                 break
-    if not any_hit:
-        print("  （頁面內沒有明顯線索 —— 多半是前端 JS 載入。下一步：DevTools→Network 看 dg-edge"
-              " 打哪支 API 拿到賽事資料，把該回應或 URL 貼回來。）")
-        for s in re.findall(r'<script[^>]*\bsrc=["\']([^"\']+)["\']', t)[:8]:
-            print(f"    <script src> {s}")
+
+    # 內嵌資料線索：事件列以 ...,"TT",... / isEnded / competition 標記；dump 寬一點看整列
+    print("  --- 內嵌資料標記（事件列長相）---")
+    for kw in ('"TT"', '"isEnded"', '"competition"', '"course"', '"car"'):
+        ms = list(re.finditer(re.escape(kw), t))
+        if ms:
+            i = ms[0].start()
+            print(f"  [{kw} x{len(ms)}] …{t[max(0,i-140):i+60]}…".replace('\n', ' '))
+
+    # 對外 API / 資料來源（前端 fetch 的對象）
+    print("  --- 可能的資料來源 ---")
+    urls = set(re.findall(r'(?:fetch\(|axios|https?://)[^\s"\'<>]*?(?:/api/|graphql|/v\d/|/players/|/events/)[^\s"\'<>]*', t, re.I))
+    for u in list(urls)[:10]:
+        print(f"    {u[:140]}")
+    for marker in ('__NUXT__', '__next_f', 'window.__', 'application/json', 'apollo', 'buildId'):
+        if marker in t:
+            j = t.find(marker)
+            print(f"    [{marker}] …{t[j:j+120]}…".replace('\n', ' '))
+    for s in re.findall(r'<script[^>]*\bsrc=["\']([^"\']+)["\']', t)[:6]:
+        print(f"    <script src> {s}")
+    print("  若上面仍看不出資料源：DevTools→Network 重整此頁，找回應含你成績/賽事清單的請求，貼 URL+回應。")
     return t
 
 
