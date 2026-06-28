@@ -30,9 +30,29 @@ telemetry/          # CSV 遙測原始資料，從 GT7 匯出
 
 從 GT7 匯出的 CSV，欄位包含時間戳、速度、油門、煞車、轉向、引擎轉速、檔位、輪胎溫度等。`telemetry.html` 直接讀取並在瀏覽器解析。
 
+完整的圖表說明、判讀方式、資料流與維護方式見 `README.md`。
+
 ## 注意事項
 
 - 無伺服器端，所有資料處理在瀏覽器完成
 - `data.json` 需手動更新以新增訓練記錄
-- CSV 檔案命名慣例：`gt7-YYYY-MM-DD.csv`
+- CSV 檔案命名慣例：精簡檔 `gt7-YYYY-MM-DD.csv`（dash，存各場 PB 圈）；原始 capture `gt7_YYYY-MM-DD.csv`（底線，gt7_capture.py 自動上傳）
 - 目標設定慣例：各賽道目標一律以世界第一（WR）為基準 —— 🎯 主要 = WR +3%、🚀 進階 = WR +2%、🏁 衝刺 = WR +1%（規則存於 `meta.goalPolicy`）。更新 `meta.references.<carSlug>` 的 WR 後，需依此重算該賽道 `goals`；球門隨 WR 紀錄移動是預期行為，不要改成更寬鬆或個人化的門檻。
+- 全球名次/百分位只在有 dg-edge 截圖時更新（存 `meta.leaderboards`）；沒有截圖不要引用舊名次。
+
+## 收到每日練習紀錄後的更新步驟
+
+詳細邏輯在 `process-gt7` skill；固定流程如下（完整版見 `README.md` §6）：
+
+1. 讀檔頭 `carcode`/Hz → 辨識賽道+車+賽事。
+2. 切 session：**短衝刺日整天併為一場**（目前慣例，出現最快圈即一場）；舊式長 stint 日才用 >140s 間隔、≥5 圈為一場。
+3. 閘門座標法算分段（`meta.sectorCalibration`）；MAD>2.5 判無效圈。
+4. 算每場 best/avg/worst/opt/sectorBest/topSpeed/pbRl/laps[]，append 進 `sessions`，更新 PB 與 `meta.lastUpdated`。
+5. 洞察只寫最新一場、清掉前一場；確保 `actionItems.<當前 trackKey>`（「下次訓練重點」）有內容。
+6. WR 有更新就依 `goalPolicy` 重算該賽道 `goals`。
+7. 寫精簡 CSV `telemetry/gt7-YYYY-MM-DD.csv`（各場 PB 圈、原生 Hz、無空行）。
+8. 驗證（JSON parse、index 改動檢查 inline script、CSV 無空行）後 commit/push（合併到 `main`）。
+
+## 未來分析方向（規劃中）
+
+要做「擅長哪種車/賽道」的長期剖面，需先在資料補標籤：每個組合標上車種/傳動(MR/FR/4WD)/級別、賽道屬性(高速/技術彎、長度、順逆向)，再把各組合的 vs-WR% / 百分位 / 一致性依類別聚合，排出強弱。樣本夠了再開分析頁；屆時於 `sessions`/`meta` 補標籤即可。詳見 `README.md` §7。
