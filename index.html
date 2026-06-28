@@ -545,6 +545,10 @@
   .rc-tier-done { color: var(--accent); font-size: .68rem; margin-top: .6rem; }
   .rc-spark { margin-top: .8rem; display: flex; align-items: center; gap: .6rem; }
   .rc-cap { font-size: .62rem; color: var(--text-dim); }
+  .rc-tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .55rem; }
+  .rc-tag { font-size: .6rem; letter-spacing: .05em; padding: 2px 7px; border-radius: 5px;
+    border: 1px solid var(--line-bright); color: var(--text-secondary); white-space: nowrap; }
+  .rc-tag.accent { color: var(--accent); border-color: var(--accent-dim); }
 
   .data-table {
     width: 100%;
@@ -1468,6 +1472,7 @@ function buildDashboard() {
         </div>
         ${medalChip}
       </div>
+      ${(g.sessions[0].tire || g.sessions[0].carClass) ? `<div class="rc-tags">${g.sessions[0].tire ? `<span class="rc-tag accent">${g.sessions[0].tire} 輪胎</span>` : ''}${g.sessions[0].carClass ? `<span class="rc-tag">${g.sessions[0].carClass}</span>` : ''}<span class="rc-tag">${g.sessions.length} sessions</span></div>` : ''}
       <div class="rc-pb-row">
         <div class="rc-pb-time">${fmtTime(g.pb)}</div>
         ${_gap != null ? `<div class="rc-pb-gap${_gap <= 1 ? ' ok' : ''}">+${_gap.toFixed(2)}% vs WR</div>` : ''}
