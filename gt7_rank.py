@@ -210,10 +210,12 @@ def probe_dgedge_page(event_url):
     t = r.text
     pats = {
         "p_rt_ (board/ranking id)": r"p_[a-z]{1,3}_\d+_\d+",
+        "dg-edge 事件連結 /events/.../id": r"/events/[a-z\-]+/\d+",
         "ranking_id": r"ranking_id",
         "board_id": r"board_id",
         "gran-turismo sportmode/event": r"sportmode/event/(\d+)",
-        "gt event_id 鍵": r"[\"']?(?:gt_)?event_id[\"']?\s*[:=]\s*[\"']?\d+",
+        "選手/racer 連結": r"/(?:racer|racers|player|players|profile)/[A-Za-z0-9_\-]+",
+        "圈速 1:23.456": r"\b\d:\d{2}\.\d{3}\b",
         "dg-edge API 路徑": r"/api/[A-Za-z0-9_/\-]+",
     }
     any_hit = False
