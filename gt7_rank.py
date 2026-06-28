@@ -76,6 +76,10 @@ WEB_API = "https://web-api.gt7.game.gran-turismo.com"
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36")
 
+DGEDGE_BASE = "https://www.dg-edge.com"
+PLAYER_EVENTS_API = "https://admin.dg-edge.com/api/b.players.retrievePlayerEvents"
+DGEDGE_SITE_VERSION = 185   # player API body 需要的網站版本；dg-edge 改版可能要更新
+
 
 def jsessionid_from_browser(browser="auto"):
     """自動從本機瀏覽器讀 gran-turismo.com 的 JSESSIONID（免手動複製，等於自動續期）。
@@ -199,6 +203,67 @@ def resolve_board_id(token, event_id, verbose=True):
     if verbose:
         print(f"  · event {event_id} → ranking_id = {ranking_id}（board_id 直接用它）")
     return str(ranking_id), result
+
+
+def _collect_events(o, out):
+    """從 player API 回應裡撈出所有 event 物件（含 slug + playerResult/track）。"""
+    if isinstance(o, dict):
+        if "slug" in o and ("playerResult" in o or "track" in o):
+            out.append(o)
+        for v in o.values():
+            _collect_events(v, out)
+    elif isinstance(o, list):
+        for v in o:
+            _collect_events(v, out)
+
+
+def _simplify_event(e: dict) -> dict:
+    tr = e.get("track") or {}
+    pr = e.get("playerResult") or {}
+    car = pr.get("car") or {}
+    slug = e.get("slug", "") or ""
+    return {
+        "slug": slug,
+        "eventUrl": (DGEDGE_BASE + slug) if slug.startswith("/") else slug,
+        "track_alias": tr.get("alias"),
+        "track_name": tr.get("name") or tr.get("fullName"),
+        "car": car.get("name"),
+        "car_brand": car.get("brand"),
+        "time_ms": pr.get("timeMS"),
+        "time": pr.get("time"),
+        "active": e.get("isActive"),
+        "ended": e.get("isEnded"),
+    }
+
+
+def fetch_player_events(online_id: str, tz: str = "Asia/Taipei", max_pages: int = 10, verbose=True):
+    """打 dg-edge player API，回傳該玩家所有場次的精簡清單（每場含 eventUrl + 你的時間 timeMS）。
+    認證：先載選手頁取得 dgh* cookie，再用同 session POST API。"""
+    s = requests.Session()
+    s.headers.update({"User-Agent": UA})
+    try:
+        s.get(f"{DGEDGE_BASE}/players/{online_id}", timeout=20)   # 取 cookie
+    except Exception as e:
+        if verbose: print(f"  · 載入選手頁取 cookie 失敗（仍試打 API）：{e}")
+    out, seen = [], set()
+    for page in range(1, max_pages + 1):
+        body = {"onlineId": online_id, "page": page, "language": "EN",
+                "version": DGEDGE_SITE_VERSION, "cookieVersion": None,
+                "ajax_referer": f"/players/{online_id}", "tz": tz}
+        r = s.post(PLAYER_EVENTS_API, json=body, headers={
+            "Accept": "application/json", "Content-Type": "application/json",
+            "Origin": DGEDGE_BASE, "Referer": f"{DGEDGE_BASE}/players/{online_id}",
+            "X-Requested-With": "XMLHttpRequest"}, timeout=20)
+        r.raise_for_status()
+        raw = []
+        _collect_events(r.json(), raw)
+        fresh = [_simplify_event(e) for e in raw if e.get("slug") not in seen]
+        for e in fresh:
+            seen.add(e["slug"])
+        if not fresh:
+            break
+        out.extend(fresh)
+    return out
 
 
 def _nuxt_unflatten(values):
@@ -571,7 +636,7 @@ def gh_put(repo, path, branch, gh_token, d, sha, message):
 def run(*, bearer=None, jsessionid=None, browser=None, locale="tw", max_pages=60,
         push=False, repo="WYSwolf/GT7", branch="main", gh_path="data.json",
         gh_token=None, data_path="data.json", dry=False, verbose=True,
-        event=None, key=None, probe_event=None, probe_dgedge=None):
+        event=None, key=None, probe_event=None, probe_dgedge=None, my_events=None):
     """抓榜並更新 data.json。push=True → 從 GitHub 抓最新、改、推回（不碰本機、不會蓋掉他人改動）；
     否則讀寫本機 data.json。dry=True 只顯示不寫。browser → 自動從瀏覽器讀 JSESSIONID。
     probe_event=<id> → 只 dump 活動詳情原始 JSON。
@@ -579,6 +644,15 @@ def run(*, bearer=None, jsessionid=None, browser=None, locale="tw", max_pages=60
     today = datetime.now().strftime("%Y-%m-%d")   # 用本機日期（=玩家當天）
 
     # --- 找新賽道 board_id 的輔助流程 ---
+    if my_events:   # 列出你在 dg-edge 上所有場次（含 eventUrl + 你的成績），不需 GT 認證
+        evs = fetch_player_events(my_events, verbose=verbose)
+        print(f"\n=== {my_events} 的 dg-edge 場次（{len(evs)} 場）===")
+        for e in sorted(evs, key=lambda x: (not x["active"], x["track_alias"] or "")):
+            flag = "🟢進行中" if e["active"] else ("⚪已結束" if e["ended"] else "")
+            print(f"  {e['time'] or '—':>10}  {e['track_name'] or e['track_alias']:<22} "
+                  f"{(e['car'] or ''):<16} {flag}")
+            print(f"             {e['eventUrl']}")
+        return evs
     if probe_dgedge is not None:   # 看 dg-edge 頁面藏了什麼（不需認證）
         return probe_dgedge_page(probe_dgedge)
     if probe_event is not None:
@@ -662,6 +736,9 @@ def main():
                     help="只 dump 活動詳情原始 JSON（debug 用，找不到 ranking_id 時貼回來）")
     ap.add_argument("--probe-dgedge", dest="probe_dgedge",
                     help="抓 dg-edge 事件頁 URL，dump 出可能藏 GT board_id/活動ID 的線索（debug）")
+    ap.add_argument("--my-events", dest="my_events", nargs="?",
+                    const=os.environ.get("GT7_ONLINE_ID", "b95208010"),
+                    help="列出你在 dg-edge 上所有場次（含 eventUrl + 你的成績）；不帶值=用預設 PSN")
     ap.add_argument("--data", default="data.json", help="本機 data.json 路徑（不加 --push 時用）")
     ap.add_argument("--dry", action="store_true", help="只顯示、不寫入")
     ap.add_argument("--max-pages", type=int, default=60)
@@ -678,7 +755,7 @@ def main():
             max_pages=args.max_pages, push=args.push, repo=args.repo, branch=args.branch,
             gh_path=args.gh_path, gh_token=args.gh_token, data_path=args.data, dry=args.dry,
             event=args.event, key=args.key, probe_event=args.probe_event,
-            probe_dgedge=args.probe_dgedge)
+            probe_dgedge=args.probe_dgedge, my_events=args.my_events)
     except (RuntimeError, FileNotFoundError) as e:
         sys.exit(str(e))
 
