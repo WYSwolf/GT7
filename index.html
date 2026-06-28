@@ -1063,12 +1063,18 @@ function hexA(hex, a) {
   const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
   return `rgba(${r},${g},${b},${a.toFixed(3)})`;
 }
-// Build chart datasets where each WHOLE line's opacity is ranked by its latest
-// node's date: oldest line most transparent → newest line opaque (interpolated).
-function makeFadedLines(plot, minA = 0.25) {
-  const byOld = [...plot].sort((a, b) => a.last.localeCompare(b.last));
-  const n = byOld.length;
-  byOld.forEach((p, i) => { p.alpha = n < 2 ? 1 : minA + (1 - minA) * (i / (n - 1)); });
+// Build chart datasets ranked by each line's latest node date so the chart stays
+// readable as lines accumulate: the most recent few lines get vivid, distinct
+// colors; older lines collapse into one neutral family and fade out by age.
+const FADE_VIVID = ['#00ff88', '#4dabf7', '#ed7d31'];   // newest → older of the highlighted set
+const FADE_MUTED = '#7a8699';                            // everything older: one neutral colour
+function makeFadedLines(plot, minA = 0.22) {
+  const byNew = [...plot].sort((a, b) => b.last.localeCompare(a.last));   // newest first
+  const n = byNew.length;
+  byNew.forEach((p, i) => {
+    p.color = i < FADE_VIVID.length ? FADE_VIVID[i] : FADE_MUTED;
+    p.alpha = n < 2 ? 1 : 1 - (1 - minA) * (i / (n - 1));   // newest opaque → oldest faint
+  });
   return plot.map(p => {
     const c = hexA(p.color, p.alpha);
     return {
