@@ -1781,7 +1781,7 @@ function renderCarSection(g) {
     ${renderLeaderboard(g)}
     ${sessionCards}
     <div class="panel">
-      <div class="panel-header"><div class="panel-title">圈速追蹤</div><div class="panel-meta">預設排除大失誤圈 · 雙指縮放 Y <button onclick="resetChartZoom('lapChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .5rem;border-radius:6px;border:1px solid #2a3340;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:.7rem;font-family:inherit;">⟲ 重置</button></div></div>
+      <div class="panel-header"><div class="panel-title">圈速追蹤</div><div class="panel-meta">虛線=趨勢 · 預設排除大失誤圈 · 雙指縮放 Y <button onclick="resetChartZoom('lapChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .5rem;border-radius:6px;border:1px solid #2a3340;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:.7rem;font-family:inherit;">⟲ 重置</button></div></div>
       <div class="panel-body"><div class="chart-wrap tall"><canvas id="lapChart-${g.key}"></canvas></div></div>
     </div>
     ${ref ? `<div class="panel">
@@ -1907,9 +1907,20 @@ function renderCarCharts(g) {
   const yCeil = Math.max(Math.ceil((_q3 + 1.5 * _iqr) * 2) / 2, g.pb + 1.5); // Tukey fence, round up to .5
   const lossCeil = Math.max(Math.ceil((yCeil - g.opt) * 2) / 2, 3);          // matching loss-axis cap for the stacked chart
 
+  // 趨勢線:對有效圈做最小平方線性回歸(看整體變快/變慢)
+  let sx = 0, sy = 0, sxx = 0, sxy = 0, nv = 0;
+  allLaps.forEach((l, i) => { if (!l.invalid) { sx += i; sy += l.total; sxx += i * i; sxy += i * l.total; nv++; } });
+  const _den = nv * sxx - sx * sx;
+  const _a = _den ? (nv * sxy - sx * sy) / _den : 0;
+  const _b = nv ? (sy - _a * sx) / nv : 0;
+  const trend = nv >= 2 ? allLaps.map((_, i) => +(_a * i + _b).toFixed(3)) : [];
+
   new Chart(document.getElementById('lapChart-' + g.key), {
     type: 'line',
-    data: { labels, datasets: [{ data: times, showLine: false, borderColor: 'transparent', backgroundColor: 'transparent', pointBackgroundColor: pointColors, pointBorderColor: pointColors, pointBorderWidth: 0, pointRadius: pointSizes, pointHoverRadius: 12 }] },
+    data: { labels, datasets: [
+      { data: times, showLine: false, borderColor: 'transparent', backgroundColor: 'transparent', pointBackgroundColor: pointColors, pointBorderColor: pointColors, pointBorderWidth: 0, pointRadius: pointSizes, pointHoverRadius: 12, order: 0 },
+      { data: trend, showLine: true, borderColor: 'rgba(232,236,241,0.55)', borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, pointHoverRadius: 0, fill: false, tension: 0, order: 1 }
+    ] },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
@@ -1917,6 +1928,7 @@ function renderCarCharts(g) {
         legend: { display: false },
         tooltip: {
           backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1,
+          filter: item => item.datasetIndex === 0,
           callbacks: {
             title: ctx => {
               const l = allLaps[ctx[0].dataIndex];
