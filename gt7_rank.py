@@ -172,7 +172,19 @@ def main():
         my_id = get_my_user_id(token)
         print(f"  ✓ user_id = {my_id}")
 
-    with open(args.data, encoding="utf-8") as f:
+    # 自動定位 data.json（腳本可能放在 telemetry/ 子資料夾跑）
+    data_path = args.data
+    if not os.path.exists(data_path):
+        here = os.path.dirname(os.path.abspath(__file__))
+        for cand in (os.path.join(os.getcwd(), "..", "data.json"),
+                     os.path.join(here, "data.json"),
+                     os.path.join(here, "..", "data.json")):
+            if os.path.exists(cand):
+                data_path = cand; break
+    if not os.path.exists(data_path):
+        sys.exit(f"找不到 data.json（試過 {args.data} 與上層）；用 --data 指定路徑。")
+    print(f"📄 data.json = {os.path.abspath(data_path)}")
+    with open(data_path, encoding="utf-8") as f:
         d = json.load(f)
     boards = {k: v["boardId"] for k, v in d.get("meta", {}).get("leaderboards", {}).items() if v.get("boardId")}
     if not boards:
@@ -213,9 +225,9 @@ def main():
     if args.dry:
         print("\n[DRY] 未寫入。確認數字 OK 後拿掉 --dry 再跑。")
     else:
-        with open(args.data, "w", encoding="utf-8") as f:
+        with open(data_path, "w", encoding="utf-8") as f:
             json.dump(d, f, ensure_ascii=False, indent=1)
-        print(f"\n✓ 已更新 {args.data}")
+        print(f"\n✓ 已更新 {os.path.abspath(data_path)}")
 
 
 if __name__ == "__main__":
