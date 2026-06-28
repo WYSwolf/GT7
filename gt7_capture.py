@@ -47,6 +47,11 @@ GT7 Telemetry Capture  ·  WYS / GT7 Training Tracker   (v3 · CSV 一天一檔)
 輸出:gt7_<日期>.csv(同日多次跑會自動加時間後綴;--replay 會多 wr_ 前綴)。
 停止:Ctrl+C。每跑完一圈即時 append 寫檔,中途斷了不會整碗丟。
 
+自動上傳:收工後,若偵測到環境變數 GT7_GITHUB_TOKEN(或 GITHUB_TOKEN),
+    會把整份原始檔(不篩選)透過 GitHub API 上傳到 repo 的 telemetry/ → main。
+    設定一次即可:export GT7_GITHUB_TOKEN=<具 repo 權限的 GitHub token>
+    關閉用 --no-push。篩選成 slim CSV / data.json 之後再另外請 Claude 處理。
+
 PS5 IP 怎麼找:PS5 → 設定 → 網路 → 連線狀態 → 查看連線狀態,看 IP 位址。
 防火牆:第一次跑若收不到,Windows 防火牆要放行 UDP 連接埠 33740(輸入)/ 33739(輸出)。
 """
@@ -693,6 +698,64 @@ def start_live_server(port):
     return srv
 
 # ---------------- main loop ----------------
+def _github_upload(path, repo, branch, dest_dir, note=''):
+    """收工後把整份原始紀錄檔(不篩選)透過 GitHub Contents API 上傳到 repo。
+    不需本機裝 git;token 由環境變數 GT7_GITHUB_TOKEN / GITHUB_TOKEN 提供。"""
+    import base64, urllib.request, urllib.error
+    token = os.environ.get('GT7_GITHUB_TOKEN') or os.environ.get('GITHUB_TOKEN')
+    if not token:
+        print('  ⓘ 未設定 token,略過自動上傳。設定後每次收工會自動推上 GitHub:')
+        print('     export GT7_GITHUB_TOKEN=<具 repo 權限的 GitHub token>')
+        return
+    try:
+        with open(path, 'rb') as f:
+            content = f.read()
+    except OSError as e:
+        print(f'  ✗ 讀取檔案失敗,略過上傳:{e}')
+        return
+    name = os.path.basename(path)
+    api = f'https://api.github.com/repos/{repo}/contents/{dest_dir.strip("/")}/{name}'
+    hdrs = {'Authorization': f'token {token}',
+            'Accept': 'application/vnd.github+json',
+            'User-Agent': 'gt7_capture',
+            'X-GitHub-Api-Version': '2022-11-28'}
+    # 同日續寫會覆蓋同一檔名 → 需要現有檔的 sha 才能更新
+    sha = None
+    try:
+        req = urllib.request.Request(api + f'?ref={branch}', headers=hdrs)
+        with urllib.request.urlopen(req, timeout=20) as r:
+            sha = json.loads(r.read()).get('sha')
+    except urllib.error.HTTPError as e:
+        if e.code != 404:
+            print(f'  ⚠ 查詢現有檔失敗(HTTP {e.code}),仍嘗試上傳…')
+    except Exception:
+        pass
+    body = {'message': f'capture: {name}' + (f' — {note}' if note else ''),
+            'content': base64.b64encode(content).decode('ascii'),
+            'branch': branch}
+    if sha:
+        body['sha'] = sha
+    data = json.dumps(body).encode('utf-8')
+    try:
+        req = urllib.request.Request(api, data=data,
+                                     headers={**hdrs, 'Content-Type': 'application/json'},
+                                     method='PUT')
+        with urllib.request.urlopen(req, timeout=60) as r:
+            resp = json.loads(r.read())
+        kb = len(content) / 1024
+        print(f'  ☁ 已自動上傳 → {repo}/{dest_dir}/{name}  ({kb:.0f} KB,{"更新" if sha else "新建"})')
+        url = resp.get('content', {}).get('html_url', '')
+        if url:
+            print(f'     {url}')
+    except urllib.error.HTTPError as e:
+        msg = ''
+        try: msg = json.loads(e.read()).get('message', '')
+        except Exception: pass
+        print(f'  ✗ 自動上傳失敗(HTTP {e.code} {msg})。原始檔仍在本機:{path}')
+    except Exception as e:
+        print(f'  ✗ 自動上傳失敗({e})。原始檔仍在本機:{path}')
+
+
 def main():
     ap = argparse.ArgumentParser(description='GT7 telemetry capture (v2)')
     ap.add_argument('ps_ip', nargs='?', default=None,
@@ -708,6 +771,11 @@ def main():
     ap.add_argument('--sec', default=None, help='分段界距離百分比,如 "25.72,72.36"(用官方分段校正值);不給=依參考圈等時間三等分')
     ap.add_argument('--replay', action='store_true',
                     help='重播模式:不管在不在跑道都錄,收工自動寫出最後一段(抓 WR ghost 走線用)')
+    ap.add_argument('--no-push', action='store_true',
+                    help='關閉收工自動上傳(預設:偵測到 GT7_GITHUB_TOKEN 就自動把原始檔上傳到 GitHub)')
+    ap.add_argument('--repo', default='WYSwolf/GT7', help='自動上傳目標 repo(owner/name),預設 WYSwolf/GT7')
+    ap.add_argument('--branch', default='main', help='自動上傳目標分支,預設 main')
+    ap.add_argument('--dest-dir', default='telemetry', help='原始檔在 repo 內的資料夾,預設 telemetry')
     args = ap.parse_args()
 
     heartbeat = args.packet.encode('ascii')
@@ -996,6 +1064,13 @@ def main():
             print(f'本次最佳圈:{bm}:{best_time - bm*60:06.3f}')
         sock.close()
         _restore_sleep(sleep_token)
+        # 收工自動上傳整份原始檔(不篩選)到 GitHub;--no-push 可關閉
+        if not args.no_push:
+            note = f'{lap_count} 圈'
+            if best_time is not None:
+                bm = int(best_time // 60)
+                note += f',best {bm}:{best_time - bm*60:06.3f}'
+            _github_upload(out_path, args.repo, args.branch, args.dest_dir, note)
 
 if __name__ == '__main__':
     main()
