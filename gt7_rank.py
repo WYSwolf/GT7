@@ -248,7 +248,31 @@ def probe_dgedge_page(event_url):
             print(f"    [{marker}] …{t[j:j+120]}…".replace('\n', ' '))
     for s in re.findall(r'<script[^>]*\bsrc=["\']([^"\']+)["\']', t)[:6]:
         print(f"    <script src> {s}")
-    print("  若上面仍看不出資料源：DevTools→Network 重整此頁，找回應含你成績/賽事清單的請求，貼 URL+回應。")
+
+    # Nuxt SSR：資料其實內嵌在 <script id="__NUXT_DATA__"> 的 JSON 陣列裡（扁平化、用索引互參）。
+    nm = re.search(r'id="__NUXT_DATA__"[^>]*>(.*?)</script>', t, re.S)
+    if nm:
+        print("  --- __NUXT_DATA__ 內的賽事線索 ---")
+        try:
+            arr = json.loads(nm.group(1))
+        except Exception as e:
+            print(f"    （解析 __NUXT_DATA__ 失敗：{e}）")
+            return t
+        strs = [x for x in arr if isinstance(x, str)]
+        print(f"    陣列元素 {len(arr)} 個、字串 {len(strs)} 個")
+        cats = {
+            "事件 slug/連結": re.compile(r'(?:time-trials|dailies|/events/|/event/)', re.I),
+            "賽事 slug-結尾id": re.compile(r'^[a-z0-9][a-z0-9\-]+-\d+$', re.I),
+            "圈速 1:23.456": re.compile(r'^\d:\d{2}\.\d{3}$'),
+            "board/ranking id": re.compile(r'p_[a-z]{1,4}_\d+_\d+'),
+        }
+        for label, rgx in cats.items():
+            hits = sorted({s for s in strs if rgx.search(s)})
+            if hits:
+                print(f"    [{label}] {len(hits)} 筆：", hits[:12])
+        # 也 dump 一段原始字串樣本，方便看 schema（事件/成績通常相鄰）
+        print("    字串樣本（前 60 個）：", strs[:60])
+    print("  若仍看不出 schema：DevTools→Network 重整此頁，找回應含你成績/賽事清單的請求，貼 URL+回應。")
     return t
 
 
