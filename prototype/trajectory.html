@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>進步軌跡 · vs WR × 一致性帶 — GT7</title>
+<title>進步軌跡(每日)— GT7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&family=Bebas+Neue&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -12,126 +12,124 @@
     --bg-base:#0a0d12; --bg-panel:#131820; --bg-input:#0f141b;
     --line:#2a3340; --line-bright:#3d4856;
     --text-primary:#e8ecf1; --text-secondary:#8b96a8; --text-dim:#5a6577;
-    --accent:#00ff88; --warn:#ff8c42; --info:#4dabf7; --purple:#c266ff;
+    --accent:#00ff88; --danger:#ff4757;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg-base);color:var(--text-primary);
     font-family:'Noto Sans TC','JetBrains Mono',sans-serif;padding:16px;padding-bottom:48px;}
   .wrap{max-width:760px;margin:0 auto}
   .proto-tag{display:inline-block;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;
-    color:var(--warn);border:1px solid var(--warn);border-radius:4px;padding:2px 8px;margin-bottom:12px}
+    color:#ff8c42;border:1px solid #ff8c42;border-radius:4px;padding:2px 8px;margin-bottom:12px}
   h1{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:.02em;line-height:1}
-  .sub{color:var(--text-secondary);font-size:.85rem;margin:6px 0 16px}
-  .panel{background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;padding:16px}
-  .chart-wrap{position:relative;height:62vh;min-height:420px}
-  .hint{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-size:.74rem;color:var(--text-secondary)}
-  .hint b{color:var(--accent)}
-  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px}
-  .lg{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--text-secondary)}
-  .dot{width:11px;height:11px;border-radius:50%;display:inline-block}
-  .note{margin-top:16px;color:var(--text-dim);font-size:.72rem;line-height:1.7}
+  .sub{color:var(--text-secondary);font-size:.85rem;margin:6px 0 14px}
+  .spectrum{display:flex;align-items:center;gap:10px;font-size:.76rem;color:var(--text-secondary);margin-bottom:18px;flex-wrap:wrap}
+  .bar{height:10px;width:160px;border-radius:5px;background:linear-gradient(90deg,#ff4757,#e8ecf1,#00ff88)}
+  .panel{background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px}
+  .ptitle{font-family:'Bebas Neue',sans-serif;font-size:1.35rem;letter-spacing:.03em;display:flex;justify-content:space-between;align-items:baseline}
+  .ptitle .meta{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--text-secondary);letter-spacing:0}
+  .chart-wrap{position:relative;height:300px;margin-top:8px}
+  .note{margin-top:6px;color:var(--text-dim);font-size:.72rem;line-height:1.7}
   .loading{text-align:center;color:var(--text-secondary);padding:60px 0}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <span class="proto-tag">Prototype · 進步軌跡</span>
-  <h1>進步軌跡圖</h1>
-  <div class="sub">X = 距世界紀錄 %(越左越接近 WR)· Y = 一致性秒差 avg−best 秒(越低越穩)<br>每個點是一場,連線是時間順序 —— <b style="color:var(--accent)">往左下移動 = 又快又穩</b></div>
-  <div class="panel">
-    <div class="chart-wrap"><canvas id="traj"></canvas></div>
-    <div class="legend" id="legend"></div>
-    <div class="hint">
-      <span>◜ <b>左下角</b> = 理想(貼 WR + 高度一致)</span>
-      <span>↘ 右上 = 又慢又飄</span>
-      <span>○ 小點=舊場 · ●大點=最新場</span>
-    </div>
+  <span class="proto-tag">Prototype · 每日進步軌跡</span>
+  <h1>進步軌跡（每日）</h1>
+  <div class="sub">每天一個點 · X = 當日最佳距 WR % · Y = 當日「中位 − 最佳」秒 · 連線是時間順序<br>一張圖一個賽道 · 只標最後一天(白點)</div>
+  <div class="spectrum">
+    <span style="color:var(--danger)">退步</span>
+    <span class="bar"></span>
+    <span style="color:var(--accent)">進步</span>
+    <span>— 線段顏色看「往左下(更快更穩)還是往右上移」</span>
   </div>
-  <div class="note" id="note"></div>
+  <div id="charts"><div class="loading">載入中…</div></div>
 </div>
 
 <script>
-const PALETTE = ['#00ff88', '#ed7d31', '#4dabf7', '#c266ff', '#ffd43b'];
+const GREEN = '#00ff88', WHITE = '#e8ecf1', RED = '#ff4757';
 const fmt = s => { if (s == null) return '—'; const m = Math.floor(s / 60); return m + ':' + (s - 60 * m).toFixed(3).padStart(6, '0'); };
 const median = a => { const s = [...a].sort((x, y) => x - y); const m = Math.floor((s.length - 1) / 2); return s.length % 2 ? s[m] : (s[m] + s[m + 1]) / 2; };
-function hexA(hex, a) { const h = hex.replace('#', ''); return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${a.toFixed(3)})`; }
+const hx = h => { h = h.replace('#', ''); return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]; };
+const lerp = (a, b, t) => { const A = hx(a), B = hx(b); return `rgb(${Math.round(A[0]+(B[0]-A[0])*t)},${Math.round(A[1]+(B[1]-A[1])*t)},${Math.round(A[2]+(B[2]-A[2])*t)})`; };
 
 fetch('../data.json').then(r => r.json()).then(D => {
   const refs = (D.meta && D.meta.references) || {};
   const carSlug = c => (c || '').replace(/[^a-z0-9]+/gi, '').toLowerCase();
-  // group by track, keep only tracks with a WR reference
   const groups = {};
   D.sessions.forEach(s => {
-    (groups[s.trackKey] = groups[s.trackKey] || { track: s.track, car: s.car, carSlug: s.carSlug || carSlug(s.car), sessions: [] }).sessions.push(s);
+    (groups[s.trackKey] = groups[s.trackKey] || { track: s.track, trackEn: s.trackEn, car: s.car, carSlug: s.carSlug || carSlug(s.car), sessions: [] }).sessions.push(s);
   });
   const tracks = Object.values(groups).map(g => {
     if (!g.carSlug) { const s = g.sessions.find(x => x.carSlug); if (s) g.carSlug = s.carSlug; }
     g.wr = (refs[g.carSlug] || {}).time;
-    g.sessions.sort((a, b) => a.date !== b.date ? a.date.localeCompare(b.date) : (a.session || '').localeCompare(b.session || ''));
-    g.last = g.sessions[g.sessions.length - 1].date;
+    g.last = g.sessions.map(s => s.date).sort().slice(-1)[0] || '';
     return g;
-  }).filter(g => g.wr && g.sessions.length >= 1)
-    .sort((a, b) => b.last.localeCompare(a.last));   // newest track first → gets PALETTE[0]
+  }).filter(g => g.wr).sort((a, b) => b.last.localeCompare(a.last));
 
-  const datasets = [], legend = [];
+  // per-day points for one track
+  function dayPoints(g) {
+    const byDate = {};
+    g.sessions.forEach(s => { (byDate[s.date] = byDate[s.date] || []).push(...s.laps.filter(l => !l.invalid)); });
+    return Object.keys(byDate).sort().map(date => {
+      const v = byDate[date].map(l => l.total); const best = Math.min(...v);
+      return { date, x: +(((best - g.wr) / g.wr) * 100).toFixed(3), y: +(median(v) - best).toFixed(3), best, n: v.length };
+    });
+  }
+
+  const host = document.getElementById('charts');
+  host.innerHTML = '';
   tracks.forEach((g, ti) => {
-    const color = PALETTE[ti % PALETTE.length];
-    const pts = g.sessions.map(s => {
-      const v = s.laps.filter(l => !l.invalid).map(l => l.total);
-      const best = Math.min(...v);
-      return { x: +(((best - g.wr) / g.wr) * 100).toFixed(3), y: +(s.avg - best).toFixed(3), s, best };
-    });
-    const n = pts.length;
-    const ptCol = pts.map((_, i) => hexA(color, n < 2 ? 1 : 0.1 + 0.9 * Math.pow(i / (n - 1), 1.6)));
-    const ptRad = pts.map((_, i) => i === n - 1 ? 6.5 : 3.5);
-    datasets.push({
-      label: g.track, data: pts, showLine: true,
-      borderColor: hexA(color, 0.35), borderWidth: 2, tension: 0.25,
-      segment: {
-        // 每段線依「較新端點」的時間調透明度:越早的線段越透明
-        borderColor: ctx => hexA(color, n < 2 ? 0.5 : 0.06 + 0.74 * Math.pow(ctx.p1DataIndex / (n - 1), 1.5))
-      },
-      pointBackgroundColor: ptCol, pointBorderColor: ptCol, pointBorderWidth: 0,
-      pointRadius: ptRad, pointHoverRadius: 9, _g: g
-    });
-    legend.push(`<span class="lg"><span class="dot" style="background:${color}"></span>${g.track} · WR ${fmt(g.wr)}</span>`);
-  });
-  document.getElementById('legend').innerHTML = legend.join('');
+    const pts = dayPoints(g);
+    const panel = document.createElement('div');
+    panel.className = 'panel';
+    const last = pts[pts.length - 1];
+    panel.innerHTML = `<div class="ptitle"><span>${g.trackEn || g.track}</span><span class="meta">WR ${fmt(g.wr)} · ${pts.length} 天</span></div>
+      <div class="chart-wrap"><canvas id="c${ti}"></canvas></div>
+      <div class="note">最新(${last.date}):+${last.x.toFixed(2)}% / 中位−最佳 ${last.y.toFixed(3)}s</div>`;
+    host.appendChild(panel);
 
-  new Chart(document.getElementById('traj'), {
-    type: 'scatter',
-    data: { datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1,
-          callbacks: {
-            title: ctx => ctx[0].dataset.label,
-            label: ctx => {
-              const p = ctx.raw;
-              return [`${p.s.sessionLabel || p.s.date}`, `vs WR: +${p.x.toFixed(2)}%  (${fmt(p.best)})`, `一致性秒差: ${p.y.toFixed(3)}s`];
+    // progress per segment (normalised so both axes weigh equally), green=toward bottom-left
+    const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+    const xmn = Math.min(...xs), xmx = Math.max(...xs), ymn = Math.min(...ys), ymx = Math.max(...ys);
+    const nx = v => xmx > xmn ? (v - xmn) / (xmx - xmn) : 0;
+    const ny = v => ymx > ymn ? (v - ymn) / (ymx - ymn) : 0;
+    const prog = pts.map((p, i) => i === 0 ? 0 : (nx(pts[i-1].x) + ny(pts[i-1].y)) - (nx(p.x) + ny(p.y)));
+    const maxAbs = Math.max(...prog.map(Math.abs), 1e-9);
+    const segCol = prog.map(d => { const t = Math.max(-1, Math.min(1, d / maxAbs)); return t >= 0 ? lerp(WHITE, GREEN, t) : lerp(WHITE, RED, -t); });
+    const ptRad = pts.map((_, i) => i === pts.length - 1 ? 5 : 0);
+    const ptCol = pts.map((_, i) => i === pts.length - 1 ? WHITE : 'transparent');
+
+    new Chart(document.getElementById('c' + ti), {
+      type: 'line',
+      data: { datasets: [{
+        data: pts.map(p => ({ x: p.x, y: p.y, _p: p })),
+        showLine: true, borderWidth: 2.5, tension: 0.15,
+        segment: { borderColor: ctx => segCol[ctx.p1DataIndex] || WHITE },
+        pointRadius: ptRad, pointHoverRadius: 7, pointBackgroundColor: ptCol, pointBorderColor: ptCol
+      }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1,
+            callbacks: {
+              title: ctx => ctx[0].raw._p.date,
+              label: ctx => { const p = ctx.raw._p; return [`vs WR: +${p.x.toFixed(2)}%  (${fmt(p.best)})`, `中位−最佳: ${p.y.toFixed(3)}s`, `${p.n} 有效圈`]; }
             }
           }
+        },
+        scales: {
+          x: { type: 'linear', title: { display: true, text: '距 WR %  →（越左越快）', color: '#8b96a8', font: { size: 10 } },
+               grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => '+' + v.toFixed(1) + '%' } },
+          y: { title: { display: true, text: '中位−最佳 秒  ↓（越穩）', color: '#8b96a8', font: { size: 10 } },
+               grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => v.toFixed(2) + 's' }, beginAtZero: true }
         }
-      },
-      scales: {
-        x: { title: { display: true, text: '距世界紀錄 %  →（越左越快）', color: '#8b96a8', font: { size: 11 } },
-             grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => '+' + v.toFixed(1) + '%' } },
-        y: { title: { display: true, text: '一致性秒差 avg−best 秒  ↓（越低越穩）', color: '#8b96a8', font: { size: 11 } },
-             grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => v.toFixed(2) + 's' }, beginAtZero: true }
       }
-    }
+    });
   });
-
-  // textual read of the newest point per track
-  document.getElementById('note').innerHTML = '最新一場位置:' + tracks.map(g => {
-    const last = g.sessions[g.sessions.length - 1];
-    const v = last.laps.filter(l => !l.invalid).map(l => l.total); const b = Math.min(...v);
-    return `${g.track} +${(((b - g.wr) / g.wr) * 100).toFixed(2)}% / 秒差 ${(last.avg - b).toFixed(3)}s`;
-  }).join(' · ') + '<br>原型參考用,確認方向後再整進主站。';
-}).catch(e => { document.getElementById('traj').outerHTML = '<div class="loading">讀取失敗:' + e + '</div>'; });
+}).catch(e => { document.getElementById('charts').innerHTML = '<div class="loading">讀取失敗:' + e + '</div>'; });
 </script>
 </body>
 </html>
