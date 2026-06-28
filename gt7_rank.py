@@ -38,10 +38,12 @@ board_id：寫在 data.json 的 meta.leaderboards.<key>.boardId
   → 新賽道不必手算：用 --event <活動ID> 讓本檔自動抓 ranking_id（見下）。
 
 找新賽道的 board_id：
-  --event <id>     從 sportmode 活動頁（如 .../sportmode/event/14277/ → 14277）自動抓
+  --event <id>     讀 sportmode 活動頁（如 .../sportmode/event/14277/ → 14277）內嵌資料抓
                    ranking_id 當 board_id 印出來。配 --key <trackKey__carSlug> 可直接寫進
                    data.json 的 meta.leaderboards.<key>.boardId（遵守 --dry/--push/本機）。
-  --probe-event <id>  只把活動詳情原始 JSON 印出來（萬一自動找不到 ranking_id，貼回來給我看欄位）。
+  --probe-event <id>  Dump 活動頁細節（HTML 長度＋ranking_id/board_id/__INIT__ 出現位置）。
+                   若頁面是 client-side 載入（內嵌找不到），會提示去 DevTools→Network
+                   複製含 ranking_id 的請求貼回來，以便鎖定資料源。
 
 選項：
   --dry        只顯示、不寫入（驗證數字用）
@@ -150,71 +152,65 @@ def get_page(token: str, board_id: str, page: int) -> dict:
 
 
 # ---------------- 由活動 ID 自動解出 board_id ----------------
-def _find_key(obj, key):
-    """遞迴在巢狀 dict/list 裡找第一個出現的 key，回傳其值（找不到回 None）。"""
-    if isinstance(obj, dict):
-        if key in obj and obj[key] not in (None, ""):
-            return obj[key]
-        for v in obj.values():
-            r = _find_key(v, key)
-            if r is not None:
-                return r
-    elif isinstance(obj, list):
-        for v in obj:
-            r = _find_key(v, key)
-            if r is not None:
-                return r
-    return None
+# 活動頁多為 server-render，event 詳情常以內嵌 JSON 帶 ranking_id / board_id。
+# 這些 regex 同時吃 JSON（"ranking_id":"..."）與 JS 賦值（ranking_id = "..."）兩種寫法。
+RANKING_ID_RE = re.compile(r'ranking_id["\']?\s*[:=]\s*["\']([A-Za-z0-9_]+)["\']')
+BOARD_ID_RE = re.compile(r'board_id["\']?\s*[:=]\s*["\']([A-Za-z0-9_]+)["\']')
+REG_KEY_RE = re.compile(r'registration_key["\']?\s*[:=]\s*["\']([^"\']*)["\']')
 
 
-# sportmode 活動詳情 JSON 的候選端點（info API 前綴與 token/ 同源；依序試）
-EVENT_API_CANDIDATES = [
-    "https://www.gran-turismo.com/{locale}/gt7/info/api/sportmode/event/{eid}/",
-    "https://www.gran-turismo.com/{locale}/gt7/info/api/sportmode/event/{eid}/detail/",
-    "https://www.gran-turismo.com/{locale}/gt7/info/api/event/{eid}/",
-]
-
-
-def fetch_event_detail(event_id, jsessionid=None, locale="tw"):
-    """抓 sportmode 活動詳情 JSON（含 ranking_id / registration_key）。
-    回傳 (detail_dict, used_url)；全部端點都失敗時丟 RuntimeError（含各端點錯誤摘要）。"""
-    headers = {"Accept": "application/json, text/plain, */*", "User-Agent": UA,
-               "Referer": f"https://www.gran-turismo.com/{locale}/gt7/sportmode/event/{event_id}/"}
+def fetch_event_html(event_id, jsessionid=None, locale="tw"):
+    """抓 sportmode 活動頁 HTML（server-render，常內嵌 event JSON）。回傳 (html, url)。"""
+    url = f"https://www.gran-turismo.com/{locale}/gt7/sportmode/event/{event_id}/"
     cookies = {"JSESSIONID": jsessionid} if jsessionid else None
-    errors = []
-    for tmpl in EVENT_API_CANDIDATES:
-        url = tmpl.format(locale=locale, eid=event_id)
-        try:
-            r = requests.get(url, headers=headers, cookies=cookies, timeout=15)
-        except Exception as e:
-            errors.append(f"{url} → {e}")
-            continue
-        if r.status_code != 200:
-            errors.append(f"{url} → HTTP {r.status_code}")
-            continue
-        try:
-            return r.json(), url
-        except ValueError:
-            errors.append(f"{url} → 非 JSON（前 80 字：{r.text[:80]!r}）")
-    raise RuntimeError("抓不到活動詳情，試過：\n  " + "\n  ".join(errors)
-                       + "\n  端點可能改了 —— 用 --probe-event 把真正的回應貼回來給我看欄位。")
+    r = requests.get(url, headers={
+        "User-Agent": UA, "Accept": "text/html,application/xhtml+xml,*/*",
+        "Referer": f"https://www.gran-turismo.com/{locale}/gt7/sportmode/",
+    }, cookies=cookies, timeout=15)
+    r.raise_for_status()
+    return r.text, url
 
 
 def resolve_board_id(event_id, jsessionid=None, locale="tw", verbose=True):
     """由活動 ID 自動解出 board_id（= ranking_id；分區賽事另需區碼後綴）。
-    回傳 (board_id, detail)。"""
-    detail, url = fetch_event_detail(event_id, jsessionid, locale)
-    ranking_id = _find_key(detail, "ranking_id")
-    if not ranking_id:
-        raise RuntimeError(f"活動詳情裡找不到 ranking_id（來源 {url}）。"
-                           " 用 --probe-event 把回應貼回來，我對一下欄位名。")
-    reg = _find_key(detail, "registration_key")
-    if reg and verbose:
-        print(f"  ⚠ 此活動 registration_key={reg!r}（分區報名賽事）—— board_id 可能要接區碼後綴，"
+    從活動頁內嵌資料抓 ranking_id（取不到再退求 board_id）。回傳 (board_id, html)。"""
+    html, url = fetch_event_html(event_id, jsessionid, locale)
+    m = RANKING_ID_RE.search(html) or BOARD_ID_RE.search(html)
+    if not m:
+        raise RuntimeError(
+            f"活動頁 {url} 裡找不到內嵌的 ranking_id/board_id —— "
+            "詳情可能是 client-side 載入。用 --probe-event 看頁面細節，"
+            "或從瀏覽器 DevTools→Network 重整活動頁，把含 ranking_id 的那個請求(URL+payload)貼回來。")
+    board_id = m.group(1)
+    reg = REG_KEY_RE.search(html)
+    if reg and reg.group(1) and verbose:
+        print(f"  ⚠ 此活動 registration_key={reg.group(1)!r}（分區報名賽事）—— board_id 可能要接區碼後綴，"
               "見檔頭區域規則；個人 TT 一般用不到。")
     if verbose:
-        print(f"  · event {event_id} → ranking_id = {ranking_id}（board_id 直接用它，來源 {url}）")
-    return str(ranking_id), detail
+        print(f"  · event {event_id} → board_id = {board_id}（取自活動頁 {url}）")
+    return board_id, html
+
+
+def probe_event_page(event_id, jsessionid=None, locale="tw"):
+    """Debug：把活動頁細節 dump 出來，幫忙定位 ranking_id 在哪。"""
+    html, url = fetch_event_html(event_id, jsessionid, locale)
+    print(f"\n=== 活動 {event_id} 頁面（{url}）===")
+    print(f"HTML 長度 = {len(html)}")
+    found = False
+    for kw in ("ranking_id", "board_id", "registration_key", "__INIT__", "eventDetail", "ranking"):
+        hits = [mm.start() for mm in re.finditer(re.escape(kw), html)][:3]
+        for i in hits:
+            found = True
+            ctx = html[max(0, i - 40):i + 90].replace("\n", " ")
+            print(f"  [{kw}] …{ctx}…")
+    if not found:
+        print("  （頁面內找不到任何 ranking_id/board_id/__INIT__ —— 多半是 client-side 載入）")
+        print("  下一步：瀏覽器 DevTools→Network，重整活動頁，找回應含 ranking_id 的請求，"
+              "把 URL + payload 貼回來。")
+        # 順手列出頁面裡的 <script src> 與長 JSON 片段開頭，方便判斷資料源
+        for s in re.findall(r'<script[^>]*\bsrc=["\']([^"\']+)["\']', html)[:8]:
+            print(f"    <script src> {s}")
+    return html
 
 
 def disp(sec):
@@ -431,12 +427,7 @@ def run(*, bearer=None, jsessionid=None, browser=None, locale="tw", max_pages=60
     # --- 找新賽道 board_id 的兩個輔助流程（不需要 web-api Bearer，用 cookie 即可）---
     if probe_event is not None:
         js = _resolve_jsessionid(jsessionid, browser, verbose)
-        detail, url = fetch_event_detail(probe_event, js, locale)
-        print(f"\n=== 活動 {probe_event} 詳情（來源 {url}）===")
-        print(json.dumps(detail, ensure_ascii=False, indent=2)[:4000])
-        rid = _find_key(detail, "ranking_id")
-        print(f"\n[自動偵測] ranking_id = {rid or '（找不到 —— 把上面 JSON 貼回來）'}")
-        return detail
+        return probe_event_page(probe_event, js, locale)
 
     if event is not None:
         js = _resolve_jsessionid(jsessionid, browser, verbose)
