@@ -181,11 +181,12 @@
     "eventUrl": "https://www.dg-edge.com/events/time-trials/594",
     "eventLabel": "Time Trial · Red Bull Ring · Ford GT '17 · SM",
     "source": "dg-edge.com",
-    "asOf": "2026-06-25",
-    "totalPlayers": 117235,
+    "asOf": "2026-06-28",
+    "totalPlayers": 150118,
+    "boardSize": 1544,
     "wr": 90.92,
-    "top100": 91.894,
-    "top1000": 92.583,
+    "top100": 91.86,
+    "top1000": 92.521,
     "medals": {
      "platinum": 91.375,
      "gold": 93.648,
@@ -201,12 +202,13 @@
     "medalPctMode": "band",
     "endDate": "2026-07-02",
     "playerRank": {
-     "rank": 1316,
-     "pb": 92.67,
-     "gapToWR": 1.75,
-     "gapPct": 1.92,
-     "source": "GT7 遊戲內全球排行(6/25 截圖)",
-     "asOf": "2026-06-25"
+     "rank": 1489,
+     "pb": 92.649,
+     "gapToWR": 1.729,
+     "gapPct": 1.9,
+     "topPct": 0.99,
+     "source": "GT7 官方API名次(6/28) + dg-edge母體",
+     "asOf": "2026-06-28"
     },
     "boardId": "p_rt_1014277_001"
    }

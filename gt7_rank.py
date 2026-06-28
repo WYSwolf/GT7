@@ -198,12 +198,17 @@ def main():
         except Exception as e:
             print(f"  ✗ 失敗：{e}")
             continue
-        pct = round(r["rank"] / r["total"] * 100, 2) if r["rank"] and r["total"] else None
-        print(f"  WR={disp(r['wr'])}  top100={disp(r['top100'])}  top1000={disp(r['top1000'])}  "
-              f"total={r['total']}  你的名次=#{r['rank']} ({pct}%)  PB={disp(r['pb'])}")
-
         entry = d["meta"]["leaderboards"][key]
-        if r["total"]:   entry["totalPlayers"] = r["total"]
+        # 母體人數用既有 totalPlayers（dg-edge 母體）——API 的 total 只是「榜上回傳的清單大小」，
+        # 不是參賽總數，不能拿來當分母（否則百分位會嚴重失真）。
+        population = entry.get("totalPlayers")
+        pct = round(r["rank"] / population * 100, 2) if r["rank"] and population else None
+        print(f"  WR={disp(r['wr'])}  top100={disp(r['top100'])}  top1000={disp(r['top1000'])}  "
+              f"你的名次=#{r['rank']}"
+              + (f" (前 {pct}% / {population} 人)" if pct else "")
+              + f"  PB={disp(r['pb'])}  [API 榜清單大小={r['total']}]")
+
+        if r["total"]:   entry["boardSize"] = r["total"]   # 參考用，非母體
         if r["top100"]:  entry["top100"] = r["top100"]
         if r["top1000"]: entry["top1000"] = r["top1000"]
         if r["wr"]:      entry["wr"] = r["wr"]
