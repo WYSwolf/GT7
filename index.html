@@ -1057,6 +1057,16 @@ function rcSpark(vals, w, h) {
   const last = pts[pts.length - 1].split(',');
   return `<svg width="${w}" height="${h}" style="overflow:visible"><polyline points="${pts.join(' ')}" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linejoin="round"/><circle cx="${last[0]}" cy="${last[1]}" r="2.6" fill="var(--accent)"/></svg>`;
 }
+// hex → rgba with alpha; used for time-faded chart points.
+function hexA(hex, a) {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${a.toFixed(3)})`;
+}
+// Per-point alpha ramp: oldest most transparent → newest opaque.
+function fadePoints(color, n, minA = 0.2) {
+  return Array.from({ length: n }, (_, i) => hexA(color, n < 2 ? 1 : minA + (1 - minA) * (i / (n - 1))));
+}
 function getConsistencyGrade(c) {
   if (c <= 0.5) return { label: '優秀', color: 'var(--accent)' };
   if (c <= 1.0) return { label: '良好', color: 'var(--info)' };
@@ -2124,11 +2134,13 @@ function buildHistory() {
     });
     const pts = sorted.map(s => +(((s.best - wr) / wr) * 100).toFixed(3));
     if (pts.length > allLabels.length) allLabels = pts.map((_, i) => 'Day ' + (i + 1));
+    const col = trackColors[ci % trackColors.length];
+    const ptCol = fadePoints(col, pts.length);
     datasets.push({
       label: g.track, data: pts,
-      borderColor: trackColors[ci % trackColors.length],
-      backgroundColor: trackColors[ci % trackColors.length],
-      tension: 0.2, pointRadius: 4, pointHoverRadius: 8, borderWidth: 2, _sorted: sorted
+      borderColor: col, backgroundColor: col,
+      tension: 0.2, pointRadius: 2.5, pointHoverRadius: 6, borderWidth: 2,
+      pointBackgroundColor: ptCol, pointBorderColor: ptCol, _sorted: sorted
     });
     ci++;
   });
@@ -2175,11 +2187,13 @@ function buildConsistencyChart() {
     });
     const pts = sorted.map(s => +(s.avg - s.best).toFixed(3));
     if (pts.length > allLabels.length) allLabels = pts.map((_, i) => 'Day ' + (i + 1));
+    const col = trackColors[ci % trackColors.length];
+    const ptCol = fadePoints(col, pts.length);
     datasets.push({
       label: g.track, data: pts,
-      borderColor: trackColors[ci % trackColors.length],
-      backgroundColor: trackColors[ci % trackColors.length],
-      tension: 0.2, pointRadius: 4, pointHoverRadius: 8, borderWidth: 2, _sorted: sorted
+      borderColor: col, backgroundColor: col,
+      tension: 0.2, pointRadius: 2.5, pointHoverRadius: 6, borderWidth: 2,
+      pointBackgroundColor: ptCol, pointBorderColor: ptCol, _sorted: sorted
     });
     ci++;
   });
