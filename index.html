@@ -1800,7 +1800,7 @@ function renderCarSection(g) {
       <div class="panel-body"><div class="chart-wrap"><canvas id="sectorLineChart-${g.key}"></canvas></div></div>
     </div>
     <div class="panel">
-      <div class="panel-header"><div class="panel-title">圈數象限分布</div><div class="panel-meta">每圈一點 · X=前段距最佳 Y=末段距最佳 · 越靠左下越乾淨 · 虛線=中位</div></div>
+      <div class="panel-header"><div class="panel-title">速度 × 穩定 象限</div><div class="panel-meta">每天一顆(大小=當天圈數) · X=速度 Y=穩定 · 左下=又快又穩 · 虛線=中位</div></div>
       <div class="panel-body"><div class="chart-wrap"><canvas id="quadChart-${g.key}"></canvas></div></div>
     </div>
     <div class="panel">
@@ -1836,36 +1836,39 @@ function selectSectorLine(chart, di) {
   });
   chart.update();
 }
-// Quadrant distribution of laps: X = front sectors gap to best, Y = rear sectors gap to best.
-function drawQuadrant(canvasId, sessions, sectorCount) {
+// Speed × stability quadrant — one bubble per day (size = that day's lap count).
+function drawQuadrant(canvasId, sessions, wr) {
   const el = document.getElementById(canvasId);
   if (!el) return;
-  const laps = [];
-  sessions.forEach(s => s.laps.filter(l => !l.invalid).forEach(l => laps.push({ ...l, date: s.date })));
-  if (laps.length < 2) return;
-  const front = ['s1', 's2'], rear = sectorCount === 4 ? ['s3', 's4'] : ['s3'];
-  const best = {}; ['s1', 's2', 's3', 's4'].forEach(k => { const v = laps.map(l => l[k]).filter(x => x != null); if (v.length) best[k] = Math.min(...v); });
-  const fg = l => front.reduce((a, k) => a + (l[k] - best[k]), 0);
-  const rg = l => rear.reduce((a, k) => a + ((l[k] || 0) - (best[k] || 0)), 0);
-  const dates = [...new Set(laps.map(l => l.date))].sort(), D = dates.length;
+  const byDate = {};
+  sessions.forEach(s => { (byDate[s.date] = byDate[s.date] || []).push(...s.laps.filter(l => !l.invalid).map(l => l.total)); });
+  const dates = Object.keys(byDate).sort(), D = dates.length;
+  if (!D) return;
+  const overallBest = Math.min(...dates.flatMap(d => byDate[d]));
+  const pts = dates.map(d => {
+    const v = byDate[d], best = Math.min(...v);
+    return { x: wr ? +(((best - wr) / wr) * 100).toFixed(3) : +(best - overallBest).toFixed(3), y: +(_median(v) - best).toFixed(3), date: d, best, n: v.length };
+  });
   const mixc = (a, b, t) => { const A = hxArr(a), B = hxArr(b); return `rgb(${Math.round(A[0]+(B[0]-A[0])*t)},${Math.round(A[1]+(B[1]-A[1])*t)},${Math.round(A[2]+(B[2]-A[2])*t)})`; };
-  const pts = laps.map(l => ({ x: +fg(l).toFixed(3), y: +rg(l).toFixed(3), date: l.date, _l: l }));
   const mx = _median(pts.map(p => p.x)), my = _median(pts.map(p => p.y));
-  const colOf = d => mixc('#3a4a5a', '#00ff88', D < 2 ? 1 : dates.indexOf(d) / (D - 1));
-  const counts = [0, 0, 0, 0]; // [LB clean, LT frontGood, RB rearGood, RT both-lose] via (x<mx,y<my)
-  pts.forEach(p => { const r = p.x >= mx, t = p.y >= my; counts[(t ? 2 : 0) + (r ? 1 : 0)]++; });
+  const counts = [0, 0, 0, 0];   // (x<mx,y<my) → 0 快又穩, +1 慢, +2 飄
+  pts.forEach(p => { const slow = p.x >= mx, drift = p.y >= my; counts[(drift ? 2 : 0) + (slow ? 1 : 0)]++; });
   new Chart(el, {
-    type: 'scatter',
-    data: { datasets: [{ data: pts, parsing: false, pointBackgroundColor: pts.map(p => colOf(p.date)), pointBorderWidth: 0, pointRadius: pts.map(p => p.date === dates[D - 1] ? 4.5 : 2.5), pointHoverRadius: 7 }] },
+    type: 'bubble',
+    data: { datasets: [{
+      data: pts.map(p => ({ x: p.x, y: p.y, r: 5 + Math.min(11, p.n / 2), _p: p })),
+      backgroundColor: pts.map(p => scaleA(mixc('#3a4a5a', '#00ff88', D < 2 ? 1 : dates.indexOf(p.date) / (D - 1)), 0.75)),
+      borderColor: pts.map(p => mixc('#3a4a5a', '#00ff88', D < 2 ? 1 : dates.indexOf(p.date) / (D - 1))), borderWidth: 1.5
+    }] },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: { backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1, callbacks: { label: ctx => { const p = ctx.raw; return [`${p.date} · ${fmtTime(p._l.total)}`, `前段 +${p.x.toFixed(3)}s · 末段 +${p.y.toFixed(3)}s`]; } } }
+        tooltip: { backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1, callbacks: { label: ctx => { const p = ctx.raw._p; return [`${p.date} · ${p.n} 圈`, `最快 ${fmtTime(p.best)}${wr ? ' (+' + p.x.toFixed(2) + '% vs WR)' : ''}`, `一致性(中位−最佳) ${p.y.toFixed(3)}s`]; } } }
       },
       scales: {
-        x: { title: { display: true, text: '前段(S1+S2)距最佳 秒  →（越左越好）', color: '#8b96a8', font: { size: 10 } }, grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => v.toFixed(2) }, beginAtZero: true },
-        y: { title: { display: true, text: '末段距最佳 秒  ↑（越下越好）', color: '#8b96a8', font: { size: 10 } }, grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => v.toFixed(2) }, beginAtZero: true }
+        x: { title: { display: true, text: wr ? '速度:當日最佳距 WR %  →（越左越快）' : '速度:當日最佳距 PB 秒  →（越左越快）', color: '#8b96a8', font: { size: 10 } }, grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => wr ? '+' + v.toFixed(1) + '%' : v.toFixed(2) } },
+        y: { title: { display: true, text: '穩定:中位−最佳 秒  ↑（越下越穩）', color: '#8b96a8', font: { size: 10 } }, grid: { color: 'rgba(42,51,64,0.5)' }, ticks: { color: '#8b96a8', callback: v => v.toFixed(2) + 's' }, beginAtZero: true }
       }
     },
     plugins: [{
@@ -1876,12 +1879,12 @@ function drawQuadrant(canvasId, sessions, sectorCount) {
         ctx.setLineDash([5, 4]); ctx.strokeStyle = 'rgba(232,236,241,0.35)'; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(px, chartArea.top); ctx.lineTo(px, chartArea.bottom); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(chartArea.left, py); ctx.lineTo(chartArea.right, py); ctx.stroke();
-        ctx.setLineDash([]); ctx.font = "11px 'Noto Sans TC'"; ctx.fillStyle = 'rgba(139,150,168,0.7)';
+        ctx.setLineDash([]); ctx.font = "11px 'Noto Sans TC'"; ctx.fillStyle = 'rgba(139,150,168,0.75)';
         const L = chartArea.left + 6, R = chartArea.right - 6, T = chartArea.top + 14, B = chartArea.bottom - 6;
-        ctx.textAlign = 'left'; ctx.fillText(`乾淨 ${counts[0]}`, L, B);
-        ctx.fillText(`末段掉 ${counts[2]}`, L, T);
-        ctx.textAlign = 'right'; ctx.fillText(`前段掉 ${counts[1]}`, R, B);
-        ctx.fillText(`兩段掉 ${counts[3]}`, R, T);
+        ctx.textAlign = 'left'; ctx.fillText(`快又穩 ${counts[0]}`, L, B);
+        ctx.fillText(`快但飄 ${counts[2]}`, L, T);
+        ctx.textAlign = 'right'; ctx.fillText(`慢但穩 ${counts[1]}`, R, B);
+        ctx.fillText(`慢又飄 ${counts[3]}`, R, T);
         ctx.restore();
       }
     }]
@@ -2180,7 +2183,7 @@ function renderCarCharts(g) {
 
   drawSectorTrajectory('sectorStabChart-' + g.key, g.sessions, g.sectorCount);
   drawSectorLine('sectorLineChart-' + g.key, g.sessions, g.sectorCount);
-  drawQuadrant('quadChart-' + g.key, g.sessions, g.sectorCount);
+  drawQuadrant('quadChart-' + g.key, g.sessions, (getCarReference(g.carKey || carSlug(g.car)) || {}).time);
 
   const valid = allLaps.filter(l => !l.invalid);
   let losses = { s1: 0, s2: 0, s3: 0, s4: 0 };
