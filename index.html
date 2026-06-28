@@ -1904,20 +1904,17 @@ function drawSectorTrajectory(canvasId, sessions, sectorCount) {
     datasets.push({
       label: k === 'total' ? '全圈' : k.toUpperCase(), data: dense, showLine: true,
       borderColor: col, borderWidth: bw, borderDash: dash, tension: 0, borderCapStyle: 'butt',
-      segment: { borderColor: ctx => dcol[ctx.p1DataIndex] || `rgba(${col},1)` },
+      segment: { borderColor: ctx => { const sel = ctx.chart.$sel; return (sel == null || sel === ctx.datasetIndex) ? (dcol[ctx.p1DataIndex] || `rgba(${col},1)`) : hexA(col, 0.07); } },
       pointRadius: dense.map((_, i) => i === dense.length-1 ? (k === 'total' ? 9 : 4) : 0),
-      pointBackgroundColor: col, pointBorderColor: '#0a0d12', pointBorderWidth: 2, pointHoverRadius: 0, _k: k
+      pointBackgroundColor: ctx => { const sel = ctx.chart.$sel; return (sel == null || sel === ctx.datasetIndex) ? col : hexA(col, 0.12); },
+      pointBorderColor: '#0a0d12', pointBorderWidth: 2, pointHoverRadius: 0, _k: k
     });
   });
-  // custom 點+線段 legend (no box)
-  const legEl = document.getElementById(canvasId.replace('sectorStabChart-', 'sectorLeg-'));
-  if (legEl) legEl.innerHTML = series.filter(s => datasets.some(d => d._k === s[0])).map(([k, col, dash, bw]) =>
-    `<span class="it"><svg width="30" height="12"><line x1="1" y1="6" x2="29" y2="6" stroke="${col}" stroke-width="${k === 'total' ? 3 : 1.6}"${dash.length ? ` stroke-dasharray="${dash.join(' ')}"` : ''}/><circle cx="15" cy="6" r="${k === 'total' ? 4.5 : 3}" fill="${col}"/></svg>${k === 'total' ? '全圈' : k.toUpperCase()}</span>`
-  ).join('');
-  new Chart(el, {
+  const chart = new Chart(el, {
     type: 'line', data: { datasets },
     options: {
       responsive: true, maintainAspectRatio: false, interaction: { mode: 'nearest', intersect: true },
+      onClick: (e, els, ch) => { const hit = ch.getElementsAtEventForMode(e, 'nearest', { intersect: false }, true); if (hit.length) { const di = hit[0].datasetIndex; ch.$sel = ch.$sel === di ? null : di; ch.update(); syncLeg(); } },
       plugins: {
         legend: { display: false },
         tooltip: { backgroundColor: '#1a2029', borderColor: '#3d4856', borderWidth: 1,
@@ -1929,6 +1926,26 @@ function drawSectorTrajectory(canvasId, sessions, sectorCount) {
       }
     }
   });
+
+  // custom 點+線段 legend (no box) — tap to isolate a series (others fade); tap again to restore
+  const legEl = document.getElementById(canvasId.replace('sectorStabChart-', 'sectorLeg-'));
+  const legSeries = series.filter(s => datasets.some(d => d._k === s[0]));
+  function syncLeg() {
+    if (!legEl) return;
+    [...legEl.children].forEach(ch => {
+      const di = chart.data.datasets.findIndex(d => d._k === ch.dataset.k);
+      ch.style.opacity = (chart.$sel == null || chart.$sel === di) ? '1' : '0.3';
+    });
+  }
+  if (legEl) {
+    legEl.innerHTML = legSeries.map(([k, col, dash]) =>
+      `<span class="it" data-k="${k}"><svg width="30" height="12"><line x1="1" y1="6" x2="29" y2="6" stroke="${col}" stroke-width="${k === 'total' ? 3 : 1.6}"${dash.length ? ` stroke-dasharray="${dash.join(' ')}"` : ''}/><circle cx="15" cy="6" r="${k === 'total' ? 4.5 : 3}" fill="${col}"/></svg>${k === 'total' ? '全圈' : k.toUpperCase()}</span>`
+    ).join('');
+    [...legEl.children].forEach(ch => {
+      ch.style.cursor = 'pointer';
+      ch.addEventListener('click', () => { const di = chart.data.datasets.findIndex(d => d._k === ch.dataset.k); chart.$sel = chart.$sel === di ? null : di; chart.update(); syncLeg(); });
+    });
+  }
 }
 
 function renderCarCharts(g) {
