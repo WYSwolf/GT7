@@ -37,13 +37,12 @@ board_id：寫在 data.json 的 meta.leaderboards.<key>.boardId
       且 Oita/Kumamoto 互換。個人 TT 不碰這條。
   → 新賽道不必手算：用 --event <活動ID> 讓本檔自動抓 ranking_id（見下）。
 
-找新賽道的 board_id：
-  --event <id>     讀 sportmode 活動頁（如 .../sportmode/event/14277/ → 14277）內嵌資料抓
-                   ranking_id 當 board_id 印出來。配 --key <trackKey__carSlug> 可直接寫進
-                   data.json 的 meta.leaderboards.<key>.boardId（遵守 --dry/--push/本機）。
-  --probe-event <id>  Dump 活動頁細節（HTML 長度＋ranking_id/board_id/__INIT__ 出現位置）。
-                   若頁面是 client-side 載入（內嵌找不到），會提示去 DevTools→Network
-                   複製含 ranking_id 的請求貼回來，以便鎖定資料源。
+找新賽道的 board_id（打 web-api，認證與抓榜共用，所以一樣需 --browser/--jsessionid/--bearer）：
+  --event <id>     打 POST /event/get_parameter {"event_id": id}（id = 活動頁網址尾數，
+                   如 .../sportmode/event/14277/ → 14277），取回應的 ranking_id 當 board_id
+                   印出來。配 --key <trackKey__carSlug> 可直接寫進 data.json 的
+                   meta.leaderboards.<key>.boardId（遵守 --dry/--push/本機）。
+  --probe-event <id>  Dump /event/get_parameter 的完整回應 JSON（萬一欄位變了，貼回來對欄位）。
 
 選項：
   --dry        只顯示、不寫入（驗證數字用）
@@ -152,65 +151,63 @@ def get_page(token: str, board_id: str, page: int) -> dict:
 
 
 # ---------------- 由活動 ID 自動解出 board_id ----------------
-# 活動頁多為 server-render，event 詳情常以內嵌 JSON 帶 ranking_id / board_id。
-# 這些 regex 同時吃 JSON（"ranking_id":"..."）與 JS 賦值（ranking_id = "..."）兩種寫法。
-RANKING_ID_RE = re.compile(r'ranking_id["\']?\s*[:=]\s*["\']([A-Za-z0-9_]+)["\']')
-BOARD_ID_RE = re.compile(r'board_id["\']?\s*[:=]\s*["\']([A-Za-z0-9_]+)["\']')
-REG_KEY_RE = re.compile(r'registration_key["\']?\s*[:=]\s*["\']([^"\']*)["\']')
+# 活動詳情打 web-api 的 event 模組：POST /event/get_parameter {"event_id": <id>}
+# （由官方前端 thunk Ze.getParameter({event_id}) 解出）。回應 result.event 內含
+# online.ranking_id 與 registration_key。需要 Bearer（與排行榜同一把）。
+EVENT_PARAM_API = f"{WEB_API}/event/get_parameter"
 
 
-def fetch_event_html(event_id, jsessionid=None, locale="tw"):
-    """抓 sportmode 活動頁 HTML（server-render，常內嵌 event JSON）。回傳 (html, url)。"""
-    url = f"https://www.gran-turismo.com/{locale}/gt7/sportmode/event/{event_id}/"
-    cookies = {"JSESSIONID": jsessionid} if jsessionid else None
-    r = requests.get(url, headers={
-        "User-Agent": UA, "Accept": "text/html,application/xhtml+xml,*/*",
-        "Referer": f"https://www.gran-turismo.com/{locale}/gt7/sportmode/",
-    }, cookies=cookies, timeout=15)
+def _find_key(obj, key):
+    """遞迴找巢狀 dict/list 裡第一個出現的 key 值（找不到回 None）。"""
+    if isinstance(obj, dict):
+        if key in obj and obj[key] not in (None, ""):
+            return obj[key]
+        for v in obj.values():
+            r = _find_key(v, key)
+            if r is not None:
+                return r
+    elif isinstance(obj, list):
+        for v in obj:
+            r = _find_key(v, key)
+            if r is not None:
+                return r
+    return None
+
+
+def fetch_event_parameter(token: str, event_id) -> dict:
+    """POST /event/get_parameter，回傳 result（活動詳情 dict）。"""
+    h = _headers(token); h["Content-Type"] = "application/json"
+    eid = int(event_id) if str(event_id).isdigit() else event_id
+    r = requests.post(EVENT_PARAM_API, headers=h,
+                      data=json.dumps({"event_id": eid}), timeout=15)
     r.raise_for_status()
-    return r.text, url
+    j = r.json()
+    return j.get("result", j)
 
 
-def resolve_board_id(event_id, jsessionid=None, locale="tw", verbose=True):
-    """由活動 ID 自動解出 board_id（= ranking_id；分區賽事另需區碼後綴）。
-    從活動頁內嵌資料抓 ranking_id（取不到再退求 board_id）。回傳 (board_id, html)。"""
-    html, url = fetch_event_html(event_id, jsessionid, locale)
-    m = RANKING_ID_RE.search(html) or BOARD_ID_RE.search(html)
-    if not m:
-        raise RuntimeError(
-            f"活動頁 {url} 裡找不到內嵌的 ranking_id/board_id —— "
-            "詳情可能是 client-side 載入。用 --probe-event 看頁面細節，"
-            "或從瀏覽器 DevTools→Network 重整活動頁，把含 ranking_id 的那個請求(URL+payload)貼回來。")
-    board_id = m.group(1)
-    reg = REG_KEY_RE.search(html)
-    if reg and reg.group(1) and verbose:
-        print(f"  ⚠ 此活動 registration_key={reg.group(1)!r}（分區報名賽事）—— board_id 可能要接區碼後綴，"
-              "見檔頭區域規則；個人 TT 一般用不到。")
+def resolve_board_id(token, event_id, verbose=True):
+    """由活動 ID 解出 board_id（= ranking_id；分區賽事另需區碼後綴）。回傳 (board_id, result)。"""
+    result = fetch_event_parameter(token, event_id)
+    ranking_id = _find_key(result, "ranking_id")
+    if not ranking_id:
+        raise RuntimeError(f"活動 {event_id} 詳情裡找不到 ranking_id —— 用 --probe-event 看回應結構。")
+    reg = _find_key(result, "registration_key")
+    if reg and verbose:
+        print(f"  ⚠ registration_key={reg!r}（分區報名賽事）—— board_id 可能要接區碼後綴，"
+              "見檔頭區域規則；個人 TT 用不到。")
     if verbose:
-        print(f"  · event {event_id} → board_id = {board_id}（取自活動頁 {url}）")
-    return board_id, html
+        print(f"  · event {event_id} → ranking_id = {ranking_id}（board_id 直接用它）")
+    return str(ranking_id), result
 
 
-def probe_event_page(event_id, jsessionid=None, locale="tw"):
-    """Debug：把活動頁細節 dump 出來，幫忙定位 ranking_id 在哪。"""
-    html, url = fetch_event_html(event_id, jsessionid, locale)
-    print(f"\n=== 活動 {event_id} 頁面（{url}）===")
-    print(f"HTML 長度 = {len(html)}")
-    found = False
-    for kw in ("ranking_id", "board_id", "registration_key", "__INIT__", "eventDetail", "ranking"):
-        hits = [mm.start() for mm in re.finditer(re.escape(kw), html)][:3]
-        for i in hits:
-            found = True
-            ctx = html[max(0, i - 40):i + 90].replace("\n", " ")
-            print(f"  [{kw}] …{ctx}…")
-    if not found:
-        print("  （頁面內找不到任何 ranking_id/board_id/__INIT__ —— 多半是 client-side 載入）")
-        print("  下一步：瀏覽器 DevTools→Network，重整活動頁，找回應含 ranking_id 的請求，"
-              "把 URL + payload 貼回來。")
-        # 順手列出頁面裡的 <script src> 與長 JSON 片段開頭，方便判斷資料源
-        for s in re.findall(r'<script[^>]*\bsrc=["\']([^"\']+)["\']', html)[:8]:
-            print(f"    <script src> {s}")
-    return html
+def probe_event_page(token, event_id):
+    """Debug：dump /event/get_parameter 回應，幫忙定位 ranking_id。"""
+    result = fetch_event_parameter(token, event_id)
+    print(f"\n=== 活動 {event_id} 詳情（POST /event/get_parameter）===")
+    print(json.dumps(result, ensure_ascii=False, indent=2)[:4000])
+    rid = _find_key(result, "ranking_id")
+    print(f"\n[自動偵測] ranking_id = {rid or '（找不到 —— 把上面 JSON 貼回來）'}")
+    return result
 
 
 def disp(sec):
@@ -402,18 +399,6 @@ def gh_put(repo, path, branch, gh_token, d, sha, message):
     return r.json().get("content", {}).get("html_url", "")
 
 
-def _resolve_jsessionid(jsessionid=None, browser=None, verbose=True):
-    """回傳可用的 JSESSIONID 字串（給 gran-turismo.com cookie 端點用）；沒有則回 None。"""
-    if jsessionid:
-        return jsessionid
-    if browser:
-        if verbose: print(f"🍪 從瀏覽器自動讀 JSESSIONID（{browser}）…")
-        js = jsessionid_from_browser(browser)
-        if verbose: print("  ✓ 已從瀏覽器取得 JSESSIONID")
-        return js
-    return None
-
-
 def run(*, bearer=None, jsessionid=None, browser=None, locale="tw", max_pages=60,
         push=False, repo="WYSwolf/GT7", branch="main", gh_path="data.json",
         gh_token=None, data_path="data.json", dry=False, verbose=True,
@@ -424,14 +409,14 @@ def run(*, bearer=None, jsessionid=None, browser=None, locale="tw", max_pages=60
     event=<id> → 自動解出 board_id 印出；配 key=<trackKey__carSlug> 寫進 data.json。"""
     today = datetime.now().strftime("%Y-%m-%d")   # 用本機日期（=玩家當天）
 
-    # --- 找新賽道 board_id 的兩個輔助流程（不需要 web-api Bearer，用 cookie 即可）---
+    # --- 找新賽道 board_id 的兩個輔助流程（打 web-api，需要 Bearer，與排行榜同一把）---
     if probe_event is not None:
-        js = _resolve_jsessionid(jsessionid, browser, verbose)
-        return probe_event_page(probe_event, js, locale)
+        token, _ = resolve_token(bearer, jsessionid, locale, browser, verbose)
+        return probe_event_page(token, probe_event)
 
     if event is not None:
-        js = _resolve_jsessionid(jsessionid, browser, verbose)
-        board_id, _ = resolve_board_id(event, js, locale, verbose)
+        token, _ = resolve_token(bearer, jsessionid, locale, browser, verbose)
+        board_id, _ = resolve_board_id(token, event, verbose)
         if not key:
             print(f"\n✓ board_id = {board_id}")
             print(f"  把它填進 data.json → meta.leaderboards.<trackKey__carSlug>.boardId；"
