@@ -1815,15 +1815,23 @@ function renderCarCharts(g) {
 
   const labels = allLaps.map((_, i) => i + 1);
   const times = allLaps.map(l => l.total);
+  // Colour by lap quality (not by session): fastest green, median orange,
+  // other valid blue (0.8 alpha), invalid grey (0.2). Fastest & median slightly larger.
+  const validLaps = allLaps.filter(l => !l.invalid);
+  const fastest = validLaps.length ? Math.min(...validLaps.map(l => l.total)) : null;
+  let medianLap = null;
+  if (validLaps.length) {
+    const sv = [...validLaps].sort((a, b) => a.total - b.total);
+    medianLap = sv[Math.floor((sv.length - 1) / 2)];
+  }
+  const isHi = l => !l.invalid && (l.total === fastest || l === medianLap);
   const pointColors = allLaps.map(l => {
-    if (l.invalid) return '#5a6577';
-    if (l.total === g.pb) return '#00ff88';
-    if (l.total <= g.pb + 0.5) return '#4dabf7';
-    if (l.session) return SESSION_COLORS[l.session];
-    if (l.total > Math.min(...times) + 8) return '#ff4757';
-    return '#ffd43b';
+    if (l.invalid) return hexA('#5a6577', 0.2);
+    if (l.total === fastest) return hexA('#00ff88', 1);
+    if (l === medianLap) return hexA('#ffd43b', 1);
+    return hexA('#4dabf7', 0.8);
   });
-  const pointSizes = allLaps.map(l => l.total === g.pb ? 10 : 6);
+  const pointSizes = allLaps.map(l => isHi(l) ? 5 : 3);
 
   // Default Y-axis zoom: focus on the dense band, excluding outlier (incident) laps
   // via the Tukey upper fence (Q3 + 1.5·IQR). User can pinch-zoom out or hit 重置.
@@ -1836,7 +1844,7 @@ function renderCarCharts(g) {
 
   new Chart(document.getElementById('lapChart-' + g.key), {
     type: 'line',
-    data: { labels, datasets: [{ data: times, showLine: false, borderColor: 'transparent', backgroundColor: 'transparent', pointBackgroundColor: pointColors, pointBorderColor: '#fff', pointBorderWidth: 0.5, pointRadius: pointSizes, pointHoverRadius: 12 }] },
+    data: { labels, datasets: [{ data: times, showLine: false, borderColor: 'transparent', backgroundColor: 'transparent', pointBackgroundColor: pointColors, pointBorderColor: pointColors, pointBorderWidth: 0, pointRadius: pointSizes, pointHoverRadius: 12 }] },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
@@ -1888,11 +1896,10 @@ function renderCarCharts(g) {
           g.sessions.forEach(s => {
             const mid = start + s.totalLaps / 2;
             const xPx = scales.x.getPixelForValue(mid);
-            ctx.fillStyle = s.session ? SESSION_COLORS[s.session] : '#8b96a8';
+            ctx.fillStyle = '#5a6577';
             ctx.font = "bold 11px 'Bebas Neue'";
             ctx.textAlign = 'center';
-            const dLbl = s.date ? s.date.slice(5).replace('-', '/') : '';
-            const lbl = (dLbl ? dLbl + ' ' : '') + (s.session ? s.session : 'SESSION');
+            const lbl = s.session ? s.session : 'SESSION';
             ctx.fillText(lbl, xPx, chartArea.top + 16);
             start += s.totalLaps;
           });
