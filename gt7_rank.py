@@ -4,7 +4,9 @@
 GT7 Rank Fetcher  ·  WYS / GT7 Training Tracker
 ================================================
 從 gran-turismo.com 官方 web API 抓「你目前活動」的世界紀錄 / top100 / top1000 /
-總人數 / 你的名次，更新 data.json 的 meta.leaderboards + references（WR）+ goals。
+你的名次，更新 data.json 的 meta.leaderboards + references（WR）+ goals。
+母體總人數（官方 API 抓不到，它只回榜上清單大小）改從 leaderboards.<key>.eventUrl
+指向的 dg-edge 事件頁抓「Total players」。
 
 必須在「你自己的電腦」跑（家用 IP）——Sony / gran-turismo 會擋資料中心 IP。
 
@@ -32,6 +34,7 @@ board_id：寫在 data.json 的 meta.leaderboards.<key>.boardId
 import argparse
 import json
 import os
+import re
 import sys
 import time
 from datetime import datetime, timezone
@@ -94,6 +97,22 @@ def disp(sec):
         return "—"
     m = int(sec // 60)
     return f"{m}:{sec - m * 60:06.3f}"
+
+
+def fetch_dgedge_total(event_url: str):
+    """從 dg-edge 事件頁抓「Total players」真正母體人數（官方 API 抓不到）。失敗回 None。"""
+    try:
+        r = requests.get(event_url, headers={"User-Agent": UA, "Accept": "text/html"}, timeout=15)
+        r.raise_for_status()
+    except Exception as e:
+        print(f"  · dg-edge 母體抓取失敗（沿用既有 totalPlayers）：{e}")
+        return None
+    # 頁面 server-render：<span>Total players</span> <b>150118</b>
+    m = re.search(r"Total\s*players\s*</span>\s*<b[^>]*>\s*([\d,]+)", r.text, re.I)
+    if not m:
+        print("  · dg-edge 頁面找不到 Total players（版面可能改了，沿用既有 totalPlayers）。")
+        return None
+    return int(m.group(1).replace(",", ""))
 
 
 def fetch_board(token: str, board_id: str, my_id: str, max_pages: int = 60) -> dict:
@@ -199,8 +218,14 @@ def main():
             print(f"  ✗ 失敗：{e}")
             continue
         entry = d["meta"]["leaderboards"][key]
-        # 母體人數用既有 totalPlayers（dg-edge 母體）——API 的 total 只是「榜上回傳的清單大小」，
-        # 不是參賽總數，不能拿來當分母（否則百分位會嚴重失真）。
+        # 母體人數：官方 API 的 total 只是「榜上回傳的清單大小」（cap），不是參賽總數。
+        # 真正母體去 dg-edge 事件頁抓 Total players；抓不到就沿用既有 totalPlayers。
+        ev = entry.get("eventUrl", "")
+        if "dg-edge.com" in ev:
+            dg_total = fetch_dgedge_total(ev)
+            if dg_total:
+                entry["totalPlayers"] = dg_total
+                print(f"  · dg-edge 母體：{dg_total} 人")
         population = entry.get("totalPlayers")
         pct = round(r["rank"] / population * 100, 2) if r["rank"] and population else None
         print(f"  WR={disp(r['wr'])}  top100={disp(r['top100'])}  top1000={disp(r['top1000'])}  "
