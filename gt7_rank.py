@@ -102,28 +102,57 @@ def _gt_post(path: str, access_token: str, **params) -> dict:
     return r.json()
 
 
+import re
+
+_USER_NO_PATTERNS = [
+    r'/user/(\d{4,})',
+    r'user_no["\s:=]+(\d{3,})',
+    r'"userNo"\s*:\s*"?(\d{3,})',
+    r'data-user-?no["\s:=]+(\d{3,})',
+    r'profile/(\d{4,})',
+]
+
 def get_user_no(access_token: str, psn_id: str) -> int:
     """用 PSN ID 查 gran-turismo.com 的 user_no。"""
     r = requests.get(
         f"https://www.gran-turismo.com/us/gt7/user/{psn_id}/",
         headers={
             "Authorization": f"Bearer {access_token}",
-            "User-Agent": "Mozilla/5.0",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
         },
         timeout=10,
     )
-    # user_no 通常在 URL 或頁面 JSON 中
-    # 嘗試從 redirect URL 抓數字 ID
     final_url = r.url
-    parts = [p for p in final_url.rstrip("/").split("/") if p.isdigit()]
+    parts = [p for p in final_url.rstrip("/").split("/") if p.isdigit() and len(p) >= 4]
     if parts:
         return int(parts[-1])
-    # 也嘗試從 HTML 抓 data-user-no
-    import re
-    m = re.search(r'user_no["\s:=]+(\d+)', r.text)
-    if m:
-        return int(m.group(1))
-    raise RuntimeError(f"找不到 user_no（url={final_url}）")
+    for pat in _USER_NO_PATTERNS:
+        m = re.search(pat, r.text)
+        if m:
+            return int(m.group(1))
+    raise RuntimeError(f"找不到 user_no（status={r.status_code}, url={final_url}）— 跑 --debug-user 把回應貼給我")
+
+
+def debug_user(access_token: str, psn_id: str):
+    """Dump the raw profile response so we can see how to extract user_no."""
+    url = f"https://www.gran-turismo.com/us/gt7/user/{psn_id}/"
+    r = requests.get(url, headers={
+        "Authorization": f"Bearer {access_token}",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
+    }, timeout=15)
+    print(f"--- GET {url}")
+    print(f"status   = {r.status_code}")
+    print(f"final_url= {r.url}")
+    print(f"ctype    = {r.headers.get('Content-Type')}")
+    print(f"len      = {len(r.text)}")
+    for pat in _USER_NO_PATTERNS:
+        hits = re.findall(pat, r.text)
+        if hits:
+            print(f"pattern {pat!r} -> {hits[:6]}")
+    # show any long digit runs (candidate ids) and the head of the body
+    print("digit runs:", sorted(set(re.findall(r'\d{5,}', r.text)))[:20])
+    print("----- body head (1500 chars) -----")
+    print(r.text[:1500])
 
 
 def get_sport_mode_stats(access_token: str, user_no: int) -> dict:
@@ -231,6 +260,7 @@ def main():
     ap.add_argument("--data", default="data.json", help="data.json 路徑")
     ap.add_argument("--dry", action="store_true", help="只顯示，不寫入")
     ap.add_argument("--discover", action="store_true", help="列出目前有成績的 board_id（用於建立對應表）")
+    ap.add_argument("--debug-user", action="store_true", help="印出 user 個人頁的原始回應（用來校正 user_no 抓法）")
     args = ap.parse_args()
 
     if not args.npsso:
@@ -241,6 +271,10 @@ def main():
     code = _psn_auth_code(args.npsso)
     token = _psn_access_token(code)
     print("  ✓ 取得 access token")
+
+    if args.debug_user:
+        debug_user(token, args.psn_id)
+        return
 
     print(f"👤 查詢 user_no ({args.psn_id})…")
     user_no = get_user_no(token, args.psn_id)
