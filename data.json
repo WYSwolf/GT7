@@ -1,7 +1,7 @@
 {
  "meta": {
   "version": "1.8",
-  "lastUpdated": "2026-06-28",
+  "lastUpdated": "2026-06-29",
   "driver": "User",
   "schema": "GT7 Telemetry Training Data",
   "reference": {
@@ -12,17 +12,17 @@
   },
   "references": {
    "911gt3r99222": {
-    "time": 79.483,
-    "displayTime": "1:19.483",
+    "time": 79.466,
+    "displayTime": "1:19.466",
     "label": "世界第一 ghost",
-    "note": "世界第一紀錄。5/30 1:19.546 → 5/31 1:19.512 → 6/4 1:19.502 → 6/6 1:19.483(採用最快值)",
+    "note": "GT7 官方排行 #1（2026-06-29 自動抓取）",
     "csv": "telemetry/wr-911gt3r99222.csv"
    },
    "toyota86grmn16": {
     "time": 110.238,
     "displayTime": "1:50.238",
     "label": "世界第一 ghost",
-    "note": "event #580 Deep Forest 逆向 WR;6/13 擷取 ghost 重播",
+    "note": "GT7 官方排行 #1（2026-06-29 自動抓取）",
     "csv": "telemetry/wr-toyota86grmn16.csv",
     "event": 580
    },
@@ -30,7 +30,13 @@
     "time": 90.92,
     "displayTime": "1:30.920",
     "label": "WR(GT7 全球#1)",
-    "note": "GT7 官方排行 #1（2026-06-28 自動抓取）"
+    "note": "GT7 官方排行 #1（2026-06-29 自動抓取）"
+   },
+   "bmwm6gt3sprint16": {
+    "time": 102.38,
+    "displayTime": "1:42.380",
+    "label": "WR(GT7 全球#1)",
+    "note": "GT7 官方排行 #1（2026-06-29 自動抓取）"
    }
   },
   "guides": {
@@ -56,11 +62,11 @@
     "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
     "eventLabel": "Time Trial · WeatherTech Laguna Seca · 911 GT3 R (992) '22 · RS",
     "source": "dg-edge.com",
-    "asOf": "2026-06-10",
-    "totalPlayers": 176610,
-    "wr": 79.483,
-    "top100": 80.157,
-    "top1000": 80.924,
+    "asOf": "2026-06-29",
+    "totalPlayers": 208956,
+    "wr": 79.466,
+    "top100": 80.121,
+    "top1000": 80.849,
     "medals": {
      "platinum": 79.881,
      "gold": 81.868,
@@ -89,25 +95,24 @@
     ],
     "playerRank": {
      "rank": 7315,
-     "countryRank": 41,
-     "country": "TW",
      "pb": 81.645,
-     "gapToWR": 2.179,
-     "gapPct": 2.74,
-     "source": "實測(dg-edge profile)",
-     "asOf": "2026-06-13",
-     "note": "實測 Global #7315 / 台灣 #41;+2.179s(+2.74%)vs WR。top 4.14%。活動已結束(6/11),最終名次(人數增加,從早期 #6,353 退到 #7315)。"
-    }
+     "source": "dg-edge",
+     "asOf": "2026-06-29",
+     "topPct": 3.5,
+     "countryRank": 41
+    },
+    "boardId": "p_rt_1014088_001",
+    "boardSize": 2149
    },
    "watkins__bmwm6gt3sprint16": {
     "mode": "daily-race",
     "eventUrl": "https://www.dg-edge.com/events/dailies/574",
     "eventLabel": "Daily Race C · Week 22 · Watkins Glen Long · GR.3",
     "source": "dg-edge.com",
-    "asOf": "2026-06-06",
+    "asOf": "2026-06-29",
     "endDate": "2026-06-01",
-    "totalPlayers": 38246,
-    "top100": 102.952,
+    "totalPlayers": 68784,
+    "top100": 102.857,
     "top1000": 103.937,
     "medals": {
      "platinum": 102.936,
@@ -135,12 +140,23 @@
      "estRank": 17303,
      "medal": "Silver",
      "recordedOn": "2026-06-06"
+    },
+    "boardId": "p_rt_1014097_001",
+    "boardSize": 688,
+    "wr": 102.38,
+    "playerRank": {
+     "rank": 30932,
+     "pb": 106.837,
+     "source": "dg-edge",
+     "asOf": "2026-06-29",
+     "topPct": 44.97,
+     "countryRank": 99
     }
    },
    "deepforest__toyota86grmn16": {
     "event": 580,
     "eventUrl": "https://www.dg-edge.com/events/time-trials/580",
-    "asOf": "2026-06-18",
+    "asOf": "2026-06-29",
     "totalPlayers": 157534,
     "top100": 111.075,
     "top1000": 111.887,
@@ -157,15 +173,12 @@
      "bronze": 55.64
     },
     "playerRank": {
-     "rank": 1927,
-     "countryRank": 13,
-     "country": "TW",
+     "rank": 2346,
      "pb": 112.366,
-     "gapToWR": 2.128,
-     "gapPct": 1.93,
-     "source": "實測(dg-edge profile)",
-     "asOf": "2026-06-13",
-     "note": "實測 Global #1927 / 台灣 #13;+2.128s(+1.93%)vs WR。top 1.87%。活動進行中(至 6/18)。"
+     "source": "dg-edge",
+     "asOf": "2026-06-29",
+     "topPct": 1.49,
+     "countryRank": 15
     },
     "standings": [
      {
@@ -174,19 +187,21 @@
      }
     ],
     "endDate": "2026-06-18",
-    "wr": 110.238
+    "wr": 110.238,
+    "boardId": "p_rt_1014166_001",
+    "boardSize": 1576
    },
    "redbullring__fordgt17": {
     "mode": "time-trial",
     "eventUrl": "https://www.dg-edge.com/events/time-trials/594",
     "eventLabel": "Time Trial · Red Bull Ring · Ford GT '17 · SM",
     "source": "dg-edge.com",
-    "asOf": "2026-06-28",
-    "totalPlayers": 150118,
-    "boardSize": 1546,
+    "asOf": "2026-06-29",
+    "totalPlayers": 150208,
+    "boardSize": 1590,
     "wr": 90.92,
-    "top100": 91.86,
-    "top1000": 92.52,
+    "top100": 91.845,
+    "top1000": 92.514,
     "medals": {
      "platinum": 91.375,
      "gold": 93.648,
@@ -202,11 +217,11 @@
     "medalPctMode": "band",
     "endDate": "2026-07-02",
     "playerRank": {
-     "rank": 1490,
+     "rank": 1528,
      "pb": 92.649,
      "source": "auto(gt7_rank.py)",
-     "asOf": "2026-06-28",
-     "topPct": 0.99
+     "asOf": "2026-06-29",
+     "topPct": 1.02
     },
     "boardId": "p_rt_1014277_001"
    }
