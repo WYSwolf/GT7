@@ -1063,9 +1063,21 @@ function hexA(hex, a) {
   const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
   return `rgba(${r},${g},${b},${a.toFixed(3)})`;
 }
-// Per-point alpha ramp: oldest most transparent → newest opaque.
-function fadePoints(color, n, minA = 0.2) {
-  return Array.from({ length: n }, (_, i) => hexA(color, n < 2 ? 1 : minA + (1 - minA) * (i / (n - 1))));
+// Build chart datasets where each WHOLE line's opacity is ranked by its latest
+// node's date: oldest line most transparent → newest line opaque (interpolated).
+function makeFadedLines(plot, minA = 0.25) {
+  const byOld = [...plot].sort((a, b) => a.last.localeCompare(b.last));
+  const n = byOld.length;
+  byOld.forEach((p, i) => { p.alpha = n < 2 ? 1 : minA + (1 - minA) * (i / (n - 1)); });
+  return plot.map(p => {
+    const c = hexA(p.color, p.alpha);
+    return {
+      label: p.g.track, data: p.pts,
+      borderColor: c, backgroundColor: c,
+      tension: 0.2, pointRadius: 2.5, pointHoverRadius: 6, borderWidth: 2,
+      pointBackgroundColor: c, pointBorderColor: c, _sorted: p.sorted
+    };
+  });
 }
 function getConsistencyGrade(c) {
   if (c <= 0.5) return { label: '優秀', color: 'var(--accent)' };
@@ -2123,28 +2135,22 @@ function buildHistory() {
   if (!canvas) return;
   const groups = getTrackGroups();
   const trackColors = ['#00ff88', '#4dabf7', '#ed7d31', '#c266ff', '#ffd43b'];
-  const datasets = [];
   let allLabels = [];
   let ci = 0;
+  const plot = [];
   Object.values(groups).forEach(g => {
+    const color = trackColors[ci % trackColors.length]; ci++;
     const wr = (getCarReference(g.carKey || carSlug(g.car)) || {}).time;
-    if (!wr) { ci++; return; }
+    if (!wr) return;
     const sorted = [...g.sessions].sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
       return (a.session || '').localeCompare(b.session || '');
     });
     const pts = sorted.map(s => +(((s.best - wr) / wr) * 100).toFixed(3));
     if (pts.length > allLabels.length) allLabels = pts.map((_, i) => 'Day ' + (i + 1));
-    const col = trackColors[ci % trackColors.length];
-    const ptCol = fadePoints(col, pts.length);
-    datasets.push({
-      label: g.track, data: pts,
-      borderColor: col, backgroundColor: col,
-      tension: 0.2, pointRadius: 2.5, pointHoverRadius: 6, borderWidth: 2,
-      pointBackgroundColor: ptCol, pointBorderColor: ptCol, _sorted: sorted
-    });
-    ci++;
+    plot.push({ g, sorted, pts, color, last: sorted.length ? sorted[sorted.length - 1].date : '' });
   });
+  const datasets = makeFadedLines(plot);
   new Chart(canvas, {
     type: 'line',
     data: { labels: allLabels, datasets },
@@ -2178,26 +2184,21 @@ function buildConsistencyChart() {
   if (!canvas) return;
   const groups = getTrackGroups();
   const trackColors = ['#00ff88', '#4dabf7', '#ed7d31', '#c266ff', '#ffd43b'];
-  const datasets = [];
   let allLabels = [];
   let ci = 0;
+  const plot = [];
   Object.values(groups).forEach(g => {
+    const color = trackColors[ci % trackColors.length]; ci++;
+    if (g.key === 'watkins') return;   // 一致性圖移除沃特金斯峽谷
     const sorted = [...g.sessions].sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
       return (a.session || '').localeCompare(b.session || '');
     });
     const pts = sorted.map(s => +(s.avg - s.best).toFixed(3));
     if (pts.length > allLabels.length) allLabels = pts.map((_, i) => 'Day ' + (i + 1));
-    const col = trackColors[ci % trackColors.length];
-    const ptCol = fadePoints(col, pts.length);
-    datasets.push({
-      label: g.track, data: pts,
-      borderColor: col, backgroundColor: col,
-      tension: 0.2, pointRadius: 2.5, pointHoverRadius: 6, borderWidth: 2,
-      pointBackgroundColor: ptCol, pointBorderColor: ptCol, _sorted: sorted
-    });
-    ci++;
+    plot.push({ g, sorted, pts, color, last: sorted.length ? sorted[sorted.length - 1].date : '' });
   });
+  const datasets = makeFadedLines(plot);
   new Chart(canvas, {
     type: 'line',
     data: { labels: allLabels, datasets },
