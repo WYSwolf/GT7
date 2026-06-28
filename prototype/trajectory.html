@@ -128,7 +128,8 @@ fetch('../data.json').then(r => r.json()).then(D => {
         },
         { // real day points: invisible hit-targets for tooltip + white last-day dot
           data: pts.map(p => ({ x: p.x, y: p.y, _p: p })), showLine: false,
-          pointRadius: pts.map((_, i) => i === n - 1 ? 5 : 0), pointHitRadius: 14, pointHoverRadius: 7,
+          pointRadius: pts.map((_, i) => i === n - 1 ? 5 : 0), pointHitRadius: 14,
+          pointHoverRadius: pts.map((_, i) => i === n - 1 ? 6 : 0),   // 只有最後一日會有點,hover 也不彈出其他
           pointBackgroundColor: WHITE, pointBorderColor: WHITE
         }
       ] },
