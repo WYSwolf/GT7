@@ -1580,7 +1580,7 @@ function buildPBProgression() {
               const ds = ctx.dataset;
               const s = ds._sorted ? ds._sorted[ctx.dataIndex] : null;
               let line = `${ds.label}: +${ctx.parsed.y.toFixed(2)}% vs WR`;
-              if (s) line += ` · ${fmtTime(s.best)}${s.sessionLabel ? ' (' + s.sessionLabel + ')' : ''}`;
+              if (s) line += ` · ${fmtTime(s.best)}${s.date ? ' (' + s.date + ')' : ''}`;
               return line;
             }
           }
@@ -2206,21 +2206,19 @@ function buildHistory() {
   const canvas = document.getElementById('historyGapChart');
   if (!canvas) return;
   const groups = getTrackGroups();
-  const trackColors = ['#00ff88', '#4dabf7', '#ed7d31', '#c266ff', '#ffd43b'];
   let allLabels = [];
-  let ci = 0;
   const plot = [];
   Object.values(groups).forEach(g => {
-    const color = trackColors[ci % trackColors.length]; ci++;
     const wr = (getCarReference(g.carKey || carSlug(g.car)) || {}).time;
     if (!wr) return;
-    const sorted = [...g.sessions].sort((a, b) => {
-      if (a.date !== b.date) return a.date.localeCompare(b.date);
-      return (a.session || '').localeCompare(b.session || '');
-    });
-    const pts = sorted.map(s => +(((s.best - wr) / wr) * 100).toFixed(3));
+    // 以「日」為單位:當日最佳距 WR %
+    const byDate = {};
+    g.sessions.forEach(s => { (byDate[s.date] = byDate[s.date] || []).push(...s.laps.filter(l => !l.invalid).map(l => l.total)); });
+    const dates = Object.keys(byDate).sort();
+    const pts = dates.map(d => +(((Math.min(...byDate[d]) - wr) / wr) * 100).toFixed(3));
+    if (!pts.length) return;
     if (pts.length > allLabels.length) allLabels = pts.map((_, i) => 'Day ' + (i + 1));
-    plot.push({ g, sorted, pts, color, last: sorted.length ? sorted[sorted.length - 1].date : '' });
+    plot.push({ g, sorted: dates.map((d, i) => ({ date: d, best: Math.min(...byDate[d]) })), pts, last: dates[dates.length - 1] });
   });
   const datasets = makeFadedLines(plot);
   new Chart(canvas, {
@@ -2237,7 +2235,7 @@ function buildHistory() {
               const ds = ctx.dataset;
               const s = ds._sorted ? ds._sorted[ctx.dataIndex] : null;
               let line = `${ds.label}: +${ctx.parsed.y.toFixed(2)}% vs WR`;
-              if (s) line += ` · ${fmtTime(s.best)}${s.sessionLabel ? ' (' + s.sessionLabel + ')' : ''}`;
+              if (s) line += ` · ${fmtTime(s.best)}${s.date ? ' (' + s.date + ')' : ''}`;
               return line;
             }
           }
