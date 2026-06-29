@@ -20,6 +20,7 @@ dg 的舊名次只當二分搜尋的起點(加速收斂)，連時間都沒有時
        3. python gt7_rank.py --browser --dry          # 不帶值=掃所有瀏覽器
           或 --browser chrome / edge / firefox / brave …（或設 GT7_BROWSER）
        只要瀏覽器還登入著，每次跑都抓到當前有效的 cookie，不必再手動換。
+       登入過期/讀不到時（互動終端）：會自動開 gran-turismo 登入頁，登完按 Enter 自動重試一次。
   B) --jsessionid：手動貼一次（會過期，幾天～兩週要重貼）
        F12 → Application → Cookies → www.gran-turismo.com → 複製 JSESSIONID 值
        python gt7_rank.py --jsessionid <貼上> --dry
@@ -695,20 +696,51 @@ def recompute_goals(d: dict, track_key: str, wr: float):
         g["items"] = items
 
 
-def resolve_token(bearer=None, jsessionid=None, locale="tw", browser=None, verbose=True):
-    """回傳 (token, my_id)。優先序：bearer → jsessionid → 從瀏覽器自動讀 JSESSIONID（browser）。"""
+def open_login_page(locale="tw", verbose=True):
+    """開瀏覽器到 gran-turismo 登入頁，讓使用者重新登入（cookie 過期時用）。"""
+    url = f"https://www.gran-turismo.com/{locale}/gt7/sportmode/"
+    if verbose:
+        print(f"🌐 開啟登入頁：{url}\n   請在瀏覽器登入 gran-turismo.com（PSN）。")
+    try:
+        import webbrowser
+        webbrowser.open(url)
+    except Exception:
+        print(f"   （無法自動開啟，請手動打開：{url}）")
+
+
+def _browser_token(jsessionid, locale, browser, verbose):
+    """讀 cookie（如用 browser）→ 換 Bearer。回傳 (token, my_id, jsessionid)。失敗丟 RuntimeError。"""
+    if not jsessionid and browser:
+        if verbose: print(f"🍪 從瀏覽器自動讀 JSESSIONID（{browser}）…")
+        jsessionid = jsessionid_from_browser(browser)
+        if verbose: print("  ✓ 已從瀏覽器取得 JSESSIONID")
+    if not jsessionid:
+        raise RuntimeError("請給 --bearer / --jsessionid，或用 --browser 自動讀瀏覽器 cookie。用法見檔頭。")
+    if verbose: print("🔑 用 JSESSIONID 換 Bearer…")
+    info = get_token_info(jsessionid, locale)   # 過期會丟 RuntimeError（is_signed_in=false）
+    return info["access_token"], info.get("user_id")
+
+
+def resolve_token(bearer=None, jsessionid=None, locale="tw", browser=None, verbose=True, relogin=True):
+    """回傳 (token, my_id)。優先序：bearer → jsessionid → 從瀏覽器自動讀 JSESSIONID（browser）。
+    relogin=True 且為互動終端時，瀏覽器登入失效會自動開登入頁、等你登入後按 Enter 重試一次。"""
     token, my_id = bearer, None
     if not token:
-        if not jsessionid and browser:
-            if verbose: print(f"🍪 從瀏覽器自動讀 JSESSIONID（{browser}）…")
-            jsessionid = jsessionid_from_browser(browser)
-            if verbose: print("  ✓ 已從瀏覽器取得 JSESSIONID")
-        if not jsessionid:
-            raise RuntimeError("請給 --bearer / --jsessionid，或用 --browser 自動讀瀏覽器 cookie。用法見檔頭。")
-        if verbose: print("🔑 用 JSESSIONID 換 Bearer…")
-        info = get_token_info(jsessionid, locale)
-        token = info["access_token"]
-        my_id = info.get("user_id")
+        try:
+            token, my_id = _browser_token(jsessionid, locale, browser, verbose)
+        except RuntimeError as e:
+            # 只有「用瀏覽器自動讀」且互動模式時才開登入頁重試（手動貼 jsessionid / 非終端不適用）
+            interactive = sys.stdin is not None and sys.stdin.isatty()
+            if relogin and browser and not jsessionid and interactive:
+                print(f"⚠ gran-turismo 登入失效或讀不到 cookie：{e}")
+                open_login_page(locale, verbose)
+                try:
+                    input("   登入完成後按 Enter 重試…")
+                except EOFError:
+                    raise e
+                token, my_id = _browser_token(jsessionid, locale, browser, verbose)
+            else:
+                raise
         if verbose: print(f"  ✓ 取得 Bearer（user_id={my_id}）")
     if not my_id:
         if verbose: print("👤 取得自己的 user_id…")
