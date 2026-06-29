@@ -96,13 +96,13 @@
     "playerRank": {
      "rank": 7315,
      "pb": 81.645,
-     "source": "dg-edge",
+     "source": "gt(by-time)",
      "asOf": "2026-06-29",
      "topPct": 3.5,
      "countryRank": 41
     },
     "boardId": "p_rt_1014088_001",
-    "boardSize": 2149
+    "boardPages": 2149
    },
    "watkins__bmwm6gt3sprint16": {
     "mode": "daily-race",
@@ -113,7 +113,7 @@
     "endDate": "2026-06-01",
     "totalPlayers": 68784,
     "top100": 102.857,
-    "top1000": 103.937,
+    "top1000": 103.733,
     "medals": {
      "platinum": 102.936,
      "gold": 105.496,
@@ -142,16 +142,16 @@
      "recordedOn": "2026-06-06"
     },
     "boardId": "p_rt_1014097_001",
-    "boardSize": 688,
     "wr": 102.38,
     "playerRank": {
      "rank": 30932,
      "pb": 106.837,
-     "source": "dg-edge",
+     "source": "gt(by-time)",
      "asOf": "2026-06-29",
      "topPct": 44.97,
      "countryRank": 99
-    }
+    },
+    "boardPages": 688
    },
    "deepforest__toyota86grmn16": {
     "event": 580,
@@ -175,7 +175,7 @@
     "playerRank": {
      "rank": 2346,
      "pb": 112.366,
-     "source": "dg-edge",
+     "source": "gt(by-time)",
      "asOf": "2026-06-29",
      "topPct": 1.49,
      "countryRank": 15
@@ -189,7 +189,7 @@
     "endDate": "2026-06-18",
     "wr": 110.238,
     "boardId": "p_rt_1014166_001",
-    "boardSize": 1576
+    "boardPages": 1576
    },
    "redbullring__fordgt17": {
     "mode": "time-trial",
@@ -197,11 +197,10 @@
     "eventLabel": "Time Trial · Red Bull Ring · Ford GT '17 · SM",
     "source": "dg-edge.com",
     "asOf": "2026-06-29",
-    "totalPlayers": 150208,
-    "boardSize": 1590,
+    "totalPlayers": 156157,
     "wr": 90.92,
-    "top100": 91.845,
-    "top1000": 92.514,
+    "top100": 91.844,
+    "top1000": 92.512,
     "medals": {
      "platinum": 91.375,
      "gold": 93.648,
@@ -217,13 +216,15 @@
     "medalPctMode": "band",
     "endDate": "2026-07-02",
     "playerRank": {
-     "rank": 1528,
+     "rank": 1532,
      "pb": 92.649,
-     "source": "auto(gt7_rank.py)",
+     "source": "gt(by-time)",
      "asOf": "2026-06-29",
-     "topPct": 1.02
+     "topPct": 0.98,
+     "countryRank": 10
     },
-    "boardId": "p_rt_1014277_001"
+    "boardId": "p_rt_1014277_001",
+    "boardPages": 1599
    }
   },
   "sectorCalibration": {
