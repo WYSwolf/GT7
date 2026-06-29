@@ -1356,12 +1356,12 @@ function renderLeaderboard(g) {
   const pb = g.pb;
   const rows = [];
   if (lb.wr != null) rows.push({ label: 'World #1', icon: '🏎', t: lb.wr });
-  if (lb.medals && lb.medals.platinum != null) rows.push({ label: 'Platinum +0.5%', icon: '⬜', t: lb.medals.platinum, pct: lb.medalPct && lb.medalPct.platinum });
-  if (lb.top100 != null) rows.push({ label: 'Top 100', icon: '💯', t: lb.top100 });
-  if (lb.top1000 != null) rows.push({ label: 'Top 1000', icon: '🔟', t: lb.top1000 });
-  if (lb.medals && lb.medals.gold != null) rows.push({ label: 'Gold +3%', icon: '🥇', t: lb.medals.gold, pct: lb.medalPct && lb.medalPct.gold });
-  if (lb.medals && lb.medals.silver != null) rows.push({ label: 'Silver +5%', icon: '🥈', t: lb.medals.silver, pct: lb.medalPct && lb.medalPct.silver });
-  if (lb.medals && lb.medals.bronze != null) rows.push({ label: 'Bronze +10%', icon: '🥉', t: lb.medals.bronze, pct: lb.medalPct && lb.medalPct.bronze });
+  if (lb.medals && lb.medals.platinum != null) rows.push({ label: '+0.5%', icon: '⬜', t: lb.medals.platinum });
+  if (lb.top100 != null) rows.push({ label: '#100', icon: '💯', t: lb.top100 });
+  if (lb.top1000 != null) rows.push({ label: '#1000', icon: '🔟', t: lb.top1000 });
+  if (lb.medals && lb.medals.gold != null) rows.push({ label: '+3%', icon: '🥇', t: lb.medals.gold });
+  if (lb.medals && lb.medals.silver != null) rows.push({ label: '+5%', icon: '🥈', t: lb.medals.silver });
+  if (lb.medals && lb.medals.bronze != null) rows.push({ label: '+10%', icon: '🥉', t: lb.medals.bronze });
   rows.push({ label: 'Your PB', icon: '🟨', t: pb, isUser: true });
   rows.sort((a, b) => a.t - b.t);
 
@@ -1384,12 +1384,11 @@ function renderLeaderboard(g) {
     }
     const diff = r.t - pb;
     const gapTxt = diff > 0
-      ? `<span style="color:var(--accent);">CLEARED ✓</span>`
-      : `<span style="color:var(--text-secondary);">need ${(pb - r.t).toFixed(3)}s</span>`;
-    const pctTxt = r.pct != null ? ` · ${r.pct}%` : '';
+      ? `<span style="color:var(--accent);">已達成 ✓</span>`
+      : `<span style="color:var(--text-secondary);">還差 ${(pb - r.t).toFixed(3)}s</span>`;
     return `<div style="display:flex;align-items:center;gap:.6rem;padding:.5rem .7rem;border-bottom:1px solid #1a2028;">
       <span style="font-size:1rem;opacity:.9;">${r.icon}</span>
-      <span style="flex:1;color:#cdd5de;">${r.label}<span style="color:#5b6675;font-size:.72rem;">${pctTxt}</span></span>
+      <span style="flex:1;color:#cdd5de;">${r.label}</span>
       <span style="font-family:'JetBrains Mono',monospace;color:#cdd5de;">${fmtTime(r.t)}</span>
       <span style="width:92px;text-align:right;font-size:.74rem;">${gapTxt}</span>
     </div>`;
@@ -1417,7 +1416,7 @@ function renderLeaderboard(g) {
           ${place.note ? `<div style="margin-top:.55rem;font-size:.74rem;color:#8b95a3;line-height:1.5;border-top:1px solid #1c232c;padding-top:.5rem;">ℹ️ ${place.note}</div>` : ''}
         </div>` : ''}
         ${rowsHTML}
-        ${next ? `<div style="margin-top:.9rem;padding:.65rem .7rem;border-radius:6px;background:#11161d;color:#cdd5de;font-size:.85rem;line-height:1.5;">🎯 Next target: <b style="color:#fff;">${next.label}</b> ${fmtTime(next.t)} — <b style="color:var(--accent);">${(pb - next.t).toFixed(3)}s</b> to go</div>` : ''}
+        ${next ? `<div style="margin-top:.9rem;padding:.65rem .7rem;border-radius:6px;background:#11161d;color:#cdd5de;font-size:.85rem;line-height:1.5;">🎯 下一個目標：<b style="color:#fff;">${next.label}</b> ${fmtTime(next.t)} — 還差 <b style="color:var(--accent);">${(pb - next.t).toFixed(3)}s</b></div>` : ''}
       </div>
     </div>`;
 }
