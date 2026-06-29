@@ -61,4 +61,16 @@ telemetry/          # CSV 遙測原始資料，從 GT7 匯出
 
 ## 未來分析方向（規劃中）
 
-要做「擅長哪種車/賽道」的長期剖面，需先在資料補標籤：每個組合標上車種/傳動(MR/FR/4WD)/級別、賽道屬性(高速/技術彎、長度、順逆向)，再把各組合的 vs-WR% / 百分位 / 一致性依類別聚合，排出強弱。樣本夠了再開分析頁；屆時於 `sessions`/`meta` 補標籤即可。詳見 `README.md` §7。
+「強弱」分頁已上線（所有賽道×車的 vs-WR%/百分位排序表，會隨組合自動長大）。**下一步是「按類別聚合」的擅長剖面**（例「你開 MR/Gr.3 較快」「高速賽道較吃香」）——它**不會隨資料變多自動出現**，需要 (a) 標籤齊全 + (b) Claude 開聚合頁。
+
+**標籤慣例（重要：每次處理 capture CSV 順手補，讓標籤跟著資料累積，免得日後回頭補標）：**
+- `meta.carTags.<carSlug>` = `{ class, drivetrain }`
+  - `class`：`Gr.1`/`Gr.2`/`Gr.3`/`Gr.4`/`Gr.B`/`road`/`N-class`… 等（沿用 GT7 分級；`sessions[].carClass` 已有的可對齊）
+  - `drivetrain`：`MR`/`FR`/`FF`/`RR`/`4WD`
+- `meta.trackTags.<trackKey>` = `{ profile, lengthKm, dir }`
+  - `profile`：`high-speed`/`technical`/`mixed`（高速 vs 多低速彎）
+  - `lengthKm`：賽道長度（數字）
+  - `dir`：`cw`/`ccw`（順/逆時針）
+- 兩個 tag dict 都**累加保留**，建新組合時補上對應條目即可（已存在的不用動）。
+
+**開聚合頁的時機**：每個類別（某 class / 某 drivetrain / 某 profile）累積 **≥3~4 個組合**才看得出傾向；屆時 George 說一聲，Claude 把各組合的 vs-WR%/百分位/一致性依 carTags/trackTags 聚合，畫成強弱排行/雷達。詳見 `README.md` §7。
