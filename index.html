@@ -543,6 +543,12 @@
   .rc-tier-bar { height: 6px; border-radius: 4px; background: var(--bg-input); overflow: hidden; border: 1px solid var(--line); }
   .rc-tier-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent-dim), var(--accent)); }
   .rc-tier-done { color: var(--accent); font-size: .68rem; margin-top: .6rem; }
+  .dash-more-btn {
+    width: 100%; padding: .7rem; background: var(--bg-input); color: var(--text-secondary);
+    border: 1px dashed var(--line); border-radius: 8px; cursor: pointer;
+    font-family: inherit; font-size: .82rem; letter-spacing: .5px; transition: all .15s;
+  }
+  .dash-more-btn:hover { color: var(--accent); border-color: var(--accent); background: var(--bg-elevated); }
   .rc-spark { margin-top: .8rem; display: flex; align-items: center; gap: .6rem; }
   .rc-cap { font-size: .62rem; color: var(--text-dim); }
   .rc-tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .55rem; }
@@ -1160,6 +1166,14 @@ function navigateTo(pageId) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function toggleDashMore() {
+  const w = document.getElementById('dashMoreWrap'), b = document.getElementById('dashMoreBtn');
+  if (!w || !b) return;
+  const open = w.style.display === 'none';
+  w.style.display = open ? 'flex' : 'none';
+  b.textContent = open ? '收合賽道 ▴' : `顯示其餘 ${w.children.length} 條賽道 ▾`;
+}
+
 function carSlug(car) {
   return (car || '').replace(/[^a-z0-9]+/gi, '').toLowerCase() || 'car';
 }
@@ -1457,7 +1471,7 @@ function buildDashboard() {
   `;
 
   const _lbs = (DATA.meta && DATA.meta.leaderboards) || {};
-  document.getElementById('dashboardTrackList').innerHTML = trackList.map(g => {
+  const _trackCards = trackList.map(g => {
     const lbKey = Object.keys(_lbs).find(k => k.split('__')[0] === g.key);
     const lb = lbKey ? _lbs[lbKey] : null;
     const st = lb ? eventStatus(lb) : { ended: false };
@@ -1518,7 +1532,15 @@ function buildDashboard() {
       ${tierHTML}
       ${sp ? `<div class="rc-spark">${sp}<span class="rc-cap">PB 走勢 · ${ser.length} 天 · ${g.totalLaps} 圈</span></div>` : ''}
     </div>`;
-  }).join('');
+  });
+  // 總覽只顯示最近 3 條賽道,其餘收納起來(避免賽道一多就塞滿頁面)
+  const _SHOW = 3;
+  const _head = _trackCards.slice(0, _SHOW).join('');
+  const _rest = _trackCards.slice(_SHOW);
+  document.getElementById('dashboardTrackList').innerHTML = _head + (_rest.length
+    ? `<button id="dashMoreBtn" class="dash-more-btn" onclick="toggleDashMore()">顯示其餘 ${_rest.length} 條賽道 ▾</button>`
+      + `<div id="dashMoreWrap" style="display:none;flex-direction:column;gap:1rem;">${_rest.join('')}</div>`
+    : '');
 
   const sortedSessions = [...DATA.sessions].sort((a, b) => b.date.localeCompare(a.date));
   const latestWithInsights = sortedSessions.find(s => s.insights && s.insights.length > 0);
