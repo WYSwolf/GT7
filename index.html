@@ -1483,14 +1483,22 @@ function buildDashboard() {
     const goal = (DATA.goals || []).find(x => x.trackKey === g.key);
     let tierHTML = '';
     if (goal && goal.items && goal.items.length) {
-      const items = [...goal.items].sort((a, b) => b.target - a.target);   // easy → hard
-      const next = items.find(it => g.pb > it.target);
-      if (next) {
-        const base = goal.baseline || g.pb;
-        const prog = Math.max(0, Math.min(100, (base - g.pb) / (base - next.target) * 100));
-        tierHTML = `<div class="rc-tier"><div class="rc-tier-head"><span>下一階 ${next.label} <b>${next.displayTarget}</b></span><span>還差 ${(g.pb - next.target).toFixed(3)}s</span></div><div class="rc-tier-bar"><div class="rc-tier-fill" style="width:${prog.toFixed(0)}%"></div></div></div>`;
+      if (st.ended) {
+        // 賽事已結束:不再顯示「下一階」目標,改顯示最終達成的目標數
+        const total = goal.items.length;
+        const done = goal.items.filter(it => g.pb <= it.target).length;
+        const allDone = done === total;
+        tierHTML = `<div class="rc-tier-done"${allDone ? '' : ' style="color:var(--text-secondary);"'}>🏁 賽事結束 · 達成 ${done}/${total} 目標${allDone ? '（全達成）' : ''}</div>`;
       } else {
-        tierHTML = `<div class="rc-tier-done">✓ 已達成全部 +3 / +2 / +1% 目標</div>`;
+        const items = [...goal.items].sort((a, b) => b.target - a.target);   // easy → hard
+        const next = items.find(it => g.pb > it.target);
+        if (next) {
+          const base = goal.baseline || g.pb;
+          const prog = Math.max(0, Math.min(100, (base - g.pb) / (base - next.target) * 100));
+          tierHTML = `<div class="rc-tier"><div class="rc-tier-head"><span>下一階 ${next.label} <b>${next.displayTarget}</b></span><span>還差 ${(g.pb - next.target).toFixed(3)}s</span></div><div class="rc-tier-bar"><div class="rc-tier-fill" style="width:${prog.toFixed(0)}%"></div></div></div>`;
+        } else {
+          tierHTML = `<div class="rc-tier-done">✓ 已達成全部 +3 / +2 / +1% 目標</div>`;
+        }
       }
     }
     const sp = rcSpark(ser, 88, 26);
