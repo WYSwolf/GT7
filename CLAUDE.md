@@ -37,6 +37,7 @@ telemetry/          # CSV 遙測原始資料，從 GT7 匯出
 - 無伺服器端，所有資料處理在瀏覽器完成
 - `data.json` 需手動更新以新增訓練記錄
 - CSV 檔案命名慣例：精簡檔 `gt7-YYYY-MM-DD.csv`（dash，存各場 PB 圈）；原始 capture `gt7_YYYY-MM-DD.csv`（底線，gt7_capture.py 自動上傳）
+- **分組鍵慣例（重要，避免誤 merge）**：總覽卡片/leaderboard/goal 全部以 `trackKey` 為鍵，賽道頁內再以 `carSlug` 拆車。所以「同賽道不同車」會自動分開（各車一個子視圖、各自 `trackKey__carSlug` 名次）；但「**同賽道＋同車、不同賽事（不同時間檔期）**」會因 key 相同而**合併**（PB 取最小、圖表混日、eventUrl 互相覆蓋）。遇到這種重複賽事時，建檔要給 trackKey **加賽期後綴**（例 `deepforest` → `deepforest-2026jun` / `deepforest-2026oct`）讓它自動分開；顯示名 `track` 仍可相同，卡片以賽期區分。新賽事的 `meta.leaderboards.<新trackKey__car>` 也要另建一條。
 - 目標設定慣例：各賽道目標一律以世界第一（WR）為基準 —— 🎯 主要 = WR +3%、🚀 進階 = WR +2%、🏁 衝刺 = WR +1%（規則存於 `meta.goalPolicy`）。更新 `meta.references.<carSlug>` 的 WR 後，需依此重算該賽道 `goals`；球門隨 WR 紀錄移動是預期行為，不要改成更寬鬆或個人化的門檻。
 - 全球名次/WR/門檻可由 `gt7_rank.py` 自動抓：GT7 官方 API 給 WR/top100/top1000/你的名次；母體總人數從 `eventUrl` 指的 dg-edge 事件頁抓「Total players」。官方 API 的 `total` 只是榜上清單大小（存 `boardSize`，非母體），百分位一律用 dg-edge 母體當分母。`gt7_capture.py` 收工會順手跑（需 `GT7_JSESSIONID`+GitHub token，`--no-rank` 關閉）。沒有來源時不要引用舊名次。
   - **eventUrl/boardId 自動定位**：缺 `eventUrl` 時打 dg-edge player API，用「你的成績(timeMS)/賽道/車」比對自動補；缺 `boardId` 從 dg-edge 事件頁解出。對不出唯一就記 `eventUrlCandidates`、**不亂猜**——由 Claude 在處理當天 session 時列候選給 George 拍板再填。dg 還沒收錄的（第一次玩）配不到，去 `dg-edge.com/events` 反查。
