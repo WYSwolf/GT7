@@ -840,7 +840,6 @@
     <div class="nav-tabs" id="navTabs">
       <button class="nav-tab active" data-page="dashboard">總覽</button>
       <button class="nav-tab" data-page="goals">目標</button>
-      <button class="nav-tab" data-page="history">紀錄</button>
       <button class="nav-tab" data-page="games">遊戲</button>
     </div>
     <div class="topbar-right">
@@ -866,7 +865,20 @@
       <div class="panel-body" style="display: flex; flex-direction: column; gap: 1rem;" id="dashboardTrackList"></div>
     </div>
 
-
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">各場次 vs 世界紀錄</div>
+        <div class="panel-meta">每場最佳差距% · 越低越好</div>
+      </div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="historyGapChart"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">一致性對比</div>
+        <div class="panel-meta">當日中位 − 當日最佳 · 越低越穩定</div>
+      </div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="consistencyOverviewChart"></canvas></div></div>
+    </div>
 
     <div class="panel">
       <div class="panel-header">
@@ -886,28 +898,6 @@
       <div class="page-subtitle">線上活動截止前的目標 · 依目前 PB 自動追蹤達成</div>
     </div>
     <div id="goalsContainer"></div>
-  </div>
-
-  <div class="page" id="page-history">
-    <div class="page-header">
-      <div class="breadcrumb">SYSTEM <span class="sep">/</span> <span class="current">歷史紀錄</span></div>
-      <h1 class="page-title">TRAINING <span class="accent">HISTORY</span></h1>
-      <div class="page-subtitle">各場次最佳 vs 世界紀錄差距% · 一致性</div>
-    </div>
-    <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">各場次 vs 世界紀錄</div>
-        <div class="panel-meta">每場最佳差距% · 越低越好</div>
-      </div>
-      <div class="panel-body"><div class="chart-wrap"><canvas id="historyGapChart"></canvas></div></div>
-    </div>
-    <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">一致性對比</div>
-        <div class="panel-meta">當日中位 − 當日最佳 · 越低越穩定</div>
-      </div>
-      <div class="panel-body"><div class="chart-wrap"><canvas id="consistencyOverviewChart"></canvas></div></div>
-    </div>
   </div>
 
   <div class="page" id="page-games">
