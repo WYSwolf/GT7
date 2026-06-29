@@ -7,8 +7,9 @@ GT7 Rank Fetcher  ·  WYS / GT7 Training Tracker
 更新 data.json 的 meta.leaderboards + references（WR）+ goals。
 注意 ranking API 的 result.total 其實是『頁數』(每頁 100 名)，不是清單大小 ——
 所以母體 ≈ pages×100（存 boardPages；母體仍優先用 dg-edge「Total players」，更精確）。
-你的名次：只在前 ~1000 名（抓門檻時順手掃到）才用 GT；更深的交給 dg-edge globalPosition
-（涵蓋所有深度、一次給齊，活動結束也有）。
+你的名次：用「你目前最快時間」(PB/sessions 較快者) 回 GT 排序榜**二分搜尋它排第幾**
+（source `gt(by-time)`）——不靠成績是否已同步，深淺皆準，進行中活動 #5000+ 也行；
+dg 的舊名次只當二分搜尋的起點(加速收斂)，連時間都沒有時才退用 dg globalPosition。
 
 必須在「你自己的電腦」跑（家用 IP）——Sony / gran-turismo 會擋資料中心 IP。
 
@@ -322,6 +323,21 @@ def _car_score(cs: str, cn: str) -> float:
     return _lcs_len(cs, cn) / min(len(cs), len(cn))
 
 
+def _best_time_ms(d: dict, key: str, entry: dict):
+    """你在該賽道目前**最快**的時間（ms）——取 playerRank.pb 與 sessions 最佳裡較快的那個，
+    確保用上你最新（dg 可能還沒同步）的 PB 去 GT 算名次。"""
+    cands = []
+    pr = entry.get("playerRank") or {}
+    if pr.get("pb"):
+        cands.append(pr["pb"])
+    tk = key.split("__")[0]
+    cs = key.split("__")[1] if "__" in key else ""
+    cands += [s["best"] for s in d.get("sessions", [])
+              if s.get("trackKey") == tk and s.get("best")
+              and (not cs or s.get("carSlug") in (cs, None, ""))]
+    return round(min(cands) * 1000) if cands else None
+
+
 def match_event(key: str, entry: dict, events: list, known_ms):
     """把一條 leaderboard（trackKey__carSlug）配到玩家場次。回傳 (命中 event 或 None, 候選清單)。
     先用賽道名篩候選；多於一個時消歧順序＝精確時間(僅 dg 夠新時會中) → 車款相似度(主力,
@@ -590,41 +606,77 @@ def fetch_dgedge(event_url: str) -> dict:
     return out
 
 
-def fetch_board(token: str, board_id: str, my_id: str, threshold_pages: int = 11) -> dict:
-    """只抓 WR / top100 / top1000（都在前 ~10 頁就齊了），順便看你是否在這幾頁內（前 1000 名）。
-    回傳 {wr, top100, top1000, pages, pop_est, rank, pb}（秒）。score 單位是毫秒。
-    注意：API 回的 result.total 其實是『頁數』(每頁 100)，母體 ≈ pages×100；
-    你的名次不在這裡深挖——交給 dg-edge globalPosition（涵蓋所有深度、一次給齊）。"""
+def _score_at(lst, rank):
+    """從一頁裡找 display_rank==rank 的成績（秒）。"""
+    for e in lst:
+        if e.get("display_rank") == rank:
+            return round((e.get("score") or 0) / 1000, 3)
+    return None
+
+
+def rank_for_time(token: str, board_id: str, time_ms: int, pages: int, hint_rank=None) -> int:
+    """在 GT 排序榜（成績 ms 升冪）上算『時間 time_ms 會排第幾』——不需你的成績已上榜。
+    二分頁定位交界 → 頁內精算。可用 dg 舊名次 hint_rank 當起點先探一頁加速收斂。
+    回傳名次（int）。"""
+    lo, hi = 0, pages - 1
+    probed = set()
+
+    def read(p):
+        probed.add(p)
+        lst = get_page(token, board_id, p).get("list", [])
+        time.sleep(0.25)
+        return lst
+
+    # 用 dg 舊名次估個起點頁先探（新 PB 多半比舊快、名次在附近）
+    if hint_rank:
+        sp = min(max((hint_rank - 1) // 100, 0), pages - 1)
+        lst = read(sp)
+        if lst:
+            first, last = lst[0].get("score"), lst[-1].get("score")
+            if first <= time_ms <= last:
+                base = lst[0].get("display_rank") or (sp * 100 + 1)
+                return base + sum(1 for e in lst if (e.get("score") or 0) < time_ms)
+            if last < time_ms:
+                lo = sp + 1
+            elif first > time_ms:
+                hi = sp - 1
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        lst = read(mid)
+        if not lst:
+            hi = mid - 1
+            continue
+        first, last = lst[0].get("score"), lst[-1].get("score")
+        if last < time_ms:
+            lo = mid + 1
+        elif first > time_ms:
+            hi = mid - 1
+        else:
+            base = lst[0].get("display_rank") or (mid * 100 + 1)
+            return base + sum(1 for e in lst if (e.get("score") or 0) < time_ms)
+    return lo * 100 + 1   # 落在頁界：排在 lo 頁起始之前
+
+
+def fetch_board(token: str, board_id: str, time_ms=None, hint_rank=None) -> dict:
+    """抓 WR / top100 / top1000（page 0 + page 9 兩次就齊），並用『你目前最快時間』在排序榜上
+    二分搜出真實名次（time_ms 給定時）。回傳 {wr, top100, top1000, pages, pop_est, rank, pb}（秒）。
+    注意：API result.total 是『頁數』(每頁 100)，母體 ≈ pages×100。"""
     out = {"wr": None, "top100": None, "top1000": None, "pages": None, "pop_est": None,
            "rank": None, "pb": None}
-    page = 0
-    while page < threshold_pages:
-        res = get_page(token, board_id, page)
-        lst = res.get("list", [])
-        if out["pages"] is None:
-            out["pages"] = res.get("total")          # ← 其實是頁數，不是清單大小
-            if out["pages"]:
-                out["pop_est"] = out["pages"] * 100  # 母體估計（≈ dg-edge Total players）
-        if not lst:
-            break
-        for e in lst:
-            r = e.get("display_rank")
-            s = e.get("score")
-            if r == 1:
-                out["wr"] = round(s / 1000, 3)
-            if r == 100:
-                out["top100"] = round(s / 1000, 3)
-            if r == 1000:
-                out["top1000"] = round(s / 1000, 3)
-            if e.get("user", {}).get("user_id") == my_id:   # 你在前 1000 名才會在這幾頁出現
-                out["rank"] = r
-                out["pb"] = round(s / 1000, 3)
-        if out["top1000"] is not None:                # 門檻抓齊就收（top1000 在第 9~10 頁）
-            break
-        if out["pages"] and page + 1 >= out["pages"]:  # 這個榜根本不到該頁數（人少）
-            break
-        page += 1
-        time.sleep(0.3)   # 尊重速率限制
+    res0 = get_page(token, board_id, 0)
+    lst0 = res0.get("list", [])
+    out["pages"] = res0.get("total")                 # ← 其實是頁數
+    if out["pages"]:
+        out["pop_est"] = out["pages"] * 100
+    out["wr"] = _score_at(lst0, 1)
+    out["top100"] = _score_at(lst0, 100)
+    pages = out["pages"] or 0
+    if pages > 9:
+        time.sleep(0.25)
+        out["top1000"] = _score_at(get_page(token, board_id, 9).get("list", []), 1000)
+    if time_ms and pages:
+        out["rank"] = rank_for_time(token, board_id, time_ms, pages, hint_rank)
+        out["pb"] = round(time_ms / 1000, 3)
     return out
 
 
@@ -687,8 +739,12 @@ def apply_updates(d: dict, token: str, my_id: str, today: str, max_pages=60, ver
             entry["boardId"] = board_id
             if verbose: print(f"  · {key} 自動補 boardId={board_id}（取自 dg-edge）")
         if verbose: print(f"📊 {key}  (board_id={board_id})…")
+        # 你目前最快時間（取 PB/sessions 較快者）+ dg 舊名次當搜尋起點 → 回 GT 排序榜算真實名次
+        dgp = player_map.get(key)
+        time_ms = _best_time_ms(d, key, entry)
+        hint = (dgp or {}).get("global_pos")
         try:
-            r = fetch_board(token, board_id, my_id)   # 只抓門檻頁（~11 頁），名次靠 dg-edge
+            r = fetch_board(token, board_id, time_ms, hint_rank=hint)
         except Exception as e:
             print(f"  ✗ 失敗：{e}")
             continue
@@ -699,12 +755,9 @@ def apply_updates(d: dict, token: str, my_id: str, today: str, max_pages=60, ver
             entry["totalPlayers"] = r["pop_est"]          # dg 抓不到時，用 GT 頁數×100 估母體
             if verbose: print(f"  · 母體估計（GT {r['pages']} 頁×100）：{r['pop_est']} 人")
         population = entry.get("totalPlayers")
-        pct = round(r["rank"] / population * 100, 2) if r["rank"] and population else None
         if verbose:
             print(f"  WR={disp(r['wr'])}  top100={disp(r['top100'])}  top1000={disp(r['top1000'])}  "
-                  f"你的名次=#{r['rank']}"
-                  + (f" (前 {pct}% / {population} 人)" if pct else "")
-                  + f"  PB={disp(r['pb'])}  [GT 頁數={r['pages']}≈{r['pop_est']} 人]")
+                  f"[GT 頁數={r['pages']}≈{r['pop_est']} 人]")
 
         if r["pages"]:   entry["boardPages"] = r["pages"]   # GT 榜頁數（×100≈母體），參考用
         entry.pop("boardSize", None)                        # 舊欄位其實是頁數、會誤導，清掉
@@ -712,23 +765,28 @@ def apply_updates(d: dict, token: str, my_id: str, today: str, max_pages=60, ver
         if r["top1000"]: entry["top1000"] = r["top1000"]
         if r["wr"]:      entry["wr"] = r["wr"]
         if r["rank"]:
-            entry["playerRank"] = {"rank": r["rank"], "pb": r["pb"], "source": "auto(gt7_rank.py)",
-                                   "asOf": today, **({"topPct": pct} if pct else {})}
-        else:
-            # GT API 抓不到你名次（活動已結束/榜只回前段）→ 用 dg-edge 你的該場結果補
-            dgp = player_map.get(key)
-            if dgp and dgp.get("global_pos"):
-                gp = dgp["global_pos"]
-                dgpct = round(gp / population * 100, 2) if population else None
-                pb = round(dgp["time_ms"] / 1000, 3) if dgp.get("time_ms") else (entry.get("playerRank") or {}).get("pb")
-                entry["playerRank"] = {"rank": gp, "pb": pb, "source": "dg-edge",
-                                       "asOf": today,
-                                       **({"topPct": dgpct} if dgpct else {}),
-                                       **({"countryRank": dgp["country_pos"]} if dgp.get("country_pos") else {})}
-                if verbose:
-                    print(f"  ↳ GT 榜無你名次 → 用 dg-edge：#{gp}"
-                          + (f" (前 {dgpct}% / {population} 人)" if dgpct else "")
-                          + (f"  PB={disp(pb)}" if pb else ""))
+            # GT 排序榜按你目前最快時間算出的真實名次（不靠成績是否已上榜，深淺皆準）
+            pct = round(r["rank"] / population * 100, 2) if population else None
+            cr = (dgp or {}).get("country_pos")
+            entry["playerRank"] = {"rank": r["rank"], "pb": r["pb"], "source": "gt(by-time)",
+                                   "asOf": today, **({"topPct": pct} if pct else {}),
+                                   **({"countryRank": cr} if cr else {})}
+            if verbose:
+                msg = f"  你的名次（GT 依時間 {disp(r['pb'])} 確認）=#{r['rank']}"
+                if hint and hint != r["rank"]:
+                    msg += f"（dg 舊估 #{hint}）"
+                print(msg + (f" (前 {pct}% / {population} 人)" if pct else ""))
+        elif dgp and dgp.get("global_pos"):
+            # 沒有你的時間可算（少見）→ 退用 dg-edge 你的該場 globalPosition
+            gp = dgp["global_pos"]
+            dgpct = round(gp / population * 100, 2) if population else None
+            pb = round(dgp["time_ms"] / 1000, 3) if dgp.get("time_ms") else (entry.get("playerRank") or {}).get("pb")
+            entry["playerRank"] = {"rank": gp, "pb": pb, "source": "dg-edge",
+                                   "asOf": today, **({"topPct": dgpct} if dgpct else {}),
+                                   **({"countryRank": dgp["country_pos"]} if dgp.get("country_pos") else {})}
+            if verbose:
+                print(f"  ↳ 無你的時間可算 → 用 dg-edge：#{gp}"
+                      + (f" (前 {dgpct}% / {population} 人)" if dgpct else ""))
         entry["asOf"] = today
         # 同步更新 WR 參考值 + 依 goalPolicy 重算該賽道目標
         car_slug = key.split("__")[1] if "__" in key else None

@@ -96,8 +96,10 @@ PS5 ──UDP──> gt7_capture.py ──(收工自動上傳)──> telemetry/
   **推回 GitHub 的 `data.json`**(`push=True`,從遠端取最新版再改,不會蓋掉 Claude 的編輯)。`--no-rank` 關閉。
   - **全自動定位**:缺 `eventUrl` 會打 dg-edge player API,用「你的成績(timeMS)/賽道/車」比對自動補;
     缺 `boardId` 會從 dg-edge 事件頁解出;對不出唯一就記 `eventUrlCandidates`、不亂猜(等對話確認)。
-  - **名次來源**:WR/門檻一律用 GT 官方榜;你的名次優先 GT 榜,**活動結束/榜只回前段抓不到你時,
-    改用 dg-edge `globalPosition`**(標 `source:"dg-edge"`,百分位分母仍用 dg-edge 母體)。
+  - **名次算法**:WR/門檻用 GT 官方榜(`result.total` 其實是**頁數**,母體≈pages×100);
+    你的名次=用**目前最快時間**(PB/sessions 較快者)回 GT 排序榜**二分搜尋它排第幾**
+    (`source:"gt(by-time)"`)——不管成績有沒有同步、深淺皆準,進行中活動 #5000+ 也行;
+    dg 舊名次只當二分起點加速,連時間都算不出時才退用 dg-edge `globalPosition`。百分位分母用 dg-edge 母體。
   - **認證(自動續期)**:預設**自動從瀏覽器讀 JSESSIONID**(`pip install browser-cookie3`,
     保持登入 gran-turismo.com 即可,不必手動換)。可用 `GT7_BROWSER` 指定瀏覽器;
     也可改設 `GT7_JSESSIONID` / `GT7_GT_TOKEN` 手動給。
