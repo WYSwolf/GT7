@@ -555,6 +555,16 @@
     font-size: .8rem; letter-spacing: .5px; margin-bottom: .7rem; transition: all .15s;
   }
   .back-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .strength-tbl { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  .strength-tbl th {
+    text-align: left; padding: .55rem .6rem; color: var(--text-secondary); font-size: .72rem;
+    letter-spacing: .5px; border-bottom: 1px solid var(--line); white-space: nowrap;
+    cursor: pointer; user-select: none;
+  }
+  .strength-tbl th:hover { color: var(--accent); }
+  .strength-tbl td { padding: .55rem .6rem; border-bottom: 1px solid rgba(42,51,64,.4); white-space: nowrap; }
+  .strength-tbl td.num, .strength-tbl th.num { text-align: right; font-family: 'JetBrains Mono', monospace; }
+  .strength-tbl tbody tr:hover { background: var(--bg-elevated); }
   .rc-spark { margin-top: .8rem; display: flex; align-items: center; gap: .6rem; }
   .rc-cap { font-size: .62rem; color: var(--text-dim); }
   .rc-tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .55rem; }
@@ -852,6 +862,7 @@
     <div class="nav-tabs" id="navTabs">
       <button class="nav-tab active" data-page="dashboard">總覽</button>
       <button class="nav-tab" data-page="goals">目標</button>
+      <button class="nav-tab" data-page="strengths">強弱</button>
       <button class="nav-tab" data-page="games">遊戲</button>
     </div>
     <div class="topbar-right">
@@ -910,6 +921,24 @@
       <div class="page-subtitle">線上活動截止前的目標 · 依目前 PB 自動追蹤達成</div>
     </div>
     <div id="goalsContainer"></div>
+  </div>
+
+  <div class="page" id="page-strengths">
+    <div class="page-header">
+      <div class="breadcrumb">SYSTEM <span class="sep">/</span> <span class="current">強弱總覽</span></div>
+      <h1 class="page-title">STRENGTH <span class="accent">MAP</span></h1>
+      <div class="page-subtitle">所有賽道×車的 vs WR% 與全球百分位 · 點欄位排序 · 綠=強 紅=弱</div>
+    </div>
+    <div class="panel">
+      <div class="panel-body" id="strengthTable"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-body" style="color:var(--text-secondary);font-size:.82rem;line-height:1.6;">
+        判讀:<b style="color:var(--text-primary);">vs WR%</b> 越低代表你越接近世界紀錄(該組合越強);<b style="color:var(--text-primary);">百分位</b> 是全球名次佔母體的比例。
+        目前依百分位排序、最強在上。<br>
+        <span style="color:var(--text-dim);">※ 「按車種/賽道類型聚合」(例如「你開 MR 車特別快」)需要更多組合 + 車種/傳動/賽道屬性標籤,等樣本累積夠了再開。</span>
+      </div>
+    </div>
   </div>
 
   <div class="page" id="page-games">
@@ -1145,6 +1174,7 @@ function initApp() {
   buildEventResults();
   buildTrackDetailPages();
   buildGoals();
+  buildStrengths();
   buildHistory();
   buildConsistencyChart();
   buildGames();
@@ -2305,6 +2335,85 @@ function renderCarCharts(g) {
       </tr>`;
     }).join('');
   }
+}
+
+let STRENGTH_ROWS = [];
+let STRENGTH_SORT = { col: 'pct', dir: 'asc' };
+
+function _vsWrColor(v) {
+  if (v == null) return 'var(--text-dim)';
+  if (v <= 1) return 'var(--accent)';
+  if (v <= 2) return '#8fe388';
+  if (v <= 3) return 'var(--gold)';
+  return 'var(--danger)';
+}
+function _pctColor(p) {
+  if (p == null) return 'var(--text-dim)';
+  if (p <= 1) return 'var(--accent)';
+  if (p <= 5) return 'var(--gold)';
+  if (p <= 25) return 'var(--text-secondary)';
+  return 'var(--danger)';
+}
+
+function buildStrengths() {
+  const groups = getTrackGroups();
+  const _lbs = (DATA.meta && DATA.meta.leaderboards) || {};
+  const rows = [];
+  Object.values(groups).forEach(g => getCarSubgroups(g).forEach(sub => {
+    const lbKey = _lbs[sub.key] ? sub.key : Object.keys(_lbs).find(k => k.split('__')[0] === g.key);
+    const lb = lbKey ? _lbs[lbKey] : null;
+    // WR 來源:references[carKey] → references[榜上的 carSlug] → leaderboard.wr(最保險)
+    let ref = getCarReference(sub.carKey);
+    if (!ref && lbKey) ref = getCarReference(lbKey.split('__')[1]);
+    const wr = ref ? ref.time : (lb && lb.wr != null ? lb.wr : null);
+    const pr = (lb && lb.playerRank) || null;
+    rows.push({
+      track: sub.track, car: sub.car, key: sub.key,
+      pb: sub.pb,
+      vsWr: wr ? (sub.pb - wr) / wr * 100 : null,
+      pct: pr && pr.topPct != null ? pr.topPct : null,
+      rank: pr && pr.rank != null ? pr.rank : null,
+      cons: sub.bestConsistency != null ? sub.bestConsistency : null,
+      ended: lb ? eventStatus(lb).ended : false
+    });
+  }));
+  STRENGTH_ROWS = rows;
+  renderStrengthTable();
+}
+
+function sortStrength(col) {
+  if (STRENGTH_SORT.col === col) STRENGTH_SORT.dir = STRENGTH_SORT.dir === 'asc' ? 'desc' : 'asc';
+  else STRENGTH_SORT = { col, dir: (col === 'track' || col === 'car') ? 'asc' : 'asc' };
+  renderStrengthTable();
+}
+
+function renderStrengthTable() {
+  const el = document.getElementById('strengthTable');
+  if (!el) return;
+  const { col, dir } = STRENGTH_SORT;
+  const sign = dir === 'asc' ? 1 : -1;
+  const rows = [...STRENGTH_ROWS].sort((x, y) => {
+    if (col === 'track' || col === 'car') return sign * String(x[col] || '').localeCompare(String(y[col] || ''));
+    const a = x[col], b = y[col];
+    if (a == null && b == null) return 0;
+    if (a == null) return 1;   // 無資料一律墊底
+    if (b == null) return -1;
+    return sign * (a - b);
+  });
+  const arr = c => col === c ? (dir === 'asc' ? ' ▲' : ' ▼') : '';
+  const th = (label, c, num) => `<th class="${num ? 'num' : ''}" onclick="sortStrength('${c}')">${label}${arr(c)}</th>`;
+  const body = rows.map(r => `<tr>
+    <td>${r.track}${r.ended ? ' <span style="font-size:.62rem;color:var(--text-dim);">結束</span>' : ''}</td>
+    <td>${r.car}</td>
+    <td class="num">${fmtTime(r.pb)}</td>
+    <td class="num" style="color:${_vsWrColor(r.vsWr)};font-weight:700;">${r.vsWr != null ? '+' + r.vsWr.toFixed(2) + '%' : '—'}</td>
+    <td class="num" style="color:${_pctColor(r.pct)};font-weight:700;">${r.pct != null ? '前 ' + r.pct + '%' : '—'}</td>
+    <td class="num">${r.rank != null ? '#' + r.rank.toLocaleString() : '—'}</td>
+    <td class="num">${r.cons != null ? r.cons.toFixed(2) + 's' : '—'}</td>
+  </tr>`).join('');
+  el.innerHTML = `<div style="overflow-x:auto;"><table class="strength-tbl">
+    <thead><tr>${th('賽道', 'track')}${th('車', 'car')}${th('PB', 'pb', 1)}${th('vs WR%', 'vsWr', 1)}${th('百分位', 'pct', 1)}${th('名次', 'rank', 1)}${th('一致性', 'cons', 1)}</tr></thead>
+    <tbody>${body}</tbody></table></div>`;
 }
 
 function buildGoals() {
