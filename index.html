@@ -549,6 +549,12 @@
     font-family: inherit; font-size: .82rem; letter-spacing: .5px; transition: all .15s;
   }
   .dash-more-btn:hover { color: var(--accent); border-color: var(--accent); background: var(--bg-elevated); }
+  .back-btn {
+    background: transparent; color: var(--text-secondary); border: 1px solid var(--line);
+    border-radius: 6px; padding: .35rem .75rem; cursor: pointer; font-family: inherit;
+    font-size: .8rem; letter-spacing: .5px; margin-bottom: .7rem; transition: all .15s;
+  }
+  .back-btn:hover { color: var(--accent); border-color: var(--accent); }
   .rc-spark { margin-top: .8rem; display: flex; align-items: center; gap: .6rem; }
   .rc-cap { font-size: .62rem; color: var(--text-dim); }
   .rc-tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .55rem; }
@@ -1660,15 +1666,9 @@ function buildEventResults() {
 function buildTrackDetailPages() {
   const groups = getTrackGroups();
   const container = document.getElementById('trackPages');
-  const navTabs = document.getElementById('navTabs');
 
+  // 不再為每條賽道建 nav 分頁(避免賽道一多就塞滿導覽列);改由總覽卡片點進、賽道頁加返回鈕。
   Object.values(groups).forEach(g => {
-    const tabBtn = document.createElement('button');
-    tabBtn.className = 'nav-tab';
-    tabBtn.dataset.page = 'track-' + g.key;
-    tabBtn.textContent = g.track;
-    navTabs.insertBefore(tabBtn, document.querySelector('[data-page="goals"]'));
-
     const pageEl = document.createElement('div');
     pageEl.className = 'page';
     pageEl.id = 'page-track-' + g.key;
@@ -1707,6 +1707,7 @@ function renderTrackDetail(g) {
 
   return `
     <div class="page-header">
+      <button class="back-btn" onclick="navigateTo('dashboard')">← 返回總覽</button>
       <div class="breadcrumb"><span style="color:${mi.color};">${mi.icon} ${mi.short}</span> <span class="sep">/</span> <span class="current">${g.track}</span></div>
       <h1 class="page-title">${g.trackEn.split(' ')[0]} <span class="accent">${g.trackEn.split(' ').slice(1).join(' ') || ''}</span></h1>
       ${multi ? `<div class="page-subtitle">${subs.length} CARS · ${g.totalLaps} LAPS</div>` : ''}
