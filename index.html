@@ -549,12 +549,6 @@
     font-family: inherit; font-size: .82rem; letter-spacing: .5px; transition: all .15s;
   }
   .dash-more-btn:hover { color: var(--accent); border-color: var(--accent); background: var(--bg-elevated); }
-  .back-btn {
-    background: transparent; color: var(--text-secondary); border: 1px solid var(--line);
-    border-radius: 6px; padding: .35rem .75rem; cursor: pointer; font-family: inherit;
-    font-size: .8rem; letter-spacing: .5px; margin-bottom: .7rem; transition: all .15s;
-  }
-  .back-btn:hover { color: var(--accent); border-color: var(--accent); }
   .strength-tbl { width: 100%; border-collapse: collapse; font-size: .85rem; }
   .strength-tbl th {
     text-align: left; padding: .55rem .6rem; color: var(--text-secondary); font-size: .72rem;
@@ -1737,7 +1731,6 @@ function renderTrackDetail(g) {
 
   return `
     <div class="page-header">
-      <button class="back-btn" onclick="navigateTo('dashboard')">← 返回總覽</button>
       <div class="breadcrumb"><span style="color:${mi.color};">${mi.icon} ${mi.short}</span> <span class="sep">/</span> <span class="current">${g.track}</span></div>
       <h1 class="page-title">${g.trackEn.split(' ')[0]} <span class="accent">${g.trackEn.split(' ').slice(1).join(' ') || ''}</span></h1>
       ${multi ? `<div class="page-subtitle">${subs.length} CARS · ${g.totalLaps} LAPS</div>` : ''}
