@@ -708,7 +708,8 @@ def _github_upload(path, repo, branch, dest_dir, note='', local_is_fresh=False):
     local_is_fresh=True 表示本機這份是全新檔(非接續);若遠端已有同名檔,
     為避免蓋掉先前那次,會改用時間後綴另存。"""
     import base64, urllib.request, urllib.error
-    token = os.environ.get('GT7_GITHUB_TOKEN') or os.environ.get('GITHUB_TOKEN')
+    # .strip():token 若含尾端換行/空白,urllib 會把它原樣塞進 header → GitHub 回 401 Bad credentials
+    token = (os.environ.get('GT7_GITHUB_TOKEN') or os.environ.get('GITHUB_TOKEN') or '').strip()
     if not token:
         print('  ⓘ 未設定 token,略過自動上傳。設定後每次收工會自動推上 GitHub:')
         print('     export GT7_GITHUB_TOKEN=<具 repo 權限的 GitHub token>')
@@ -775,9 +776,10 @@ def _rank_update(repo, branch):
     另需 GitHub token + 同目錄 gt7_rank.py(及 requests)。缺就略過,不影響已上傳的 CSV。"""
     js = os.environ.get('GT7_JSESSIONID')
     bearer = os.environ.get('GT7_GT_TOKEN')
-    gh = os.environ.get('GT7_GITHUB_TOKEN') or os.environ.get('GITHUB_TOKEN')
-    # 沒手動給 token 時,自動從瀏覽器讀 JSESSIONID(免手動續期);GT7_BROWSER 可指定瀏覽器
-    browser = None if (js or bearer) else os.environ.get('GT7_BROWSER', 'auto')
+    gh = (os.environ.get('GT7_GITHUB_TOKEN') or os.environ.get('GITHUB_TOKEN') or '').strip()
+    # 一律提供瀏覽器自動讀當「後援」:就算設了 GT7_JSESSIONID,過期時 gt7_rank 會自動 fallback
+    # 到瀏覽器最新 cookie(免手動續期);GT7_BROWSER 可指定瀏覽器。bearer 模式則不需要。
+    browser = None if bearer else os.environ.get('GT7_BROWSER', 'auto')
     if not gh:
         print('  ⓘ 未設定 GitHub token,略過名次更新。')
         return

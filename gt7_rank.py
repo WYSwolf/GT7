@@ -708,45 +708,51 @@ def open_login_page(locale="tw", verbose=True):
         print(f"   （無法自動開啟，請手動打開：{url}）")
 
 
-def _browser_token(jsessionid, locale, browser, verbose):
-    """讀 cookie（如用 browser）→ 換 Bearer。回傳 (token, my_id, jsessionid)。失敗丟 RuntimeError。"""
-    if not jsessionid and browser:
-        if verbose: print(f"🍪 從瀏覽器自動讀 JSESSIONID（{browser}）…")
-        jsessionid = jsessionid_from_browser(browser)
-        if verbose: print("  ✓ 已從瀏覽器取得 JSESSIONID")
-    if not jsessionid:
-        raise RuntimeError("請給 --bearer / --jsessionid，或用 --browser 自動讀瀏覽器 cookie。用法見檔頭。")
-    if verbose: print("🔑 用 JSESSIONID 換 Bearer…")
-    info = get_token_info(jsessionid, locale)   # 過期會丟 RuntimeError（is_signed_in=false）
-    return info["access_token"], info.get("user_id")
-
-
 def resolve_token(bearer=None, jsessionid=None, locale="tw", browser=None, verbose=True, relogin=True):
-    """回傳 (token, my_id)。優先序：bearer → jsessionid → 從瀏覽器自動讀 JSESSIONID（browser）。
-    relogin=True 且為互動終端時，瀏覽器登入失效會自動開登入頁、等你登入後按 Enter 重試一次。"""
-    token, my_id = bearer, None
-    if not token:
+    """回傳 (token, my_id)，且**確認 token 對 web-api 真的有效**（JSESSIONID 過期時，token/
+    端點仍可能回一個無效 token，之後打 ranking API 才 401——這裡先用 get_sport_profile 驗證）。
+    來源順序：bearer → 手動 jsessionid → 瀏覽器自動讀；某來源驗不過就換下一個。
+    全部失敗且為互動終端時，自動開登入頁、登入後按 Enter 用瀏覽器重試一次。"""
+    def _validate(token):
+        return get_my_user_id(token)   # 打 web-api /user/get_sport_profile；過期/無效會丟錯
+
+    if bearer:
+        return bearer, _validate(bearer)
+
+    attempts = []
+    if jsessionid:
+        attempts.append(("手動 JSESSIONID", lambda: get_token_info(jsessionid, locale)["access_token"]))
+    if browser:
+        attempts.append((f"瀏覽器 cookie（{browser}）",
+                         lambda: get_token_info(jsessionid_from_browser(browser), locale)["access_token"]))
+    if not attempts:
+        raise RuntimeError("請給 --bearer / --jsessionid，或用 --browser 自動讀瀏覽器 cookie。用法見檔頭。")
+
+    last_err = None
+    for label, getter in attempts:
         try:
-            token, my_id = _browser_token(jsessionid, locale, browser, verbose)
-        except RuntimeError as e:
-            # 只有「用瀏覽器自動讀」且互動模式時才開登入頁重試（手動貼 jsessionid / 非終端不適用）
-            interactive = sys.stdin is not None and sys.stdin.isatty()
-            if relogin and browser and not jsessionid and interactive:
-                print(f"⚠ gran-turismo 登入失效或讀不到 cookie：{e}")
-                open_login_page(locale, verbose)
-                try:
-                    input("   登入完成後按 Enter 重試…")
-                except EOFError:
-                    raise e
-                token, my_id = _browser_token(jsessionid, locale, browser, verbose)
-            else:
-                raise
-        if verbose: print(f"  ✓ 取得 Bearer（user_id={my_id}）")
-    if not my_id:
-        if verbose: print("👤 取得自己的 user_id…")
-        my_id = get_my_user_id(token)
-        if verbose: print(f"  ✓ user_id = {my_id}")
-    return token, my_id
+            if verbose: print(f"🔑 {label} → 換 Bearer…")
+            token = getter()
+            my_id = _validate(token)
+            if verbose: print(f"  ✓ 認證有效（user_id={my_id}）")
+            return token, my_id
+        except Exception as e:
+            last_err = e
+            print(f"  ⚠ {label} 失效：{e}")
+
+    interactive = sys.stdin is not None and sys.stdin.isatty()
+    if relogin and interactive:
+        print("⚠ gran-turismo 登入已失效,需要重新登入。")
+        open_login_page(locale, verbose)
+        try:
+            input("   登入完成後按 Enter 重試…")
+        except EOFError:
+            raise last_err
+        token = get_token_info(jsessionid_from_browser(browser or "auto"), locale)["access_token"]
+        my_id = _validate(token)
+        if verbose: print(f"  ✓ 認證有效（user_id={my_id}）")
+        return token, my_id
+    raise last_err if last_err else RuntimeError("認證失敗")
 
 
 def apply_updates(d: dict, token: str, my_id: str, today: str, max_pages=60, verbose=True,
