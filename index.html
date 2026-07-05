@@ -1215,34 +1215,12 @@ function computeStats(g) {
   const allS2 = g.sessions.flatMap(s => s.laps.map(l => l.s2));
   const allS3 = g.sessions.flatMap(s => s.laps.map(l => l.s3));
   const sectorCount = g.sessions[0].sectorsCount;
-  const allS4 = sectorCount === 4 ? g.sessions.flatMap(s => s.laps.map(l => l.s4 || 0)) : [];
-  // 理論最佳 = 跨圈各段最小值加總。前提是分段界線是「真的閘門」(每圈同一位置)；
-  // 未校正賽道(距離等三分)或閘門沒對準時,各段界線會漂移,加總出的「理論最佳」會荒謬地
-  // 比 WR 還快十幾秒,把圈速圖 Y 軸整個拉爆。偵測這種情況(明確標了 equal-thirds,或
-  // PB−理論最佳落差 >6% 這種物理上不可能的量)→ 不估理論最佳:opt = PB、
-  // sectorBest 用 PB 那圈自己的分段(見 CLAUDE.md 慣例)。
-  const optRaw = sectorCount === 4
-    ? Math.min(...allS1) + Math.min(...allS2) + Math.min(...allS3) + Math.min(...allS4)
-    : Math.min(...allS1) + Math.min(...allS2) + Math.min(...allS3);
-  const labeledUncal = g.sessions.some(s => /equal-thirds/.test(s.sectorSource || ''));
-  const implausible = optRaw < g.pb * 0.94;   // 落差 >6%:真實賽道靠不了段最佳省這麼多
-  if (labeledUncal || implausible) {
-    g.uncalibrated = true;
-    g.opt = g.pb;
-    // 找出 PB 那圈的分段；PB 若來自官方榜（未被 capture 錄到）則退用該場存的 sectorBest
-    let pbLap = null;
-    g.sessions.forEach(s => s.laps.forEach(l => { if (Math.abs(l.total - g.pb) < 1e-6) pbLap = l; }));
-    const pbSession = g.sessions.reduce((a, b) => b.best < a.best ? b : a);
-    const sb = pbLap || pbSession.sectorBest ||
-               pbSession.laps.reduce((a, b) => b.total < a.total ? b : a);
-    g.sectorBest = sectorCount === 4
-      ? { s1: sb.s1, s2: sb.s2, s3: sb.s3, s4: sb.s4 || 0 }
-      : { s1: sb.s1, s2: sb.s2, s3: sb.s3 };
-  } else if (sectorCount === 4) {
-    g.opt = optRaw;
+  if (sectorCount === 4) {
+    const allS4 = g.sessions.flatMap(s => s.laps.map(l => l.s4 || 0));
+    g.opt = Math.min(...allS1) + Math.min(...allS2) + Math.min(...allS3) + Math.min(...allS4);
     g.sectorBest = { s1: Math.min(...allS1), s2: Math.min(...allS2), s3: Math.min(...allS3), s4: Math.min(...allS4) };
   } else {
-    g.opt = optRaw;
+    g.opt = Math.min(...allS1) + Math.min(...allS2) + Math.min(...allS3);
     g.sectorBest = { s1: Math.min(...allS1), s2: Math.min(...allS2), s3: Math.min(...allS3) };
   }
   g.bestConsistency = Math.min(...g.sessions.map(s => s.avg - s.best));
@@ -1841,9 +1819,9 @@ function renderCarSection(g) {
     ${guidesHTML}
     <div class="kpi-grid">
       <div class="kpi" style="--kpi-color: var(--accent);"><div class="kpi-label">PERSONAL BEST</div><div class="kpi-value">${fmtTime(g.pb)}</div></div>
-      <div class="kpi" style="--kpi-color: var(--purple);"><div class="kpi-label">OPTIMAL LAP</div><div class="kpi-value">${fmtTime(g.opt)}</div><div class="kpi-meta">${g.uncalibrated ? '分段未校正,暫=PB' : g.sectorCount + ' sector 加總'}</div></div>
+      <div class="kpi" style="--kpi-color: var(--purple);"><div class="kpi-label">OPTIMAL LAP</div><div class="kpi-value">${fmtTime(g.opt)}</div><div class="kpi-meta">${g.sectorCount} sector 加總</div></div>
       ${gapKPI}
-      <div class="kpi" style="--kpi-color: var(--gold);"><div class="kpi-label">PB - OPT</div><div class="kpi-value">${gap.toFixed(3)}<span style="font-size:1rem;">s</span></div><div class="kpi-meta">${g.uncalibrated ? '待分段校正' : '潛力空間'}</div></div>
+      <div class="kpi" style="--kpi-color: var(--gold);"><div class="kpi-label">PB - OPT</div><div class="kpi-value">${gap.toFixed(3)}<span style="font-size:1rem;">s</span></div><div class="kpi-meta">潛力空間</div></div>
       <div class="kpi" style="--kpi-color: ${consGrade.color};"><div class="kpi-label">一致性</div><div class="kpi-value">${avgConsistency.toFixed(2)}<span style="font-size:1rem;">s</span></div><div class="kpi-meta">${consGrade.label}</div></div>
     </div>
     ${renderLeaderboard(g)}
@@ -1852,6 +1830,18 @@ function renderCarSection(g) {
       <div class="panel-header"><div class="panel-title">圈速追蹤</div><div class="panel-meta">虛線=趨勢 · 預設排除大失誤圈 · 雙指縮放 Y <button onclick="resetChartZoom('lapChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .5rem;border-radius:6px;border:1px solid #2a3340;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:.7rem;font-family:inherit;">⟲ 重置</button></div></div>
       <div class="panel-body"><div class="chart-wrap tall"><canvas id="lapChart-${g.key}"></canvas></div></div>
     </div>
+    ${g.uncalibrated ? `
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">分段分析</div><div class="panel-meta">未校正 · 暫隱藏</div></div>
+      <div class="panel-body"><div style="padding:1.4rem 1.5rem;color:var(--text-secondary);line-height:1.75;font-size:.88rem;">
+        ⚠ 這條賽道的分段<b style="color:var(--gold);">尚未校正</b>(暫用距離等三分),分段界線每圈會漂移 ——
+        逐段的<b>損失分解 / 穩定性 / 理論最佳</b>都不可靠,已先隱藏以免誤導。<br>
+        圈速追蹤、圈速分布、一致性(都以整圈時間計)仍然準確,照常顯示。<br>
+        <span style="color:var(--text-dim);font-size:.82rem;">給我官方分段時間截圖 → 建座標閘門校正後即可解鎖逐段分析。</span>
+      </div></div>
+    </div>
+    <div class="panel"><div class="panel-header"><div class="panel-title">圈速分布</div><div class="panel-meta">DISTRIBUTION</div></div><div class="panel-body"><div class="chart-wrap"><canvas id="distChart-${g.key}"></canvas></div></div></div>
+    ` : `
     <div class="panel">
       <div class="panel-header"><div class="panel-title">各分段穩定性軌跡</div><div class="panel-meta">每日 · X=距該段最佳 Y=中位−最佳 · 綠進步/橘退步 <button onclick="playSectorTraj('sectorStabChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .6rem;border-radius:6px;border:1px solid var(--accent-dim);background:transparent;color:var(--accent);cursor:pointer;font-size:.72rem;font-family:inherit;">▶ 播放</button></div></div>
       <div class="panel-body"><div class="chart-wrap tall"><canvas id="sectorStabChart-${g.key}"></canvas></div><div id="sectorLeg-${g.key}" class="seg-legend"></div></div>
@@ -1871,7 +1861,7 @@ function renderCarSection(g) {
     <div class="panel">
       <div class="panel-header"><div class="panel-title">Sector 損失分解</div><div class="panel-meta">預設排除大失誤圈 · 雙指縮放 Y <button onclick="resetChartZoom('stackChart-${g.key}')" style="margin-left:.4rem;padding:.15rem .5rem;border-radius:6px;border:1px solid #2a3340;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:.7rem;font-family:inherit;">⟲ 重置</button></div></div>
       <div class="panel-body"><div class="chart-wrap tall"><canvas id="stackChart-${g.key}"></canvas></div></div>
-    </div>
+    </div>`}
     <div class="panel">
       <div class="panel-header"><div class="panel-title">逐圈詳細數據</div><div class="panel-meta">${g.totalLaps} LAPS</div></div>
       <div class="panel-body" style="padding: 0;">
@@ -2203,17 +2193,15 @@ function renderCarCharts(g) {
         ctx.font = "10px 'JetBrains Mono'";
         ctx.textAlign = 'left';
         ctx.fillText(`PB ${fmtTime(g.pb)}`, chartArea.right - 100, pbY - 5);
-        if (!g.uncalibrated) {   // 未校正時 opt=PB,不再重複畫一條紫線
-          ctx.setLineDash([2, 3]);
-          ctx.strokeStyle = '#c266ff';
-          const optY = scales.y.getPixelForValue(g.opt);
-          ctx.beginPath();
-          ctx.moveTo(chartArea.left, optY);
-          ctx.lineTo(chartArea.right, optY);
-          ctx.stroke();
-          ctx.fillStyle = '#c266ff';
-          ctx.fillText(`OPT ${fmtTime(g.opt)}`, chartArea.right - 100, optY - 5);
-        }
+        ctx.setLineDash([2, 3]);
+        ctx.strokeStyle = '#c266ff';
+        const optY = scales.y.getPixelForValue(g.opt);
+        ctx.beginPath();
+        ctx.moveTo(chartArea.left, optY);
+        ctx.lineTo(chartArea.right, optY);
+        ctx.stroke();
+        ctx.fillStyle = '#c266ff';
+        ctx.fillText(`OPT ${fmtTime(g.opt)}`, chartArea.right - 100, optY - 5);
         ctx.restore();
       }
     }]
@@ -2253,6 +2241,9 @@ function renderCarCharts(g) {
     }
   });
 
+  // 未校正賽道:分段界線每圈漂移,逐段損失/穩定性/理論最佳都不可靠,整組跳過不畫
+  // （renderCarSection 也不會放這些面板,改放一段說明）。整圈時間的圖(圈速/分布)照畫。
+  if (!g.uncalibrated) {
   drawSectorTrajectory('sectorStabChart-' + g.key, g.sessions, g.sectorCount);
   drawSectorLine('sectorLineChart-' + g.key, g.sessions, g.sectorCount);
   drawSectorBalance('quadChart-' + g.key, g.sessions, g.sectorCount);
@@ -2319,6 +2310,7 @@ function renderCarCharts(g) {
       }
     }
   });
+  }   // end if (!g.uncalibrated)
 
   const body = document.getElementById('tableBody-' + g.key);
   if (g.sectorCount === 4) {
