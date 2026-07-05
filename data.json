@@ -15,7 +15,7 @@
     "time": 79.466,
     "displayTime": "1:19.466",
     "label": "世界第一 ghost",
-    "note": "GT7 官方排行 #1（2026-07-03 自動抓取）",
+    "note": "GT7 官方排行 #1（2026-07-05 自動抓取）",
     "csv": "telemetry/wr-911gt3r99222.csv"
    },
    "toyota86grmn16": {
@@ -41,10 +41,10 @@
     "note": "GT7 官方排行 #1（2026-07-05 自動抓取）"
    },
    "astonmartindb1116": {
-    "time": 98.744,
-    "displayTime": "1:38.744",
+    "time": 98.697,
+    "displayTime": "1:38.697",
     "label": "WR(dg-edge 門檻推算,暫)",
-    "note": "由 dg-edge Platinum/Gold 門檻回推;實際 WR 待 gt7_rank 抓取後覆蓋。"
+    "note": "GT7 官方排行 #1（2026-07-05 自動抓取）"
    }
   },
   "guides": {
@@ -70,7 +70,7 @@
     "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
     "eventLabel": "Time Trial · WeatherTech Laguna Seca · 911 GT3 R (992) '22 · RS",
     "source": "dg-edge.com",
-    "asOf": "2026-07-03",
+    "asOf": "2026-07-05",
     "totalPlayers": 208956,
     "wr": 79.466,
     "top100": 80.121,
@@ -105,7 +105,7 @@
      "rank": 7315,
      "pb": 81.645,
      "source": "gt(by-time)",
-     "asOf": "2026-07-03",
+     "asOf": "2026-07-05",
      "topPct": 3.5,
      "countryRank": 41
     },
@@ -236,14 +236,14 @@
    },
    "interlagos__astonmartindb1116": {
     "mode": "time-trial",
-    "eventUrl": "",
+    "eventUrl": "https://www.dg-edge.com/events/time-trials/603",
     "eventLabel": "Time Trial · Interlagos · Aston Martin DB11 '16 · SM",
     "source": "dg-edge.com + GT 官方榜 (screenshot 2026-07-05)",
     "asOf": "2026-07-05",
-    "totalPlayers": 38078,
-    "wr": 98.744,
-    "top100": 99.996,
-    "top1000": 100.892,
+    "totalPlayers": 64451,
+    "wr": 98.697,
+    "top100": 99.853,
+    "top1000": 100.681,
     "medals": {
      "platinum": 99.238,
      "gold": 101.707,
@@ -252,12 +252,15 @@
     },
     "endDate": "2026-07-16",
     "playerRank": {
-     "rank": 464,
+     "rank": 582,
      "pb": 100.454,
-     "source": "實測(GT官方榜截圖 7/4)",
+     "source": "gt(by-time)",
      "asOf": "2026-07-05",
-     "topPct": 1.22
-    }
+     "topPct": 0.9,
+     "countryRank": 5
+    },
+    "boardId": "p_rt_1014297_001",
+    "boardPages": 714
    }
   },
   "sectorCalibration": {
@@ -524,21 +527,21 @@
    "items": [
     {
      "label": "🎯 主要",
-     "target": 101.706,
-     "displayTarget": "1:41.706",
-     "desc": "世界第一 +3%(門檻 1:41.706,WR 1:38.744)"
+     "target": 101.658,
+     "displayTarget": "1:41.658",
+     "desc": "世界第一 +3%(門檻 1:41.658,WR 1:38.697)"
     },
     {
      "label": "🚀 進階",
-     "target": 100.719,
-     "displayTarget": "1:40.719",
-     "desc": "世界第一 +2%(門檻 1:40.719,WR 1:38.744)"
+     "target": 100.671,
+     "displayTarget": "1:40.671",
+     "desc": "世界第一 +2%(門檻 1:40.671,WR 1:38.697)"
     },
     {
      "label": "🏁 衝刺",
-     "target": 99.731,
-     "displayTarget": "1:39.731",
-     "desc": "世界第一 +1%(門檻 1:39.731,WR 1:38.744)"
+     "target": 99.684,
+     "displayTarget": "1:39.684",
+     "desc": "世界第一 +1%(門檻 1:39.684,WR 1:38.697)"
     }
    ]
   }
