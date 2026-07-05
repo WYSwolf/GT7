@@ -1,7 +1,7 @@
 {
  "meta": {
   "version": "1.8",
-  "lastUpdated": "2026-07-03",
+  "lastUpdated": "2026-07-05",
   "driver": "User",
   "schema": "GT7 Telemetry Training Data",
   "reference": {
@@ -22,7 +22,7 @@
     "time": 110.238,
     "displayTime": "1:50.238",
     "label": "世界第一 ghost",
-    "note": "GT7 官方排行 #1（2026-07-03 自動抓取）",
+    "note": "GT7 官方排行 #1（2026-07-05 自動抓取）",
     "csv": "telemetry/wr-toyota86grmn16.csv",
     "event": 580
    },
@@ -30,7 +30,7 @@
     "time": 90.92,
     "displayTime": "1:30.920",
     "label": "世界第一 ghost",
-    "note": "GT7 官方排行 #1（2026-07-03 自動抓取）",
+    "note": "GT7 官方排行 #1（2026-07-05 自動抓取）",
     "csv": "telemetry/wr-fordgt17.csv",
     "event": 594
    },
@@ -38,7 +38,7 @@
     "time": 102.38,
     "displayTime": "1:42.380",
     "label": "WR(GT7 全球#1)",
-    "note": "GT7 官方排行 #1（2026-07-03 自動抓取）"
+    "note": "GT7 官方排行 #1（2026-07-05 自動抓取）"
    }
   },
   "guides": {
@@ -111,7 +111,7 @@
     "eventUrl": "https://www.dg-edge.com/events/dailies/574",
     "eventLabel": "Daily Race C · Week 22 · Watkins Glen Long · GR.3",
     "source": "dg-edge.com",
-    "asOf": "2026-07-03",
+    "asOf": "2026-07-05",
     "endDate": "2026-06-01",
     "totalPlayers": 68784,
     "top100": 102.857,
@@ -149,7 +149,7 @@
      "rank": 30932,
      "pb": 106.837,
      "source": "gt(by-time)",
-     "asOf": "2026-07-03",
+     "asOf": "2026-07-05",
      "topPct": 44.97,
      "countryRank": 99
     },
@@ -158,7 +158,7 @@
    "deepforest__toyota86grmn16": {
     "event": 580,
     "eventUrl": "https://www.dg-edge.com/events/time-trials/580",
-    "asOf": "2026-07-03",
+    "asOf": "2026-07-05",
     "totalPlayers": 157534,
     "top100": 111.075,
     "top1000": 111.887,
@@ -178,7 +178,7 @@
      "rank": 2346,
      "pb": 112.366,
      "source": "gt(by-time)",
-     "asOf": "2026-07-03",
+     "asOf": "2026-07-05",
      "topPct": 1.49,
      "countryRank": 15
     },
@@ -198,7 +198,7 @@
     "eventUrl": "https://www.dg-edge.com/events/time-trials/594",
     "eventLabel": "Time Trial · Red Bull Ring · Ford GT '17 · SM",
     "source": "dg-edge.com",
-    "asOf": "2026-07-03",
+    "asOf": "2026-07-05",
     "totalPlayers": 180345,
     "wr": 90.92,
     "top100": 91.816,
@@ -221,7 +221,7 @@
      "rank": 1140,
      "pb": 92.515,
      "source": "gt(by-time)",
-     "asOf": "2026-07-03",
+     "asOf": "2026-07-05",
      "topPct": 0.63,
      "countryRank": 9
     },
