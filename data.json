@@ -44,7 +44,7 @@
     "time": 98.744,
     "displayTime": "1:38.744",
     "label": "WR(dg-edge 門檻推算,暫)",
-    "note": "由 dg-edge Platinum/Gold 門檻回推;實際 WR 待 gt7_rank 從 GT 官方榜抓取後覆蓋。"
+    "note": "由 dg-edge Platinum/Gold 門檻回推;實際 WR 待 gt7_rank 抓取後覆蓋。"
    }
   },
   "guides": {
@@ -254,7 +254,7 @@
     "playerRank": {
      "rank": 464,
      "pb": 100.454,
-     "source": "實測(GT官方榜截圖)",
+     "source": "實測(GT官方榜截圖 7/4)",
      "asOf": "2026-07-05",
      "topPct": 1.22
     }
@@ -571,15 +571,15 @@
   "interlagos": [
    {
     "title": "衝 🏁 +1%(1:39.731)",
-    "desc": "官方 PB 1:40.454,距 🏁 約 0.72s。先追穩定壓進 1:40 早段。"
+    "desc": "PB 1:40.454,距 🏁 約 0.72s。"
    },
    {
     "title": "FR + 技術彎精修",
     "desc": "DB11 前置:入彎靠煞車帶轉向、出彎循跡有限。內場低速彎的線與出彎油門是主要時間來源。"
    },
    {
-    "title": "給我官方分段截圖",
-    "desc": "建閘門後才能逐彎拆解、估理論最佳(現為三等分暫值)。"
+    "title": "官方分段截圖 + 錄快圈",
+    "desc": "建閘門後才能逐彎拆解;破 PB 的快圈記得開 capture 才有遙測。"
    }
   ]
  },
@@ -8051,7 +8051,7 @@
    "eventUrl": "",
    "eventLabel": "Time Trial · Interlagos · Aston Martin DB11 '16 · SM",
    "csv": "telemetry/gt7-2026-07-03.csv",
-   "sectorSource": "equal-thirds(距離三等分,暫;分段未校正、不估理論最佳,待官方分段截圖建閘門)",
+   "sectorSource": "equal-thirds(距離三等分,暫;未校正)",
    "session": "A",
    "id": "2026-07-03-interlagos-A",
    "totalLaps": 13,
@@ -8204,22 +8204,22 @@
    "eventUrl": "",
    "eventLabel": "Time Trial · Interlagos · Aston Martin DB11 '16 · SM",
    "csv": "telemetry/gt7-2026-07-04.csv",
-   "sectorSource": "equal-thirds(距離三等分,暫;分段未校正、不估理論最佳,待官方分段截圖建閘門)",
+   "sectorSource": "equal-thirds(距離三等分,暫;未校正)",
    "session": "A",
    "id": "2026-07-04-interlagos-A",
    "totalLaps": 25,
-   "sessionLabel": "7/4 場次一",
-   "best": 100.644,
+   "sessionLabel": "7/4 場次一(PB)",
+   "best": 100.454,
    "avg": 101.52,
    "worst": 102.332,
-   "opt": 100.644,
+   "opt": 100.454,
    "sectorBest": {
     "s1": 30.062,
     "s2": 39.657,
     "s3": 30.925
    },
    "topSpeed": 267,
-   "notes": "25 圈(0 無效)。60Hz。新賽道,分段暫用距離三等分、未校正(理論最佳暫等於 PB)。",
+   "notes": "25 圈(0 無效)。60Hz。新賽道,分段暫用距離三等分、未校正(理論最佳暫等於 PB)。 ★ best 為官方榜最快 1:40.454(#464),此圈未被 gt7_capture 錄到;擷取到的最快為 1:40.644(slim CSV 存此圈)。",
    "pbRl": 24,
    "laps": [
     {
@@ -8465,7 +8465,7 @@
    "eventUrl": "",
    "eventLabel": "Time Trial · Interlagos · Aston Martin DB11 '16 · SM",
    "csv": "telemetry/gt7-2026-07-05.csv",
-   "sectorSource": "equal-thirds(距離三等分,暫;分段未校正、不估理論最佳,待官方分段截圖建閘門)",
+   "sectorSource": "equal-thirds(距離三等分,暫;未校正)",
    "session": "A",
    "id": "2026-07-05-interlagos-A",
    "totalLaps": 36,
@@ -8810,20 +8810,20 @@
    ],
    "insights": [
     {
-     "title": "三天三連進步 · 1:41.647 → 1:40.544",
-     "desc": "7/3 1:41.647 → 7/4 1:40.644 → 7/5 1:40.544(擷取值);官方榜達 1:40.454、全球 #464 / 前 1.22%。三天砍 1.2s,FR 的 DB11 抓到手感。"
+     "title": "Interlagos PB · 1:40.454(7/4 · #464)",
+     "desc": "你的 Interlagos 最快是 7/4 的 1:40.454,全球 #464 / 前 1.22%。★ 那圈未被 gt7_capture 錄到(擷取最快:7/4 1:40.644、7/5 1:40.544)。三天從 1:41.647 一路進步。"
     },
     {
      "title": "🎯🚀 目標達成,剩 🏁",
-     "desc": "🎯 主要 +3%(1:41.706)、🚀 進階 +2%(1:40.719)皆達成;🏁 衝刺 +1%(1:39.731)還差約 0.72s。"
+     "desc": "🎯 主要 +3%(1:41.706)、🚀 進階 +2%(1:40.719)皆達成;🏁 衝刺 +1%(1:39.731)以 PB 1:40.454 算還差 0.723s。"
     },
     {
-     "title": "36 圈量大又穩",
-     "desc": "7/5 跑 36 圈,多圈壓進 1:40.5~1:40.8。"
+     "title": "7/5 練量 · 36 圈",
+     "desc": "7/5 跑 36 圈鞏固,多圈壓進 1:40.5~1:40.8,一致性好(但單圈沒破 7/4 的 1:40.454)。"
     },
     {
-     "title": "分段待校正(現不估理論最佳)",
-     "desc": "尚無分段閘門,S1/S2/S3 為距離三等分估值、理論最佳暫等於 PB。給我官方分段時間截圖,建閘門後才準、才能逐彎分析。"
+     "title": "分段待校正 · 也把快圈錄起來",
+     "desc": "分段仍是距離三等分估值(待官方分段截圖建閘門)。另建議:破 PB 的那種快圈盡量開 gt7_capture 錄,才有遙測可逐彎分析。"
     }
    ]
   }
