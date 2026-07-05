@@ -1215,12 +1215,34 @@ function computeStats(g) {
   const allS2 = g.sessions.flatMap(s => s.laps.map(l => l.s2));
   const allS3 = g.sessions.flatMap(s => s.laps.map(l => l.s3));
   const sectorCount = g.sessions[0].sectorsCount;
-  if (sectorCount === 4) {
-    const allS4 = g.sessions.flatMap(s => s.laps.map(l => l.s4 || 0));
-    g.opt = Math.min(...allS1) + Math.min(...allS2) + Math.min(...allS3) + Math.min(...allS4);
+  const allS4 = sectorCount === 4 ? g.sessions.flatMap(s => s.laps.map(l => l.s4 || 0)) : [];
+  // 理論最佳 = 跨圈各段最小值加總。前提是分段界線是「真的閘門」(每圈同一位置)；
+  // 未校正賽道(距離等三分)或閘門沒對準時,各段界線會漂移,加總出的「理論最佳」會荒謬地
+  // 比 WR 還快十幾秒,把圈速圖 Y 軸整個拉爆。偵測這種情況(明確標了 equal-thirds,或
+  // PB−理論最佳落差 >6% 這種物理上不可能的量)→ 不估理論最佳:opt = PB、
+  // sectorBest 用 PB 那圈自己的分段(見 CLAUDE.md 慣例)。
+  const optRaw = sectorCount === 4
+    ? Math.min(...allS1) + Math.min(...allS2) + Math.min(...allS3) + Math.min(...allS4)
+    : Math.min(...allS1) + Math.min(...allS2) + Math.min(...allS3);
+  const labeledUncal = g.sessions.some(s => /equal-thirds/.test(s.sectorSource || ''));
+  const implausible = optRaw < g.pb * 0.94;   // 落差 >6%:真實賽道靠不了段最佳省這麼多
+  if (labeledUncal || implausible) {
+    g.uncalibrated = true;
+    g.opt = g.pb;
+    // 找出 PB 那圈的分段；PB 若來自官方榜（未被 capture 錄到）則退用該場存的 sectorBest
+    let pbLap = null;
+    g.sessions.forEach(s => s.laps.forEach(l => { if (Math.abs(l.total - g.pb) < 1e-6) pbLap = l; }));
+    const pbSession = g.sessions.reduce((a, b) => b.best < a.best ? b : a);
+    const sb = pbLap || pbSession.sectorBest ||
+               pbSession.laps.reduce((a, b) => b.total < a.total ? b : a);
+    g.sectorBest = sectorCount === 4
+      ? { s1: sb.s1, s2: sb.s2, s3: sb.s3, s4: sb.s4 || 0 }
+      : { s1: sb.s1, s2: sb.s2, s3: sb.s3 };
+  } else if (sectorCount === 4) {
+    g.opt = optRaw;
     g.sectorBest = { s1: Math.min(...allS1), s2: Math.min(...allS2), s3: Math.min(...allS3), s4: Math.min(...allS4) };
   } else {
-    g.opt = Math.min(...allS1) + Math.min(...allS2) + Math.min(...allS3);
+    g.opt = optRaw;
     g.sectorBest = { s1: Math.min(...allS1), s2: Math.min(...allS2), s3: Math.min(...allS3) };
   }
   g.bestConsistency = Math.min(...g.sessions.map(s => s.avg - s.best));
@@ -1819,9 +1841,9 @@ function renderCarSection(g) {
     ${guidesHTML}
     <div class="kpi-grid">
       <div class="kpi" style="--kpi-color: var(--accent);"><div class="kpi-label">PERSONAL BEST</div><div class="kpi-value">${fmtTime(g.pb)}</div></div>
-      <div class="kpi" style="--kpi-color: var(--purple);"><div class="kpi-label">OPTIMAL LAP</div><div class="kpi-value">${fmtTime(g.opt)}</div><div class="kpi-meta">${g.sectorCount} sector 加總</div></div>
+      <div class="kpi" style="--kpi-color: var(--purple);"><div class="kpi-label">OPTIMAL LAP</div><div class="kpi-value">${fmtTime(g.opt)}</div><div class="kpi-meta">${g.uncalibrated ? '分段未校正,暫=PB' : g.sectorCount + ' sector 加總'}</div></div>
       ${gapKPI}
-      <div class="kpi" style="--kpi-color: var(--gold);"><div class="kpi-label">PB - OPT</div><div class="kpi-value">${gap.toFixed(3)}<span style="font-size:1rem;">s</span></div><div class="kpi-meta">潛力空間</div></div>
+      <div class="kpi" style="--kpi-color: var(--gold);"><div class="kpi-label">PB - OPT</div><div class="kpi-value">${gap.toFixed(3)}<span style="font-size:1rem;">s</span></div><div class="kpi-meta">${g.uncalibrated ? '待分段校正' : '潛力空間'}</div></div>
       <div class="kpi" style="--kpi-color: ${consGrade.color};"><div class="kpi-label">一致性</div><div class="kpi-value">${avgConsistency.toFixed(2)}<span style="font-size:1rem;">s</span></div><div class="kpi-meta">${consGrade.label}</div></div>
     </div>
     ${renderLeaderboard(g)}
@@ -2181,15 +2203,17 @@ function renderCarCharts(g) {
         ctx.font = "10px 'JetBrains Mono'";
         ctx.textAlign = 'left';
         ctx.fillText(`PB ${fmtTime(g.pb)}`, chartArea.right - 100, pbY - 5);
-        ctx.setLineDash([2, 3]);
-        ctx.strokeStyle = '#c266ff';
-        const optY = scales.y.getPixelForValue(g.opt);
-        ctx.beginPath();
-        ctx.moveTo(chartArea.left, optY);
-        ctx.lineTo(chartArea.right, optY);
-        ctx.stroke();
-        ctx.fillStyle = '#c266ff';
-        ctx.fillText(`OPT ${fmtTime(g.opt)}`, chartArea.right - 100, optY - 5);
+        if (!g.uncalibrated) {   // 未校正時 opt=PB,不再重複畫一條紫線
+          ctx.setLineDash([2, 3]);
+          ctx.strokeStyle = '#c266ff';
+          const optY = scales.y.getPixelForValue(g.opt);
+          ctx.beginPath();
+          ctx.moveTo(chartArea.left, optY);
+          ctx.lineTo(chartArea.right, optY);
+          ctx.stroke();
+          ctx.fillStyle = '#c266ff';
+          ctx.fillText(`OPT ${fmtTime(g.opt)}`, chartArea.right - 100, optY - 5);
+        }
         ctx.restore();
       }
     }]
