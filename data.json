@@ -39,6 +39,12 @@
     "displayTime": "1:42.380",
     "label": "WR(GT7 全球#1)",
     "note": "GT7 官方排行 #1（2026-07-05 自動抓取）"
+   },
+   "astonmartindb1116": {
+    "time": 98.744,
+    "displayTime": "1:38.744",
+    "label": "WR(dg-edge 門檻推算,暫)",
+    "note": "由 dg-edge Platinum/Gold 門檻回推;實際 WR 待 gt7_rank 從 GT 官方榜抓取後覆蓋。"
    }
   },
   "guides": {
@@ -227,6 +233,31 @@
     },
     "boardId": "p_rt_1014277_001",
     "boardPages": 1804
+   },
+   "interlagos__astonmartindb1116": {
+    "mode": "time-trial",
+    "eventUrl": "",
+    "eventLabel": "Time Trial · Interlagos · Aston Martin DB11 '16 · SM",
+    "source": "dg-edge.com + GT 官方榜 (screenshot 2026-07-05)",
+    "asOf": "2026-07-05",
+    "totalPlayers": 38078,
+    "wr": 98.744,
+    "top100": 99.996,
+    "top1000": 100.892,
+    "medals": {
+     "platinum": 99.238,
+     "gold": 101.707,
+     "silver": 103.681,
+     "bronze": 108.618
+    },
+    "endDate": "2026-07-16",
+    "playerRank": {
+     "rank": 464,
+     "pb": 100.454,
+     "source": "實測(GT官方榜截圖)",
+     "asOf": "2026-07-05",
+     "topPct": 1.22
+    }
    }
   },
   "sectorCalibration": {
@@ -404,6 +435,10 @@
    "fordgt17": {
     "class": "road",
     "drivetrain": "MR"
+   },
+   "astonmartindb1116": {
+    "class": "road",
+    "drivetrain": "FR"
    }
   },
   "trackTags": {
@@ -411,6 +446,11 @@
     "profile": "high-speed",
     "lengthKm": 4.318,
     "dir": "cw"
+   },
+   "interlagos": {
+    "profile": "mixed",
+    "lengthKm": 4.309,
+    "dir": "ccw"
    }
   }
  },
@@ -472,6 +512,35 @@
      "desc": "世界第一 +1%(門檻 1:51.340,WR 1:50.238)"
     }
    ]
+  },
+  {
+   "track": "英特拉格斯",
+   "trackKey": "interlagos",
+   "car": "Aston Martin DB11 '16",
+   "priority": "primary",
+   "eventEnd": "2026-07-16",
+   "eventLabel": "Time Trial · Interlagos",
+   "baseline": 101.647,
+   "items": [
+    {
+     "label": "🎯 主要",
+     "target": 101.706,
+     "displayTarget": "1:41.706",
+     "desc": "世界第一 +3%(門檻 1:41.706,WR 1:38.744)"
+    },
+    {
+     "label": "🚀 進階",
+     "target": 100.719,
+     "displayTarget": "1:40.719",
+     "desc": "世界第一 +2%(門檻 1:40.719,WR 1:38.744)"
+    },
+    {
+     "label": "🏁 衝刺",
+     "target": 99.731,
+     "displayTarget": "1:39.731",
+     "desc": "世界第一 +1%(門檻 1:39.731,WR 1:38.744)"
+    }
+   ]
   }
  ],
  "actionItems": {
@@ -497,6 +566,20 @@
    {
     "title": "短場次衝乾淨圈,趁 6/18 截止前刷",
     "desc": "Deep Forest 當天 A→C 最快 1:53.015→1:52.366、一致性 0.795→0.558,證明短場次專注衝有效。活動 6/18 截止,維持 6–8 圈節奏、鎖定 Sub 1:52.0。"
+   }
+  ],
+  "interlagos": [
+   {
+    "title": "衝 🏁 +1%(1:39.731)",
+    "desc": "官方 PB 1:40.454,距 🏁 約 0.72s。先追穩定壓進 1:40 早段。"
+   },
+   {
+    "title": "FR + 技術彎精修",
+    "desc": "DB11 前置:入彎靠煞車帶轉向、出彎循跡有限。內場低速彎的線與出彎油門是主要時間來源。"
+   },
+   {
+    "title": "給我官方分段截圖",
+    "desc": "建閘門後才能逐彎拆解、估理論最佳(現為三等分暫值)。"
    }
   ]
  },
@@ -7950,6 +8033,797 @@
     {
      "title": "目標進度(WR 基準)",
      "desc": "🎯 +3%(1:33.648)、🚀 +2%(1:32.738)已達成;🏁 衝刺 +1%(1:31.829)還差 0.686s(6/30 是 0.733,再近)。"
+    }
+   ]
+  },
+  {
+   "date": "2026-07-03",
+   "track": "英特拉格斯",
+   "trackKey": "interlagos",
+   "trackEn": "INTERLAGOS",
+   "route": "",
+   "car": "Aston Martin DB11 '16",
+   "carSlug": "astonmartindb1116",
+   "carClass": "道路",
+   "tire": "SM",
+   "sectorsCount": 3,
+   "mode": "time-trial",
+   "eventUrl": "",
+   "eventLabel": "Time Trial · Interlagos · Aston Martin DB11 '16 · SM",
+   "csv": "telemetry/gt7-2026-07-03.csv",
+   "sectorSource": "equal-thirds(距離三等分,暫;分段未校正、不估理論最佳,待官方分段截圖建閘門)",
+   "session": "A",
+   "id": "2026-07-03-interlagos-A",
+   "totalLaps": 13,
+   "sessionLabel": "7/3 場次一",
+   "best": 101.647,
+   "avg": 102.282,
+   "worst": 104.731,
+   "opt": 101.647,
+   "sectorBest": {
+    "s1": 31.0,
+    "s2": 41.0,
+    "s3": 29.647
+   },
+   "topSpeed": 266,
+   "notes": "13 圈(1 無效)。60Hz。新賽道,分段暫用距離三等分、未校正(理論最佳暫等於 PB)。",
+   "pbRl": 11,
+   "laps": [
+    {
+     "lap": 1,
+     "s1": 30.969,
+     "s2": 42.187,
+     "s3": 31.575,
+     "total": 104.731,
+     "invalid": true,
+     "note": ""
+    },
+    {
+     "lap": 2,
+     "s1": 31.36,
+     "s2": 40.859,
+     "s3": 29.824,
+     "total": 102.043,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 3,
+     "s1": 30.625,
+     "s2": 41.078,
+     "s3": 30.663,
+     "total": 102.366,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 4,
+     "s1": 30.86,
+     "s2": 41.218,
+     "s3": 30.166,
+     "total": 102.244,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 5,
+     "s1": 30.938,
+     "s2": 41.14,
+     "s3": 30.427,
+     "total": 102.505,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 6,
+     "s1": 30.641,
+     "s2": 41.703,
+     "s3": 29.707,
+     "total": 102.051,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 7,
+     "s1": 30.86,
+     "s2": 41.625,
+     "s3": 29.734,
+     "total": 102.219,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 8,
+     "s1": 30.765,
+     "s2": 41.36,
+     "s3": 29.844,
+     "total": 101.969,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 9,
+     "s1": 30.875,
+     "s2": 40.734,
+     "s3": 30.799,
+     "total": 102.408,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 10,
+     "s1": 30.703,
+     "s2": 41.156,
+     "s3": 29.967,
+     "total": 101.826,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 11,
+     "s1": 31.0,
+     "s2": 41.0,
+     "s3": 29.647,
+     "total": 101.647,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 12,
+     "s1": 30.718,
+     "s2": 41.344,
+     "s3": 29.778,
+     "total": 101.84,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 13,
+     "s1": 30.703,
+     "s2": 41.469,
+     "s3": 29.642,
+     "total": 101.814,
+     "invalid": false,
+     "note": ""
+    }
+   ],
+   "insights": []
+  },
+  {
+   "date": "2026-07-04",
+   "track": "英特拉格斯",
+   "trackKey": "interlagos",
+   "trackEn": "INTERLAGOS",
+   "route": "",
+   "car": "Aston Martin DB11 '16",
+   "carSlug": "astonmartindb1116",
+   "carClass": "道路",
+   "tire": "SM",
+   "sectorsCount": 3,
+   "mode": "time-trial",
+   "eventUrl": "",
+   "eventLabel": "Time Trial · Interlagos · Aston Martin DB11 '16 · SM",
+   "csv": "telemetry/gt7-2026-07-04.csv",
+   "sectorSource": "equal-thirds(距離三等分,暫;分段未校正、不估理論最佳,待官方分段截圖建閘門)",
+   "session": "A",
+   "id": "2026-07-04-interlagos-A",
+   "totalLaps": 25,
+   "sessionLabel": "7/4 場次一",
+   "best": 100.644,
+   "avg": 101.52,
+   "worst": 102.332,
+   "opt": 100.644,
+   "sectorBest": {
+    "s1": 30.062,
+    "s2": 39.657,
+    "s3": 30.925
+   },
+   "topSpeed": 267,
+   "notes": "25 圈(0 無效)。60Hz。新賽道,分段暫用距離三等分、未校正(理論最佳暫等於 PB)。",
+   "pbRl": 24,
+   "laps": [
+    {
+     "lap": 1,
+     "s1": 16.734,
+     "s2": 35.532,
+     "s3": 50.066,
+     "total": 102.332,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 2,
+     "s1": 25.657,
+     "s2": 30.702,
+     "s3": 45.406,
+     "total": 101.765,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 3,
+     "s1": 31.36,
+     "s2": 39.766,
+     "s3": 30.908,
+     "total": 102.034,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 4,
+     "s1": 30.484,
+     "s2": 40.938,
+     "s3": 30.363,
+     "total": 101.785,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 5,
+     "s1": 27.079,
+     "s2": 38.359,
+     "s3": 35.89,
+     "total": 101.328,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 6,
+     "s1": 29.171,
+     "s2": 38.999,
+     "s3": 33.562,
+     "total": 101.732,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 7,
+     "s1": 25.922,
+     "s2": 40.39,
+     "s3": 34.926,
+     "total": 101.238,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 8,
+     "s1": 30.421,
+     "s2": 39.829,
+     "s3": 31.986,
+     "total": 102.236,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 9,
+     "s1": 27.421,
+     "s2": 39.813,
+     "s3": 34.4,
+     "total": 101.634,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 10,
+     "s1": 30.359,
+     "s2": 39.548,
+     "s3": 31.84,
+     "total": 101.747,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 11,
+     "s1": 27.468,
+     "s2": 39.187,
+     "s3": 34.862,
+     "total": 101.517,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 12,
+     "s1": 30.687,
+     "s2": 38.673,
+     "s3": 32.667,
+     "total": 102.027,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 13,
+     "s1": 28.766,
+     "s2": 39.969,
+     "s3": 32.572,
+     "total": 101.307,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 14,
+     "s1": 26.343,
+     "s2": 39.187,
+     "s3": 35.951,
+     "total": 101.481,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 15,
+     "s1": 27.109,
+     "s2": 35.922,
+     "s3": 38.433,
+     "total": 101.464,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 16,
+     "s1": 27.407,
+     "s2": 40.577,
+     "s3": 33.316,
+     "total": 101.3,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 17,
+     "s1": 31.094,
+     "s2": 37.657,
+     "s3": 32.513,
+     "total": 101.264,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 18,
+     "s1": 27.579,
+     "s2": 40.578,
+     "s3": 32.896,
+     "total": 101.053,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 19,
+     "s1": 30.656,
+     "s2": 39.593,
+     "s3": 30.969,
+     "total": 101.218,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 20,
+     "s1": 28.376,
+     "s2": 38.563,
+     "s3": 34.747,
+     "total": 101.686,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 21,
+     "s1": 28.78,
+     "s2": 39.97,
+     "s3": 32.633,
+     "total": 101.383,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 22,
+     "s1": 28.173,
+     "s2": 40.798,
+     "s3": 33.034,
+     "total": 102.005,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 23,
+     "s1": 29.78,
+     "s2": 40.001,
+     "s3": 31.032,
+     "total": 100.813,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 24,
+     "s1": 30.062,
+     "s2": 39.657,
+     "s3": 30.925,
+     "total": 100.644,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 25,
+     "s1": 30.031,
+     "s2": 38.407,
+     "s3": 32.576,
+     "total": 101.014,
+     "invalid": false,
+     "note": ""
+    }
+   ],
+   "insights": []
+  },
+  {
+   "date": "2026-07-05",
+   "track": "英特拉格斯",
+   "trackKey": "interlagos",
+   "trackEn": "INTERLAGOS",
+   "route": "",
+   "car": "Aston Martin DB11 '16",
+   "carSlug": "astonmartindb1116",
+   "carClass": "道路",
+   "tire": "SM",
+   "sectorsCount": 3,
+   "mode": "time-trial",
+   "eventUrl": "",
+   "eventLabel": "Time Trial · Interlagos · Aston Martin DB11 '16 · SM",
+   "csv": "telemetry/gt7-2026-07-05.csv",
+   "sectorSource": "equal-thirds(距離三等分,暫;分段未校正、不估理論最佳,待官方分段截圖建閘門)",
+   "session": "A",
+   "id": "2026-07-05-interlagos-A",
+   "totalLaps": 36,
+   "sessionLabel": "7/5 場次一",
+   "best": 100.544,
+   "avg": 101.317,
+   "worst": 102.233,
+   "opt": 100.544,
+   "sectorBest": {
+    "s1": 30.437,
+    "s2": 40.797,
+    "s3": 29.31
+   },
+   "topSpeed": 267,
+   "notes": "36 圈(0 無效)。60Hz。新賽道,分段暫用距離三等分、未校正(理論最佳暫等於 PB)。",
+   "pbRl": 36,
+   "laps": [
+    {
+     "lap": 1,
+     "s1": 30.89,
+     "s2": 41.485,
+     "s3": 29.858,
+     "total": 102.233,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 2,
+     "s1": 30.782,
+     "s2": 41.093,
+     "s3": 29.981,
+     "total": 101.856,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 3,
+     "s1": 30.609,
+     "s2": 41.453,
+     "s3": 29.656,
+     "total": 101.718,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 4,
+     "s1": 30.875,
+     "s2": 40.547,
+     "s3": 29.407,
+     "total": 100.829,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 5,
+     "s1": 30.844,
+     "s2": 40.859,
+     "s3": 29.532,
+     "total": 101.235,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 6,
+     "s1": 30.657,
+     "s2": 40.656,
+     "s3": 29.537,
+     "total": 100.85,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 7,
+     "s1": 30.516,
+     "s2": 41.078,
+     "s3": 29.702,
+     "total": 101.296,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 8,
+     "s1": 30.875,
+     "s2": 41.063,
+     "s3": 29.654,
+     "total": 101.592,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 9,
+     "s1": 30.672,
+     "s2": 41.188,
+     "s3": 29.64,
+     "total": 101.5,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 10,
+     "s1": 30.609,
+     "s2": 40.891,
+     "s3": 29.626,
+     "total": 101.126,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 11,
+     "s1": 30.547,
+     "s2": 40.922,
+     "s3": 29.591,
+     "total": 101.06,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 12,
+     "s1": 30.484,
+     "s2": 40.703,
+     "s3": 29.58,
+     "total": 100.767,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 13,
+     "s1": 30.875,
+     "s2": 41.0,
+     "s3": 29.587,
+     "total": 101.462,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 14,
+     "s1": 30.609,
+     "s2": 41.25,
+     "s3": 29.548,
+     "total": 101.407,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 15,
+     "s1": 30.484,
+     "s2": 40.938,
+     "s3": 29.909,
+     "total": 101.331,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 16,
+     "s1": 30.61,
+     "s2": 41.39,
+     "s3": 29.667,
+     "total": 101.667,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 17,
+     "s1": 30.703,
+     "s2": 41.11,
+     "s3": 29.559,
+     "total": 101.372,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 18,
+     "s1": 30.625,
+     "s2": 41.484,
+     "s3": 29.808,
+     "total": 101.917,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 19,
+     "s1": 30.546,
+     "s2": 40.922,
+     "s3": 29.856,
+     "total": 101.324,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 20,
+     "s1": 30.547,
+     "s2": 40.656,
+     "s3": 29.534,
+     "total": 100.737,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 21,
+     "s1": 30.453,
+     "s2": 42.015,
+     "s3": 29.675,
+     "total": 102.143,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 22,
+     "s1": 30.75,
+     "s2": 41.0,
+     "s3": 29.648,
+     "total": 101.398,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 23,
+     "s1": 30.547,
+     "s2": 40.594,
+     "s3": 29.523,
+     "total": 100.664,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 24,
+     "s1": 30.453,
+     "s2": 41.313,
+     "s3": 29.819,
+     "total": 101.585,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 25,
+     "s1": 30.735,
+     "s2": 40.89,
+     "s3": 30.197,
+     "total": 101.822,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 26,
+     "s1": 30.735,
+     "s2": 40.906,
+     "s3": 30.125,
+     "total": 101.766,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 27,
+     "s1": 30.735,
+     "s2": 40.625,
+     "s3": 29.728,
+     "total": 101.088,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 28,
+     "s1": 30.578,
+     "s2": 40.657,
+     "s3": 29.492,
+     "total": 100.727,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 29,
+     "s1": 30.891,
+     "s2": 40.937,
+     "s3": 29.8,
+     "total": 101.628,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 30,
+     "s1": 30.219,
+     "s2": 41.0,
+     "s3": 29.61,
+     "total": 100.829,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 31,
+     "s1": 30.39,
+     "s2": 40.953,
+     "s3": 29.696,
+     "total": 101.039,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 32,
+     "s1": 30.766,
+     "s2": 40.64,
+     "s3": 29.773,
+     "total": 101.179,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 33,
+     "s1": 31.015,
+     "s2": 40.954,
+     "s3": 30.043,
+     "total": 102.012,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 34,
+     "s1": 30.391,
+     "s2": 40.969,
+     "s3": 29.627,
+     "total": 100.987,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 35,
+     "s1": 30.469,
+     "s2": 40.89,
+     "s3": 29.379,
+     "total": 100.738,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 36,
+     "s1": 30.437,
+     "s2": 40.797,
+     "s3": 29.31,
+     "total": 100.544,
+     "invalid": false,
+     "note": ""
+    }
+   ],
+   "insights": [
+    {
+     "title": "三天三連進步 · 1:41.647 → 1:40.544",
+     "desc": "7/3 1:41.647 → 7/4 1:40.644 → 7/5 1:40.544(擷取值);官方榜達 1:40.454、全球 #464 / 前 1.22%。三天砍 1.2s,FR 的 DB11 抓到手感。"
+    },
+    {
+     "title": "🎯🚀 目標達成,剩 🏁",
+     "desc": "🎯 主要 +3%(1:41.706)、🚀 進階 +2%(1:40.719)皆達成;🏁 衝刺 +1%(1:39.731)還差約 0.72s。"
+    },
+    {
+     "title": "36 圈量大又穩",
+     "desc": "7/5 跑 36 圈,多圈壓進 1:40.5~1:40.8。"
+    },
+    {
+     "title": "分段待校正(現不估理論最佳)",
+     "desc": "尚無分段閘門,S1/S2/S3 為距離三等分估值、理論最佳暫等於 PB。給我官方分段時間截圖,建閘門後才準、才能逐彎分析。"
     }
    ]
   }
