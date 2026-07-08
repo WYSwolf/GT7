@@ -1,7 +1,7 @@
 {
  "meta": {
   "version": "1.8",
-  "lastUpdated": "2026-07-05",
+  "lastUpdated": "2026-07-08",
   "driver": "User",
   "schema": "GT7 Telemetry Training Data",
   "reference": {
@@ -15,14 +15,14 @@
     "time": 79.466,
     "displayTime": "1:19.466",
     "label": "世界第一 ghost",
-    "note": "GT7 官方排行 #1（2026-07-05 自動抓取）",
+    "note": "GT7 官方排行 #1（2026-07-08 自動抓取）",
     "csv": "telemetry/wr-911gt3r99222.csv"
    },
    "toyota86grmn16": {
     "time": 110.238,
     "displayTime": "1:50.238",
     "label": "世界第一 ghost",
-    "note": "GT7 官方排行 #1（2026-07-05 自動抓取）",
+    "note": "GT7 官方排行 #1（2026-07-08 自動抓取）",
     "csv": "telemetry/wr-toyota86grmn16.csv",
     "event": 580
    },
@@ -30,7 +30,7 @@
     "time": 90.92,
     "displayTime": "1:30.920",
     "label": "世界第一 ghost",
-    "note": "GT7 官方排行 #1（2026-07-05 自動抓取）",
+    "note": "GT7 官方排行 #1（2026-07-08 自動抓取）",
     "csv": "telemetry/wr-fordgt17.csv",
     "event": 594
    },
@@ -38,13 +38,13 @@
     "time": 102.38,
     "displayTime": "1:42.380",
     "label": "WR(GT7 全球#1)",
-    "note": "GT7 官方排行 #1（2026-07-05 自動抓取）"
+    "note": "GT7 官方排行 #1（2026-07-08 自動抓取）"
    },
    "astonmartindb1116": {
-    "time": 98.697,
-    "displayTime": "1:38.697",
+    "time": 98.556,
+    "displayTime": "1:38.556",
     "label": "WR(dg-edge 門檻推算,暫)",
-    "note": "GT7 官方排行 #1（2026-07-05 自動抓取）"
+    "note": "GT7 官方排行 #1（2026-07-08 自動抓取）"
    }
   },
   "guides": {
@@ -70,7 +70,7 @@
     "eventUrl": "https://www.dg-edge.com/events/time-trials/575",
     "eventLabel": "Time Trial · WeatherTech Laguna Seca · 911 GT3 R (992) '22 · RS",
     "source": "dg-edge.com",
-    "asOf": "2026-07-05",
+    "asOf": "2026-07-08",
     "totalPlayers": 208956,
     "wr": 79.466,
     "top100": 80.121,
@@ -105,7 +105,7 @@
      "rank": 7315,
      "pb": 81.645,
      "source": "gt(by-time)",
-     "asOf": "2026-07-05",
+     "asOf": "2026-07-08",
      "topPct": 3.5,
      "countryRank": 41
     },
@@ -117,7 +117,7 @@
     "eventUrl": "https://www.dg-edge.com/events/dailies/574",
     "eventLabel": "Daily Race C · Week 22 · Watkins Glen Long · GR.3",
     "source": "dg-edge.com",
-    "asOf": "2026-07-05",
+    "asOf": "2026-07-08",
     "endDate": "2026-06-01",
     "totalPlayers": 68784,
     "top100": 102.857,
@@ -155,7 +155,7 @@
      "rank": 30932,
      "pb": 106.837,
      "source": "gt(by-time)",
-     "asOf": "2026-07-05",
+     "asOf": "2026-07-08",
      "topPct": 44.97,
      "countryRank": 99
     },
@@ -164,7 +164,7 @@
    "deepforest__toyota86grmn16": {
     "event": 580,
     "eventUrl": "https://www.dg-edge.com/events/time-trials/580",
-    "asOf": "2026-07-05",
+    "asOf": "2026-07-08",
     "totalPlayers": 157534,
     "top100": 111.075,
     "top1000": 111.887,
@@ -184,7 +184,7 @@
      "rank": 2346,
      "pb": 112.366,
      "source": "gt(by-time)",
-     "asOf": "2026-07-05",
+     "asOf": "2026-07-08",
      "topPct": 1.49,
      "countryRank": 15
     },
@@ -204,7 +204,7 @@
     "eventUrl": "https://www.dg-edge.com/events/time-trials/594",
     "eventLabel": "Time Trial · Red Bull Ring · Ford GT '17 · SM",
     "source": "dg-edge.com",
-    "asOf": "2026-07-05",
+    "asOf": "2026-07-08",
     "totalPlayers": 180345,
     "wr": 90.92,
     "top100": 91.816,
@@ -227,7 +227,7 @@
      "rank": 1140,
      "pb": 92.515,
      "source": "gt(by-time)",
-     "asOf": "2026-07-05",
+     "asOf": "2026-07-08",
      "topPct": 0.63,
      "countryRank": 9
     },
@@ -239,11 +239,11 @@
     "eventUrl": "https://www.dg-edge.com/events/time-trials/603",
     "eventLabel": "Time Trial · Interlagos · Aston Martin DB11 '16 · SM",
     "source": "dg-edge.com + GT 官方榜 (screenshot 2026-07-05)",
-    "asOf": "2026-07-05",
-    "totalPlayers": 64451,
-    "wr": 98.697,
-    "top100": 99.853,
-    "top1000": 100.681,
+    "asOf": "2026-07-08",
+    "totalPlayers": 92584,
+    "wr": 98.556,
+    "top100": 99.763,
+    "top1000": 100.563,
     "medals": {
      "platinum": 99.238,
      "gold": 101.707,
@@ -252,15 +252,15 @@
     },
     "endDate": "2026-07-16",
     "playerRank": {
-     "rank": 582,
+     "rank": 770,
      "pb": 100.454,
      "source": "gt(by-time)",
-     "asOf": "2026-07-05",
-     "topPct": 0.9,
-     "countryRank": 5
+     "asOf": "2026-07-08",
+     "topPct": 0.83,
+     "countryRank": 6
     },
     "boardId": "p_rt_1014297_001",
-    "boardPages": 714
+    "boardPages": 974
    }
   },
   "sectorCalibration": {
@@ -527,21 +527,21 @@
    "items": [
     {
      "label": "🎯 主要",
-     "target": 101.658,
-     "displayTarget": "1:41.658",
-     "desc": "世界第一 +3%(門檻 1:41.658,WR 1:38.697)"
+     "target": 101.513,
+     "displayTarget": "1:41.513",
+     "desc": "世界第一 +3%(門檻 1:41.513,WR 1:38.556)"
     },
     {
      "label": "🚀 進階",
-     "target": 100.671,
-     "displayTarget": "1:40.671",
-     "desc": "世界第一 +2%(門檻 1:40.671,WR 1:38.697)"
+     "target": 100.527,
+     "displayTarget": "1:40.527",
+     "desc": "世界第一 +2%(門檻 1:40.527,WR 1:38.556)"
     },
     {
      "label": "🏁 衝刺",
-     "target": 99.684,
-     "displayTarget": "1:39.684",
-     "desc": "世界第一 +1%(門檻 1:39.684,WR 1:38.697)"
+     "target": 99.542,
+     "displayTarget": "1:39.542",
+     "desc": "世界第一 +1%(門檻 1:39.542,WR 1:38.556)"
     }
    ]
   }
