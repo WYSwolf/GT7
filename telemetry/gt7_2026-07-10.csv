@@ -1,0 +1,2 @@
+# gt7 capture | captured=2026-07-10T07:38:26 | track= | car= | packet=C | hz=0.0
+run_lap,inlap,carcode,lap_time,wall,t,spd,thr,brk,rpm,gear,x,z,yaw,latG,lonG,steer,tFL,tFR,tRL,tRR,vx,vz
