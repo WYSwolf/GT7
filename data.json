@@ -44,7 +44,7 @@
     "time": 98.556,
     "displayTime": "1:38.556",
     "label": "世界第一 ghost",
-    "note": "WR ghost 實錄(--replay 2026-07-11);GT7 replay 煞車/油門失真,走線與彎速可信、踏板僅參考。",
+    "note": "GT7 官方排行 #1（2026-07-11 自動抓取）",
     "csv": "telemetry/wr-astonmartindb1116.csv"
    }
   },
@@ -244,7 +244,7 @@
     "totalPlayers": 111529,
     "wr": 98.556,
     "top100": 99.699,
-    "top1000": 100.496,
+    "top1000": 100.495,
     "medals": {
      "platinum": 99.238,
      "gold": 101.707,
@@ -253,15 +253,15 @@
     },
     "endDate": "2026-07-16",
     "playerRank": {
-     "rank": 922,
+     "rank": 528,
      "pb": 100.225,
      "source": "gt(by-time)",
      "asOf": "2026-07-11",
-     "topPct": 0.83,
+     "topPct": 0.47,
      "countryRank": 7
     },
     "boardId": "p_rt_1014297_001",
-    "boardPages": 1172
+    "boardPages": 1173
    }
   },
   "sectorCalibration": {
