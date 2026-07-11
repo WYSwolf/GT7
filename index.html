@@ -1211,17 +1211,32 @@ function carSlug(car) {
 function computeStats(g) {
   g.totalLaps = g.sessions.reduce((s, x) => s + x.totalLaps, 0);
   g.pb = Math.min(...g.sessions.map(s => s.best));
-  const allS1 = g.sessions.flatMap(s => s.laps.map(l => l.s1));
-  const allS2 = g.sessions.flatMap(s => s.laps.map(l => l.s2));
-  const allS3 = g.sessions.flatMap(s => s.laps.map(l => l.s3));
   const sectorCount = g.sessions[0].sectorsCount;
-  if (sectorCount === 4) {
-    const allS4 = g.sessions.flatMap(s => s.laps.map(l => l.s4 || 0));
-    g.opt = Math.min(...allS1) + Math.min(...allS2) + Math.min(...allS3) + Math.min(...allS4);
-    g.sectorBest = { s1: Math.min(...allS1), s2: Math.min(...allS2), s3: Math.min(...allS3), s4: Math.min(...allS4) };
+  // 分段最佳只取「閘門命中可靠」的圈:排除 sBad(位置雜訊/誤判分段的圈,如 7/4)與無效圈。
+  // 沒有可靠圈時退用全部有效圈(避免空集合)。
+  const good = g.sessions.flatMap(s => s.laps.filter(l => !l.sBad && !l.invalid));
+  const pool = good.length ? good : g.sessions.flatMap(s => s.laps.filter(l => !l.invalid));
+  const mn = k => Math.min(...pool.map(l => (l[k] != null ? l[k] : Infinity)));
+  const optRaw = sectorCount === 4 ? mn('s1') + mn('s2') + mn('s3') + mn('s4')
+                                   : mn('s1') + mn('s2') + mn('s3');
+  // 未校正/誤校正賽道(距離等三分,或閘門沒對準):分段界線漂移,加總的「理論最佳」會荒謬地
+  // 比 WR 還快而拉爆圈速圖。偵測(標了 equal-thirds,或 PB−理論最佳落差 >6% 這種物理不可能量)→
+  // 不估理論最佳:opt = PB、sectorBest 用 PB 那圈自己的分段。校正後(gate)則正常估。
+  const labeledUncal = g.sessions.some(s => /equal-thirds/.test(s.sectorSource || ''));
+  const implausible = optRaw < g.pb * 0.94;
+  if (labeledUncal || implausible) {
+    g.uncalibrated = true;
+    g.opt = g.pb;
+    let pbLap = null;
+    g.sessions.forEach(s => s.laps.forEach(l => { if (Math.abs(l.total - g.pb) < 1e-6) pbLap = l; }));
+    const pbSession = g.sessions.reduce((a, b) => b.best < a.best ? b : a);
+    const sb = pbLap || pbSession.sectorBest || pbSession.laps.reduce((a, b) => b.total < a.total ? b : a);
+    g.sectorBest = sectorCount === 4 ? { s1: sb.s1, s2: sb.s2, s3: sb.s3, s4: sb.s4 || 0 }
+                                     : { s1: sb.s1, s2: sb.s2, s3: sb.s3 };
   } else {
-    g.opt = Math.min(...allS1) + Math.min(...allS2) + Math.min(...allS3);
-    g.sectorBest = { s1: Math.min(...allS1), s2: Math.min(...allS2), s3: Math.min(...allS3) };
+    g.opt = optRaw;
+    g.sectorBest = sectorCount === 4 ? { s1: mn('s1'), s2: mn('s2'), s3: mn('s3'), s4: mn('s4') }
+                                     : { s1: mn('s1'), s2: mn('s2'), s3: mn('s3') };
   }
   g.bestConsistency = Math.min(...g.sessions.map(s => s.avg - s.best));
   g.sectorCount = sectorCount;
@@ -1819,7 +1834,7 @@ function renderCarSection(g) {
     ${guidesHTML}
     <div class="kpi-grid">
       <div class="kpi" style="--kpi-color: var(--accent);"><div class="kpi-label">PERSONAL BEST</div><div class="kpi-value">${fmtTime(g.pb)}</div></div>
-      <div class="kpi" style="--kpi-color: var(--purple);"><div class="kpi-label">OPTIMAL LAP</div><div class="kpi-value">${fmtTime(g.opt)}</div><div class="kpi-meta">${g.sectorCount} sector 加總</div></div>
+      <div class="kpi" style="--kpi-color: var(--purple);"><div class="kpi-label">OPTIMAL LAP</div><div class="kpi-value">${fmtTime(g.opt)}</div><div class="kpi-meta">${g.uncalibrated ? '分段未校正,暫=PB' : g.sectorCount + ' sector 加總'}</div></div>
       ${gapKPI}
       <div class="kpi" style="--kpi-color: var(--gold);"><div class="kpi-label">PB - OPT</div><div class="kpi-value">${gap.toFixed(3)}<span style="font-size:1rem;">s</span></div><div class="kpi-meta">潛力空間</div></div>
       <div class="kpi" style="--kpi-color: ${consGrade.color};"><div class="kpi-label">一致性</div><div class="kpi-value">${avgConsistency.toFixed(2)}<span style="font-size:1rem;">s</span></div><div class="kpi-meta">${consGrade.label}</div></div>
@@ -1900,7 +1915,7 @@ function drawSectorBalance(canvasId, sessions, sectorCount) {
   const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
   const std = a => { const m = avg(a); return Math.sqrt(avg(a.map(v => (v - m) * (v - m)))); };
   const all = [];
-  sessions.forEach(s => s.laps.filter(l => !l.invalid).forEach(l => all.push({ ...l, date: s.date })));
+  sessions.forEach(s => s.laps.filter(l => !l.invalid && !l.sBad).forEach(l => all.push({ ...l, date: s.date })));
   if (all.length < 3) return;
   const keys = sectorCount === 4 ? ['s1', 's2', 's3', 's4'] : ['s1', 's2', 's3'];
   const meanT = avg(all.map(l => l.total)), sdT = std(all.map(l => l.total)) || 1e-9;
@@ -1956,7 +1971,7 @@ function drawSectorLine(canvasId, sessions, sectorCount) {
   const el = document.getElementById(canvasId);
   if (!el) return;
   const byDate = {};
-  sessions.forEach(s => { (byDate[s.date] = byDate[s.date] || []).push(...s.laps.filter(l => !l.invalid)); });
+  sessions.forEach(s => { (byDate[s.date] = byDate[s.date] || []).push(...s.laps.filter(l => !l.invalid && !l.sBad)); });
   const dates = Object.keys(byDate).sort();
   const keys = sectorCount === 4 ? ['s1', 's2', 's3', 's4'] : ['s1', 's2', 's3'];
   const colors = { s1: '#4dabf7', s2: '#ff4757', s3: '#ffd43b', s4: '#00ff88' };
@@ -2027,7 +2042,7 @@ function drawSectorTrajectory(canvasId, sessions, sectorCount) {
   const at = (a,i) => a[Math.max(0,Math.min(a.length-1,i))];
   const cr = (p0,p1,p2,p3,t) => { const t2=t*t,t3=t2*t; return 0.5*(2*p1+(-p0+p2)*t+(2*p0-5*p1+4*p2-p3)*t2+(-p0+3*p1-3*p2+p3)*t3); };
   const byDate = {};
-  sessions.forEach(s => { (byDate[s.date] = byDate[s.date] || []).push(...s.laps.filter(l => !l.invalid)); });
+  sessions.forEach(s => { (byDate[s.date] = byDate[s.date] || []).push(...s.laps.filter(l => !l.invalid && !l.sBad)); });
   const dates = Object.keys(byDate).sort();
   const series = [['total','#e8ecf1',[],3.5], ['s1','#4dabf7',[6,4],1.5], ['s2','#ff4757',[2,3],1.5], ['s3','#ffd43b',[10,4,2,4],1.5]];
   if (sectorCount === 4) series.push(['s4','#00ff88',[4,4],1.5]);
@@ -2193,15 +2208,17 @@ function renderCarCharts(g) {
         ctx.font = "10px 'JetBrains Mono'";
         ctx.textAlign = 'left';
         ctx.fillText(`PB ${fmtTime(g.pb)}`, chartArea.right - 100, pbY - 5);
-        ctx.setLineDash([2, 3]);
-        ctx.strokeStyle = '#c266ff';
-        const optY = scales.y.getPixelForValue(g.opt);
-        ctx.beginPath();
-        ctx.moveTo(chartArea.left, optY);
-        ctx.lineTo(chartArea.right, optY);
-        ctx.stroke();
-        ctx.fillStyle = '#c266ff';
-        ctx.fillText(`OPT ${fmtTime(g.opt)}`, chartArea.right - 100, optY - 5);
+        if (!g.uncalibrated) {   // 未校正時 opt=PB,不重複畫紫線
+          ctx.setLineDash([2, 3]);
+          ctx.strokeStyle = '#c266ff';
+          const optY = scales.y.getPixelForValue(g.opt);
+          ctx.beginPath();
+          ctx.moveTo(chartArea.left, optY);
+          ctx.lineTo(chartArea.right, optY);
+          ctx.stroke();
+          ctx.fillStyle = '#c266ff';
+          ctx.fillText(`OPT ${fmtTime(g.opt)}`, chartArea.right - 100, optY - 5);
+        }
         ctx.restore();
       }
     }]
@@ -2248,7 +2265,7 @@ function renderCarCharts(g) {
   drawSectorLine('sectorLineChart-' + g.key, g.sessions, g.sectorCount);
   drawSectorBalance('quadChart-' + g.key, g.sessions, g.sectorCount);
 
-  const valid = allLaps.filter(l => !l.invalid);
+  const valid = allLaps.filter(l => !l.invalid && !l.sBad);
   let losses = { s1: 0, s2: 0, s3: 0, s4: 0 };
   valid.forEach(l => {
     losses.s1 += l.s1 - g.sectorBest.s1;
@@ -2281,22 +2298,25 @@ function renderCarCharts(g) {
     }
   });
 
-  const stackS1 = allLaps.map(l => l.s1 - g.sectorBest.s1);
-  const stackS2 = allLaps.map(l => l.s2 - g.sectorBest.s2);
-  const stackS3 = allLaps.map(l => l.s3 - g.sectorBest.s3);
+  // 只堆疊分段可靠的圈(排除 sBad),X 軸重新編號
+  const stackLaps = allLaps.filter(l => !l.sBad);
+  const stackLabels = stackLaps.map((_, i) => i + 1);
+  const stackS1 = stackLaps.map(l => l.s1 - g.sectorBest.s1);
+  const stackS2 = stackLaps.map(l => l.s2 - g.sectorBest.s2);
+  const stackS3 = stackLaps.map(l => l.s3 - g.sectorBest.s3);
   const datasets = [
     { label: 'S1', data: stackS1, backgroundColor: '#4dabf7' },
     { label: 'S2', data: stackS2, backgroundColor: '#ff4757' },
     { label: 'S3', data: stackS3, backgroundColor: '#ffd43b' },
   ];
   if (g.sectorCount === 4) {
-    const stackS4 = allLaps.map(l => (l.s4 || 0) - g.sectorBest.s4);
+    const stackS4 = stackLaps.map(l => (l.s4 || 0) - g.sectorBest.s4);
     datasets.push({ label: 'S4', data: stackS4, backgroundColor: '#00ff88' });
   }
 
   new Chart(document.getElementById('stackChart-' + g.key), {
     type: 'bar',
-    data: { labels, datasets },
+    data: { labels: stackLabels, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
