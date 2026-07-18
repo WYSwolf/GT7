@@ -2548,15 +2548,16 @@ function buildHistory() {
   Object.values(groups).forEach(g => {
     const wr = (getCarReference(g.carKey || carSlug(g.car)) || {}).time;
     if (!wr) return;
-    // 以「日」為單位:當日最佳距 WR %
-    const byDate = {};
-    g.sessions.forEach(s => { (byDate[s.date] = byDate[s.date] || []).push(...s.laps.filter(l => !l.invalid).map(l => l.total)); });
-    const dates = Object.keys(byDate).sort();
+    // 以「日」為單位:當日最佳距 WR %。用 session.best(權威 PB,含官方成績覆蓋),
+    // 而非擷取圈的最小值 —— 破 PB 的快圈若沒被 capture 錄到,laps 最小值會高估差距。
+    const bestByDate = {};
+    g.sessions.forEach(s => { bestByDate[s.date] = Math.min(bestByDate[s.date] || Infinity, s.best); });
+    const dates = Object.keys(bestByDate).sort();
     if (!dates.length) return;
     const t0 = Date.parse(dates[0]);
     const dayNum = d => Math.round((Date.parse(d) - t0) / 86400000) + 1;   // 距該賽道第一天的天數(第一天=Day 1),沒玩的日子自然留空
-    const pts = dates.map(d => ({ x: dayNum(d), y: +(((Math.min(...byDate[d]) - wr) / wr) * 100).toFixed(3) }));
-    plot.push({ g, sorted: dates.map(d => ({ date: d, best: Math.min(...byDate[d]) })), pts, last: dates[dates.length - 1] });
+    const pts = dates.map(d => ({ x: dayNum(d), y: +(((bestByDate[d] - wr) / wr) * 100).toFixed(3) }));
+    plot.push({ g, sorted: dates.map(d => ({ date: d, best: bestByDate[d] })), pts, last: dates[dates.length - 1] });
   });
   const datasets = makeFadedLines(plot);
   new Chart(canvas, {
