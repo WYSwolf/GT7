@@ -1,7 +1,7 @@
 {
  "meta": {
   "version": "1.8",
-  "lastUpdated": "2026-07-11",
+  "lastUpdated": "2026-07-18",
   "driver": "User",
   "schema": "GT7 Telemetry Training Data",
   "reference": {
@@ -46,6 +46,12 @@
     "label": "世界第一 ghost",
     "note": "GT7 官方排行 #1（2026-07-11 自動抓取）",
     "csv": "telemetry/wr-astonmartindb1116.csv"
+   },
+   "mitsubishiftogpversionr97": {
+    "time": 117.184,
+    "displayTime": "1:57.184",
+    "label": "WR(dg-edge 差距推算,暫)",
+    "note": "由你的 1:59.304(dg-edge +2.120s / 全球#964)回推;待 gt7_rank 從 GT 官方榜抓取後覆蓋。"
    }
   },
   "guides": {
@@ -262,6 +268,22 @@
     },
     "boardId": "p_rt_1014297_001",
     "boardPages": 1173
+   },
+   "kyotoyamagiwarev__mitsubishiftogpversionr97": {
+    "mode": "time-trial",
+    "eventUrl": "",
+    "eventLabel": "Time Trial · Kyoto Yamagiwa Rev",
+    "source": "實測(dg-edge 截圖 2026-07-18)",
+    "asOf": "2026-07-18",
+    "endDate": "2026-07-30",
+    "wr": 117.184,
+    "playerRank": {
+     "rank": 964,
+     "pb": 119.304,
+     "source": "實測(dg-edge截圖)",
+     "asOf": "2026-07-18",
+     "countryRank": 8
+    }
    }
   },
   "sectorCalibration": {
@@ -466,6 +488,10 @@
    "astonmartindb1116": {
     "class": "road",
     "drivetrain": "FR"
+   },
+   "mitsubishiftogpversionr97": {
+    "class": "road",
+    "drivetrain": "FF"
    }
   },
   "trackTags": {
@@ -477,6 +503,11 @@
    "interlagos": {
     "profile": "mixed",
     "lengthKm": 4.309,
+    "dir": "ccw"
+   },
+   "kyotoyamagiwarev": {
+    "profile": "mixed",
+    "lengthKm": 4.836,
     "dir": "ccw"
    }
   }
@@ -566,6 +597,35 @@
      "target": 99.542,
      "displayTarget": "1:39.542",
      "desc": "世界第一 +1%(門檻 1:39.542,WR 1:38.556)"
+    }
+   ]
+  },
+  {
+   "track": "京都 山際(反向)",
+   "trackKey": "kyotoyamagiwarev",
+   "car": "Mitsubishi FTO GP Version R '97",
+   "priority": "primary",
+   "eventEnd": "2026-07-30",
+   "eventLabel": "Time Trial · Kyoto Yamagiwa Rev",
+   "baseline": 119.304,
+   "items": [
+    {
+     "label": "🎯 主要",
+     "target": 120.7,
+     "displayTarget": "2:00.700",
+     "desc": "世界第一 +3%(門檻 2:00.700,WR 1:57.184)"
+    },
+    {
+     "label": "🚀 進階",
+     "target": 119.528,
+     "displayTarget": "1:59.528",
+     "desc": "世界第一 +2%(門檻 1:59.528,WR 1:57.184)"
+    },
+    {
+     "label": "🏁 衝刺",
+     "target": 118.356,
+     "displayTarget": "1:58.356",
+     "desc": "世界第一 +1%(門檻 1:58.356,WR 1:57.184)"
     }
    ]
   }
@@ -9695,6 +9755,200 @@
     {
      "title": "🎯🚀 達成,剩 🏁 · 記得刷名次",
      "desc": "🏁 衝刺+1%(1:39.542)以新 PB 只差 0.683s。上傳後跑一次[3]只刷名次,名次會用 1:40.225 重算。"
+    }
+   ]
+  },
+  {
+   "date": "2026-07-18",
+   "track": "京都 山際(反向)",
+   "trackKey": "kyotoyamagiwarev",
+   "trackEn": "KYOTO YAMAGIWA REV",
+   "route": "Yamagiwa Reverse",
+   "car": "Mitsubishi FTO GP Version R '97",
+   "carSlug": "mitsubishiftogpversionr97",
+   "carClass": "道路",
+   "tire": "SH",
+   "sectorsCount": 4,
+   "mode": "time-trial",
+   "eventUrl": "",
+   "eventLabel": "Time Trial · Kyoto Yamagiwa Rev · Mitsubishi FTO GP Version R '97 · SH",
+   "csv": "telemetry/gt7-2026-07-18.csv",
+   "sectorSource": "equal-thirds(距離四等分,暫;未校正);sectorBest 取自官方分段截圖",
+   "session": "A",
+   "id": "2026-07-18-kyotoyamagiwarev-A",
+   "totalLaps": 14,
+   "sessionLabel": "7/18 場次一",
+   "best": 119.304,
+   "avg": 120.58,
+   "worst": 121.329,
+   "opt": 119.304,
+   "sectorBest": {
+    "s1": 30.01,
+    "s2": 32.768,
+    "s3": 22.723,
+    "s4": 33.803
+   },
+   "topSpeed": 194,
+   "notes": "14 圈(1 無效)。60Hz。★ best 為官方榜最快 1:59.304(#964),此圈未被 gt7_capture 錄到;擷取到最快為 119.889(1:59.889)。分段暫距離四等分未校正;sectorBest/opt 取自官方分段截圖(S1 30.010/S2 32.768/S3 22.723/S4 33.803)。",
+   "pbRl": 11,
+   "laps": [
+    {
+     "lap": 1,
+     "s1": 32.875,
+     "s2": 34.828,
+     "s3": 27.344,
+     "s4": 27.637,
+     "total": 122.684,
+     "invalid": true,
+     "note": "⚠ 離群(慢)"
+    },
+    {
+     "lap": 2,
+     "s1": 32.64,
+     "s2": 34.188,
+     "s3": 26.515,
+     "s4": 27.66,
+     "total": 121.003,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 3,
+     "s1": 32.313,
+     "s2": 34.468,
+     "s3": 26.578,
+     "s4": 27.448,
+     "total": 120.807,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 4,
+     "s1": 32.109,
+     "s2": 33.985,
+     "s3": 26.64,
+     "s4": 27.203,
+     "total": 119.937,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 5,
+     "s1": 32.234,
+     "s2": 34.266,
+     "s3": 26.766,
+     "s4": 27.283,
+     "total": 120.549,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 6,
+     "s1": 32.328,
+     "s2": 34.5,
+     "s3": 26.422,
+     "s4": 27.526,
+     "total": 120.776,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 7,
+     "s1": 32.468,
+     "s2": 34.297,
+     "s3": 26.844,
+     "s4": 27.629,
+     "total": 121.238,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 8,
+     "s1": 32.5,
+     "s2": 34.453,
+     "s3": 26.343,
+     "s4": 27.099,
+     "total": 120.395,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 9,
+     "s1": 31.734,
+     "s2": 34.25,
+     "s3": 26.422,
+     "s4": 27.955,
+     "total": 120.361,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 10,
+     "s1": 32.344,
+     "s2": 35.109,
+     "s3": 26.563,
+     "s4": 27.313,
+     "total": 121.329,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 11,
+     "s1": 32.188,
+     "s2": 34.203,
+     "s3": 26.484,
+     "s4": 27.014,
+     "total": 119.889,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 12,
+     "s1": 32.547,
+     "s2": 34.078,
+     "s3": 26.391,
+     "s4": 27.27,
+     "total": 120.286,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 13,
+     "s1": 31.906,
+     "s2": 34.344,
+     "s3": 26.891,
+     "s4": 27.229,
+     "total": 120.37,
+     "invalid": false,
+     "note": ""
+    },
+    {
+     "lap": 14,
+     "s1": 32.109,
+     "s2": 34.813,
+     "s3": 26.328,
+     "s4": 27.348,
+     "total": 120.598,
+     "invalid": false,
+     "note": ""
+    }
+   ],
+   "insights": [
+    {
+     "title": "🆕 新場次 Kyoto 山際(反向) · FTO GP",
+     "desc": "首戰 1:59.304,全球 #964 / 台灣 #8(前段班)。距 WR(約 1:57.18)+1.81%。"
+    },
+    {
+     "title": "⚠ 你的最佳圈沒被錄到",
+     "desc": "官方 PB 1:59.304 不在這次 capture 裡(擷取到最快 1:59.889,差 0.585s)。應該是那快圈在你開始錄之前就跑掉了。下次手感來時確認 capture 有在收(hz≠0、run_lap 有動)再拚。"
+    },
+    {
+     "title": "🎯🚀 達成,剩 🏁",
+     "desc": "🎯 +3%(2:00.699)、🚀 +2%(1:59.528)已達成;🏁 +1%(1:58.356)以 PB 1:59.304 還差 0.948s。"
+    },
+    {
+     "title": "分段待校正",
+     "desc": "新賽道分段暫用距離四等分(逐段圖先隱藏)。給我一張你「有錄到的快圈」對應的官方四段截圖,就能建閘門校正、解鎖逐段分析。"
     }
    ]
   }
